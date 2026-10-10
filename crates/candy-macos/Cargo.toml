@@ -1,0 +1,19 @@
+[package]
+name = "candy-macos"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+image.workspace = true
+candy-core = { path = "../candy-core" }
+objc2 = "0.6.3"
+objc2-foundation = "0.3.2"
+objc2-core-foundation = "0.3.2"
+objc2-core-graphics = "0.3.2"
+objc2-image-io = "0.3.2"
+objc2-vision = "0.3.2"
+
+[dev-dependencies]
+tempfile.workspace = true
