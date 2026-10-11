@@ -80,6 +80,12 @@ live in the SwiftPM package under `macos`.
   identifies tmux/screen. A standalone terminal launched from an agent or tmux
   can inherit a stale `TMUX`; clear it only in that isolated test process when
   verifying direct-terminal detection. Do not change the user's global setup.
+- Inside tmux, Kitty output must be passthrough plus Unicode placeholders; bare
+  graphics commands become the pane title. Placeholder image IDs avoid colour
+  indices 0–15, which tmux replaces with `pane-colours`. Verify in a real
+  terminal attached to an isolated server (`tmux -L <name>`) using the user's
+  tmux binary and config. Attach before sending the image (output during attach
+  can be lost), and remember that a detached server has no outer terminal.
 - Capability probing temporarily changes tty mode and signal masks. Preserve
   the RAII restoration on success, timeout and errors.
 - Before native mouse automation, read the current window bounds and target PID
