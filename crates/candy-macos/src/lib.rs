@@ -8,14 +8,12 @@ use objc2_core_foundation::{CFData, CFDictionary, CFNumber, CFString, CGPoint, C
 use objc2_core_graphics::{
     CGBitmapContextCreate, CGColorSpace, CGContext, CGImage, kCGColorSpaceSRGB,
 };
-use objc2_foundation::{NSArray, NSData, NSDictionary, NSString};
+use objc2_foundation::{NSArray, NSData, NSDictionary};
 use objc2_image_io::{
     CGImageSource, kCGImagePropertyOrientation, kCGImagePropertyPixelHeight,
     kCGImagePropertyPixelWidth,
 };
-use objc2_vision::{
-    VNImageRequestHandler, VNRecognizeTextRequest, VNRequest, VNRequestTextRecognitionLevel,
-};
+use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::{io::Cursor, path::Path};
 
 pub fn load(path: &Path) -> Result<RgbaImage> {
@@ -105,12 +103,6 @@ fn property_number(props: &CFDictionary, key: &CFString) -> Option<i64> {
     unsafe { ptr.cast::<CFNumber>().as_ref() }.and_then(CFNumber::as_i64)
 }
 
-#[derive(Clone, Debug)]
-pub struct TextRegion {
-    pub rect: PixelRect,
-    pub text: String,
-}
-
 /// Vision uses normalized, bottom-left coordinates; Candy uses top-left pixels.
 pub fn vision_rect(
     x: f64,
@@ -138,8 +130,12 @@ pub fn vision_rect(
     )
 }
 
-pub fn detect_text(image: &RgbaImage) -> Result<Vec<TextRegion>> {
+/// Detect candidate text bounds without transcribing their contents.
+/// Recognition is unnecessary for mosaic and can spend tens of seconds compiling
+/// Neural Engine language models, even when an image contains no text.
+pub fn detect_text(image: &RgbaImage) -> Result<Vec<PixelRect>> {
     autoreleasepool(|_| {
+        let started = std::time::Instant::now();
         let mut encoded = Cursor::new(Vec::new());
         DynamicImage::ImageRgba8(image.clone()).write_to(&mut encoded, ImageFormat::Png)?;
         let data = NSData::with_bytes(encoded.get_ref());
@@ -148,26 +144,32 @@ pub fn detect_text(image: &RgbaImage) -> Result<Vec<TextRegion>> {
             &data,
             &NSDictionary::new(),
         );
-        let request = VNRecognizeTextRequest::new();
-        request.setRecognitionLevel(VNRequestTextRecognitionLevel::Accurate);
-        request.setAutomaticallyDetectsLanguage(true);
-        // Restrict hints to languages the installed Vision revision supports.
-        let supported = unsafe { request.supportedRecognitionLanguagesAndReturnError() }
-            .map_err(|e| anyhow::anyhow!("Cannot query OCR languages: {e}"))?;
-        let hints: Vec<_> = ["ko-KR", "en-US"]
-            .iter()
-            .filter(|lang| supported.iter().any(|v| v.to_string() == **lang))
-            .map(|lang| NSString::from_str(lang))
-            .collect();
-        if !hints.is_empty() {
-            request.setRecognitionLanguages(&NSArray::from_retained_slice(&hints));
-        }
+        let prepared = started.elapsed();
+        // SAFETY: This request is created and used on this worker thread.
+        let request = unsafe { VNDetectTextRectanglesRequest::new() };
         let requests = NSArray::<VNRequest>::from_slice(&[&request]);
-        handler
-            .performRequests_error(&requests)
-            .map_err(|e| anyhow::anyhow!("Text detection failed: {e}"))?;
+        let configured = started.elapsed();
+        let timing = std::env::var_os("CANDY_OCR_TIMING").is_some();
+        if timing {
+            eprintln!(
+                "Text detection {}x{}: prepare={prepared:?}, configure={:?}; starting Vision",
+                image.width(),
+                image.height(),
+                configured - prepared
+            );
+        }
+        let result = handler.performRequests_error(&requests);
+        if timing {
+            eprintln!(
+                "Text detection Vision={:?}, success={}",
+                started.elapsed() - configured,
+                result.is_ok()
+            );
+        }
+        result.map_err(|e| anyhow::anyhow!("Text detection failed: {e}"))?;
         let mut regions = Vec::new();
-        if let Some(results) = request.results() {
+        // SAFETY: The request has completed; its retained observations stay local.
+        if let Some(results) = unsafe { request.results() } {
             for observation in results.iter() {
                 // SAFETY: The observation is a retained Vision rectangle observation.
                 let bounds = unsafe { observation.boundingBox() };
@@ -179,12 +181,7 @@ pub fn detect_text(image: &RgbaImage) -> Result<Vec<TextRegion>> {
                     image.width(),
                     image.height(),
                 ) {
-                    let text = observation
-                        .topCandidates(1)
-                        .firstObject()
-                        .map(|c| c.string().to_string())
-                        .unwrap_or_default();
-                    regions.push(TextRegion { rect, text });
+                    regions.push(rect);
                 }
             }
         }

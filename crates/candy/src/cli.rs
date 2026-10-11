@@ -96,7 +96,7 @@ pub fn run(cli: Cli) -> Result<()> {
             let regions = if text {
                 let regions = candy_macos::detect_text(image)?;
                 eprintln!("Detected {} text regions", regions.len());
-                regions.into_iter().map(|r| r.rect).collect()
+                regions
             } else {
                 vec![rect.context("Specify --rect or --text")?]
             };

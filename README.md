@@ -110,7 +110,10 @@ OCR boxes are locked while detection runs. Other tools remain available; editing
 the image discards the old detection result. During quit confirmation all
 documents are locked; cancellation restores interaction and opens queued files.
 
-OCR can miss text. Review the detected regions before sharing an edited image;
+Text detection finds candidate bounds without transcribing the words. It uses
+Vision's text-region detector, avoiding OCR language-model startup even on images
+without text. It can miss text or mistake graphics for text. Review the detected
+regions before sharing an edited image;
 mosaic is a visual effect, not a guarantee of irreversible redaction.
 
 ## CLI edits
@@ -144,7 +147,7 @@ loaded. Images are limited to approximately 64 megapixels. The GUI preview is
 limited to 4096 pixels per side; edits and saves use full image resolution.
 
 This version has no layers, animation editing, cloud services or LLM integration.
-OCR runs locally and sends no image data to a service. Detection quality and
+Text detection runs locally and sends no image data to a service. Detection quality and
 codec availability depend on the installed macOS version.
 
 ## Development
@@ -159,7 +162,7 @@ scripts/build-app.sh
 ```
 
 - `candy-core`: pixel operations, edit history and atomic export.
-- `candy-macos`: shared Image I/O decoding and Apple Vision OCR.
+- `candy-macos`: shared Image I/O decoding and Apple Vision text detection.
 - `candy-ffi`: synchronous C ABI, owned document/image handles, bounded previews.
 - `candy`: Rust CLI, Kitty graphics protocol and native-app launcher.
 - `macos`: SwiftPM AppKit application, document coordination and canvas interaction.
@@ -181,9 +184,19 @@ and is not included in release builds.
 
 Tests cover edit boundaries, alpha compositing, save protection, undo state,
 terminal encoding, FFI ownership, native document/async-state regressions, all five input formats, EXIF
-orientation and Korean/English OCR. Synthetic fixtures can be regenerated with
+orientation and Korean/English text-region coverage. Synthetic fixtures can be regenerated with
 `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
 GitHub Actions runs the checks and produces a zipped local app bundle on macOS.
+
+To profile text detection on synthetic blank, graphical, Korean/English and large
+images (requires normal macOS Vision access):
+
+```sh
+CANDY_OCR_TIMING=1 cargo run --locked --release -p candy-macos --example ocr-timing
+```
+
+The opt-in log separates image preparation from Vision execution and reports no
+image contents. Timings depend on the machine and macOS version.
 
 MIT licensed. See [PRODUCT.md](PRODUCT.md) for scope and [DESIGN.md](DESIGN.md)
 for the editor's visual conventions.

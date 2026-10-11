@@ -363,10 +363,10 @@ pub unsafe extern "C" fn candy_image_detect(
         let regions: Box<[_]> = candy_macos::detect_text(&image.0)?
             .into_iter()
             .map(|r| CandyRect {
-                x: r.rect.x,
-                y: r.rect.y,
-                width: r.rect.width,
-                height: r.rect.height,
+                x: r.x,
+                y: r.y,
+                width: r.width,
+                height: r.height,
             })
             .collect();
         let count = regions.len();
