@@ -25,6 +25,9 @@ live in the SwiftPM package under `macos`.
 - `scripts/build-app.sh` creates an ad-hoc signed local bundle. Public releases
   use `scripts/release.sh` for Developer ID signing and notarization; see
   `docs/releasing.md`. Release binaries currently support Apple Silicon only.
+- The app icon is `macos/Resources/AppIcon.icns`, rendered from
+  `scripts/icon/*.svg` by `scripts/build-icon.sh`. Edit the SVGs, regenerate,
+  and commit both; app builds do not require `rsvg-convert`.
 - Test fixtures are synthetic. Regenerate with
   `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
   Do not add personal screenshots or contact details as fixtures.

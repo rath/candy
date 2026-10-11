@@ -67,7 +67,7 @@ The bundle is ad-hoc signed for local use, not Developer ID signed or notarized.
 Each build stages a clean bundle before replacing `dist/Candy.app`.
 Open images from the File menu, drag and drop, Finder Open With, or the CLI.
 The bundle declares supported document types without changing your default
-image application. An application icon is not included in this draft.
+image application.
 
 ## Terminal workflow
 
@@ -203,6 +203,11 @@ terminal encoding, FFI ownership, native document/async-state regressions, all f
 orientation and Korean/English text-region coverage. Synthetic fixtures can be regenerated with
 `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
 GitHub Actions runs the checks and produces a zipped local app bundle on macOS.
+
+The application icon is committed as `macos/Resources/AppIcon.icns`. Its sources
+are `scripts/icon/app-icon.svg` and the simplified 16-point
+`scripts/icon/app-icon-small.svg`. After editing either, regenerate it with
+`scripts/build-icon.sh` (requires `rsvg-convert` from Homebrew `librsvg`).
 
 To profile text detection on synthetic blank, graphical, Korean/English and large
 images (requires normal macOS Vision access):
