@@ -1,6 +1,6 @@
-# Candy
+<p align="center"><img src="docs/assets/app-icon.png" width="128" height="128" alt="Candy app icon" /></p>
 
-[Website](https://candy.told.me/) · [한국어](https://candy.told.me/ko/)
+# Candy
 
 A small image tool for your Mac. View an image in a Kitty-compatible terminal,
 then open a lightweight editor when you need to change it.
