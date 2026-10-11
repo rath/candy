@@ -111,8 +111,8 @@ the image discards the old detection result. During quit confirmation all
 documents are locked; cancellation restores interaction and opens queued files.
 
 Text detection finds candidate bounds without transcribing the words. It uses
-Vision's text-region detector, avoiding OCR language-model startup even on images
-without text. It can miss text or mistake graphics for text. Review the detected
+Vision's text-region detector with full-resolution pixels supplied directly,
+avoiding PNG conversion and OCR language-model startup even on images without text. It can miss text or mistake graphics for text. Review the detected
 regions before sharing an edited image;
 mosaic is a visual effect, not a guarantee of irreversible redaction.
 
