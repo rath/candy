@@ -13,32 +13,36 @@ colors:
   handle-fill: "#FFFFFF"
 typography:
   headline:
-    fontFamily: "egui proportional"
-    fontSize: "24pt"
-  title:
-    fontFamily: "egui proportional"
-    fontSize: "17pt"
+    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontSize: "22pt"
+  heading:
+    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontSize: "15pt"
   body:
-    fontFamily: "egui proportional"
-    fontSize: "14pt"
+    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontSize: "13pt"
   label:
-    fontFamily: "egui proportional"
-    fontSize: "14pt"
+    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontSize: "13pt"
   small:
-    fontFamily: "egui proportional"
-    fontSize: "12pt"
+    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontSize: "11pt"
 rounded:
+  control: "6pt"
   canvas: "0pt"
   selection-handle: "1pt"
 spacing:
-  item: "8pt"
+  item-horizontal: "8pt"
+  item-vertical: "6pt"
   button-horizontal: "10pt"
-  button-vertical: "6pt"
+  button-vertical: "4pt"
+  panel-inset: "12pt"
   section: "12pt"
 components:
   button:
     typography: "{typography.label}"
-    padding: "6pt 10pt"
+    padding: "4pt 10pt"
+    rounded: "{rounded.control}"
   canvas-light:
     backgroundColor: "{colors.canvas-light}"
     rounded: "{rounded.canvas}"
@@ -57,15 +61,16 @@ components:
 
 **Creative North Star: "A familiar Preview-like image workspace"**
 
-Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. Compact text controls, contextual options, document tabs, and a status strip surround the canvas. The application follows the system light or dark appearance.
+Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. File, history, view and tool commands live in the macOS menu bar; the window holds a tool strip with contextual options, document tabs when more than one image is open, the canvas, and a status strip. The application follows the system light or dark appearance.
 
 **Key Characteristics:**
-- Text labels for editing tools and file actions.
+- Native menu bar for commands; text labels for in-window tool selection.
+- The macOS system font at macOS control sizes.
 - Coral selection accents on neutral editor surfaces.
-- A flexible canvas with compact, wrapping control rows.
+- One shared horizontal inset so panels line up down the window.
 - Visible document, selection, progress, and error state.
 
-This document records the implemented native egui interface. Token lengths use egui logical points; they are not CSS sizing instructions. Source of truth: `crates/candy/src/gui.rs` (`configure`, `toolbar`, `tabs`, `options`, `status`, `close_dialog`, and `ui`) and `crates/candy/src/canvas.rs` (`Canvas::show`). The light appearance and compact-window composition were visually checked against `.impeccable/review/editor-final.png` and `.impeccable/review/editor-small-final.png`. Dark colors are verified from code, not those captures.
+This document records the implemented native egui interface. Token lengths use egui logical points; they are not CSS sizing instructions. Source of truth: `crates/candy/src/gui.rs` (`configure`, `menus`, `toolbar`, `tabs`, `options`, `status`, `close_dialog`, and `ui`), `crates/candy/src/canvas.rs` (`Canvas::show`) and `crates/candy-macos/src/menu.rs`. The light appearance was visually checked against the `.impeccable/review/layout-*.png` captures. Dark colors are verified from code, not those captures.
 
 ## Colors
 
@@ -79,21 +84,21 @@ The `canvas` pair fills the surrounding workspace. Each `checker` pair indicates
 
 ## Typography
 
-The logical font family is egui Proportional with its default font definitions. Candy appends the installed Apple SD Gothic Neo font as a Korean fallback when that file is available. It does not replace the default font with a macOS system UI font.
+The egui Proportional family is loaded at runtime from the Mac: the system UI font (SF Pro, `/System/Library/Fonts/SFNS.ttf`) first, then egui's bundled fonts for symbols and emoji, then Apple SD Gothic Neo as the Korean fallback. No font file is redistributed; if a system font is missing, egui's defaults remain.
 
 - **Headline:** Empty-state message, using egui's strong treatment.
-- **Title:** Candy toolbar label, also using strong treatment.
-- **Body:** Ordinary instructions, dimensions, and status values.
-- **Label:** Buttons and editing controls.
-- **Small:** The status notice.
+- **Heading:** The unsaved-changes modal title.
+- **Body:** Ordinary instructions, dimensions, and field labels.
+- **Label:** Buttons, tabs and editing controls.
+- **Small:** The status strip and the supported-format line.
 
-Weights, line heights, and letter spacing are not overridden. Modal headings retain egui's Heading style. Text in an opened image is document content, not part of this hierarchy.
+Weights, line heights, and letter spacing are not overridden. Text in an opened image is document content, not part of this hierarchy.
 
 ## Layout
 
-The initial viewport is (1120 × 780 pt), with a minimum inner size of (760 × 520 pt). From top to bottom: file/history/view controls and a tool row; horizontally scrolling document tabs; contextual tool options; the canvas; a bottom status strip. Tool options and tabs appear only when a document is open.
+The initial viewport is (1120 × 780 pt), with a minimum inner size of (760 × 520 pt). From top to bottom: document tabs (only with two or more images); the toolbar panel holding the tool strip and, when a document is open, the active tool's options (6 pt) below it; the canvas; a bottom status strip. Every panel uses the (12 pt) horizontal inset; the toolbar uses (8 pt) vertical padding and the tab and status strips (4 pt).
 
-Control rows use `horizontal_wrapped`; tabs use a horizontal scroll area. There are no custom breakpoints. Global item spacing applies in both axes, and the configured interaction-height baseline is (28 pt); `small_button` is used for tab closing and error dismissal. The toolbar inserts (3 pt) between its two rows.
+Control rows use `horizontal_wrapped`; tabs use a horizontal scroll area. There are no custom breakpoints. Item spacing is (8 pt) horizontally and (6 pt) vertically, tightened to (4 pt) between tool labels and (2 pt) between a tab and its close control. The interaction-height baseline is (24 pt).
 
 The canvas takes remaining space. Fit centers the image with (40 pt) total allowance in each axis and does not enlarge it beyond its native dimensions. Manual zoom ranges from (1%–1600%); panning preserves image-coordinate editing. The empty state uses centered text, an Open image action, and a supported-format line, separated by (8/16/12 pt) gaps.
 
@@ -107,13 +112,17 @@ The canvas, checkerboard, OCR boxes, and selected-image rectangles have square c
 
 ## Components
 
-### Toolbar and tool selection
+### Menu bar
 
-Text buttons provide Open, Save, Save as, Undo, Redo, Fit, and 100%. A second row uses selectable labels for Select, Mosaic, Highlight, Text mosaic, Resize, and Flatten alpha. Selection colors come from the coral theme overrides. Hover, focus, and disabled rendering otherwise remain standard egui behavior. Actions disable when unavailable or while the document is busy.
+Open, Close Tab, Save, Save As, Undo, Redo, Actual Size, Zoom to Fit and the six tools are native menu items with Cmd key equivalents (File, Edit, View, Tools), beside the standard application and Window menus. Items disable when unavailable, while the document is busy, and while the unsaved-changes prompt is open; the active tool carries a check mark.
+
+### Tool strip
+
+Selectable labels for Select, Mosaic, Highlight, Text mosaic, Resize, and Flatten alpha. Selection colors come from the coral theme overrides; hover, focus, and disabled rendering otherwise remain standard egui behavior.
 
 ### Document tabs
 
-Selectable filename labels carry the coral active treatment. An asterisk indicates unsaved edits. Each label has an adjacent small Close button and separator. The native window title also reflects the filename and dirty marker.
+Shown only when more than one image is open. Selectable filename labels carry the coral active treatment, a trailing dot marks unsaved edits, and a frameless × closes the tab. The native window title always reflects the active filename and dirty marker.
 
 ### Contextual controls
 
@@ -125,7 +134,7 @@ Transparency cells are (12 pt) squares in screen space. Ordinary selection outli
 
 ### Status and confirmations
 
-The bottom strip shows image dimensions, zoom, selected-region coordinates and size when applicable, progress, and the latest notice. Errors use egui's error foreground with a Dismiss action. An unsaved-changes modal has a (400 pt) maximum content width and Save copy, Discard, and Cancel actions. File selection uses native dialogs.
+The bottom strip uses the small text style: image dimensions, zoom and the selected region joined by dots on the left; progress with a (12 pt) spinner, or otherwise the latest notice in weak text, on the right. Errors replace the left group in egui's error foreground with a Dismiss action. An unsaved-changes modal has a (400 pt) maximum content width and Save copy, Discard, and Cancel actions. File selection uses native dialogs.
 
 ## Do's and Don'ts
 
@@ -134,8 +143,10 @@ The bottom strip shows image dimensions, zoom, selected-region coordinates and s
 - Do use coral for selected tools, selected documents, and image-region outlines.
 - Do preserve system-following light and dark appearances.
 - Do retain text labels, contextual options, and visible status feedback.
+- Do put new commands in the menu bar with a Cmd shortcut rather than adding window buttons.
 
 ### Don't:
 - Don't add decorative cards or dashboard composition to the editor.
 - Don't treat the colors or typography inside an opened image as Candy interface tokens.
 - Don't replace inherited egui styles with guessed native or web values.
+- Don't bundle fonts; load system fonts at runtime and keep egui's defaults as the fallback.
