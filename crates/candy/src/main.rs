@@ -1,3 +1,4 @@
+mod canvas;
 mod cli;
 mod gui;
 mod terminal;
