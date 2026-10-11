@@ -273,6 +273,7 @@ pub fn resize_dimensions(
     new_width: Option<u32>,
     new_height: Option<u32>,
 ) -> Result<(u32, u32)> {
+    validate_dimensions(width, height)?;
     let (w, h) = match (new_width, new_height) {
         (Some(w), Some(h)) => (w, h),
         (Some(w), None) => (
