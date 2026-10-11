@@ -81,6 +81,51 @@ nav [aria-current] {
 nav a:not([aria-current]) {
   color: var(--muted);
 }
+.github-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  height: 80px;
+  z-index: 4;
+  color: var(--paper);
+}
+.github-corner svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--ink);
+}
+.github-corner .octo-arm,
+.github-corner .octo-body {
+  fill: currentColor;
+}
+.github-corner .octo-arm {
+  transform-origin: 130px 106px;
+}
+.github-corner:hover svg {
+  fill: var(--accent);
+}
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+.github-corner:focus-visible {
+  outline-offset: -4px;
+}
+@keyframes octocat-wave {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20%,
+  60% {
+    transform: rotate(-25deg);
+  }
+  40%,
+  80% {
+    transform: rotate(10deg);
+  }
+}
 .skip {
   position: absolute;
   top: 10px;
@@ -342,6 +387,11 @@ footer a {
 :lang(ko) .intro {
   font-size: 18px;
 }
+@media (max-width: 1400px) {
+  header nav {
+    padding-right: 64px;
+  }
+}
 @media (min-width: 1500px) {
   .hero {
     padding-block: 90px 110px;
@@ -382,8 +432,12 @@ footer a {
   nav {
     gap: 20px;
   }
-  nav > .repo {
-    display: none;
+  .github-corner {
+    width: 60px;
+    height: 60px;
+  }
+  header nav {
+    padding-right: 44px;
   }
   .hero {
     grid-template-columns: 1fr;
@@ -484,7 +538,8 @@ footer a {
   :root {
     scroll-behavior: auto;
   }
-  .hero-visual {
+  .hero-visual,
+  .github-corner .octo-arm {
     animation: none;
   }
 }
