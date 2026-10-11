@@ -10,9 +10,9 @@ Install a Developer ID Application certificate and its private key in the login
 keychain. `security find-identity -v -p codesigning` should list it. A development
 or App Store distribution certificate is not a substitute.
 
-Reuse an existing notarytool profile for the same Apple developer team. The
-maintainer currently uses `vimdow-notary`, shared with Vimdow. Profile names
-are local references, not passwords, and need not match the application name.
+Reuse an existing notarytool profile for the same Apple developer team. Profile
+names are local references, not passwords, and need not match the application
+name. The examples below use `candy-notary`; substitute your local profile name.
 
 To set up a new profile, create an app-specific password at account.apple.com
 and run this interactively in your own terminal:
@@ -37,7 +37,7 @@ xcrun notarytool history --keychain-profile candy-notary
 3. Run from a clean working tree:
 
    ```sh
-   NOTARY_PROFILE=vimdow-notary scripts/release.sh
+   NOTARY_PROFILE=candy-notary scripts/release.sh
    ```
 
    If multiple Developer ID certificates exist, also set `SIGNING_IDENTITY`
