@@ -80,18 +80,3 @@ To reuse a running preview, set `CANDY_PREVIEW_URL` to a server that serves the
 with device scale 1. Inspect both language versions after changing copy or the
 app screenshot. Commit the regenerated cards; pushing `main` publishes them with
 the rest of `site/`.
-
-### Rebuild the wordmark
-
-`site/assets/wordmark.svg` is “Candy” in Fredoka SemiBold, converted to outlines
-so the pages request no web font. Its fill is the site's ink color. To change
-it, download the variable font from
-https://github.com/google/fonts/tree/main/ofl/fredoka (SIL Open Font License),
-adjust the settings in `scripts/build-wordmark.sh`, and run it with HarfBuzz's
-`hb-view` installed (`brew install harfbuzz`):
-
-```sh
-scripts/build-wordmark.sh 'path/to/Fredoka[wdth,wght].ttf'
-```
-
-Then rebuild the social cards, which use the same wordmark.

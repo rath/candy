@@ -11,9 +11,8 @@
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #242b35; }
     #card { position: relative; width: 1200px; height: 630px; overflow: hidden; background: #faf6ed; }
     .coral { position: absolute; left: 596px; top: -90px; width: 700px; height: 820px; background: #f2a28e; transform: rotate(-7deg); border-radius: 40px; }
-    .brand { position: absolute; left: 54px; top: 46px; display: flex; align-items: center; gap: 14px; font-size: 39px; }
+    .brand { position: absolute; left: 54px; top: 46px; display: flex; align-items: center; gap: 14px; font-size: 36px; font-weight: 700; letter-spacing: -0.02em; }
     .brand .mark { width: 44px; height: 44px; }
-    .brand .wordmark { height: 1.34em; }
     h1 { position: absolute; left: 54px; top: 157px; margin: 0; width: 540px; font-size: 76px; font-weight: 780; line-height: 1.04; letter-spacing: -3px; }
     h1 span { color: #923e2c; }
     .description { position: absolute; left: 58px; top: 426px; margin: 0; width: 455px; font-size: 23px; line-height: 1.5; font-weight: 450; color: #555c65; }
@@ -33,7 +32,7 @@
 <body>
   <main id="card" aria-label="Candy social sharing image">
     <div class="coral" aria-hidden="true"></div>
-    <div class="brand"><img class="mark" src="../../site/assets/mark.svg" alt="" /><img class="wordmark" src="../../site/assets/wordmark.svg" alt="Candy" /></div>
+    <div class="brand"><img class="mark" src="../../site/assets/mark.svg" alt="" /><span class="en">Candy</span><span class="ko">캔디</span></div>
     <h1 class="en">Preview can’t.<br /><span>Photoshop<br />is overkill.</span></h1>
     <h1 class="ko">미리보기론 안 되고<br /><span>포토샵은 과하고</span></h1>
     <p class="description en">Your Mac’s little image editor.<br />Free. Native. Entirely local.</p>
