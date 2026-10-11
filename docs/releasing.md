@@ -52,6 +52,12 @@ xcrun notarytool history --keychain-profile candy-notary
 5. Unzip the final ZIP into a temporary directory and verify its signature and
    ticket. Test launch, CLI version, an image edit, and text detection. Check
    `otool -L` on both executables for dependencies outside system libraries.
+6. Check the size claims on the website against this build: the ZIP should
+   still be about 2 MB (`ls -l` the ZIP), the app under 4 MB (`du -sh`), and
+   an empty window about 30 MB of memory (`footprint -p <pid>`, the
+   `phys_footprint` line; Activity Monitor's Memory column shows the same
+   value). Update `site/index.html` and `site/ko/index.html` if a claim no
+   longer holds.
 
 ## Publish
 
