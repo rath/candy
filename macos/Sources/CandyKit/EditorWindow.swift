@@ -30,6 +30,17 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   private var colorWell: NSColorWell?
   private var slider: NSSlider?
   private var alphaSlider: NSSlider?
+  private var sliderValues: [(NSSlider, NSTextField)] = []
+  var interactionBlocked = false {
+    didSet {
+      if interactionBlocked { canvas.cancel() }
+      refresh()
+    }
+  }
+  private var documentActionsEnabled: Bool { session.ready && !prompting && !interactionBlocked }
+  private var regionActionsEnabled: Bool {
+    documentActionsEnabled && !(tool == .text && session.detecting)
+  }
   private(set) var prompting = false
   private var allowClose = false
   private var shownRevision: UInt64?
@@ -65,7 +76,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     session.onRegions = { [weak self] regions in self?.canvas.regions = Regions(boxes: regions) }
     canvas.onChange = { [weak self] in self?.refreshStatus() }
     canvas.onStroke = { [weak self] points in
-      guard let self, let c = self.color.usingColorSpace(.sRGB) else { return }
+      guard let self, self.documentActionsEnabled, let c = self.color.usingColorSpace(.sRGB) else {
+        return
+      }
       self.session.apply(
         .highlight(
           points, Float(self.brushWidth),
@@ -196,7 +209,21 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     s.setAccessibilityLabel(title)
     s.toolTip = title
     options.addArrangedSubview(s)
+    let readout = NSTextField(labelWithString: "")
+    readout.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+    readout.alignment = .right
+    readout.widthAnchor.constraint(equalToConstant: 36).isActive = true
+    options.addArrangedSubview(readout)
+    sliderValues.append((s, readout))
+    updateSliderValues()
     return s
+  }
+  private func updateSliderValues() {
+    for (slider, readout) in sliderValues {
+      readout.stringValue =
+        slider.maxValue <= 1
+        ? "\(Int((slider.doubleValue * 100).rounded()))%" : "\(Int(slider.doubleValue.rounded()))"
+    }
   }
   private func field(_ value: Int, title: String) -> NSTextField {
     let f = NSTextField(string: String(value))
@@ -214,6 +241,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       view.removeFromSuperview()
     }
     actionButtons = []
+    sliderValues = []
     widthField = nil
     heightField = nil
     ratio = nil
@@ -274,7 +302,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     refresh()
   }
   func selectTool(_ next: Tool) {
-    guard !prompting, !session.busy else { return }
+    guard !prompting, !interactionBlocked, !session.busy else { return }
     tool = next
     tools.selectedSegment = next.rawValue
     canvas.tool = next
@@ -286,12 +314,16 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   @objc func chooseTool(_ sender: NSMenuItem) {
     if let tool = Tool(rawValue: sender.tag) { selectTool(tool) }
   }
-  @objc private func blockChanged() { block = slider?.doubleValue.rounded() ?? 12 }
+  @objc private func blockChanged() {
+    block = slider?.doubleValue.rounded() ?? 12
+    updateSliderValues()
+  }
   @objc private func brushChanged() {
     brushWidth = slider?.doubleValue ?? 28
     opacity = alphaSlider?.doubleValue ?? 0.4
     canvas.brushWidth = brushWidth
     canvas.brushColor = color.withAlphaComponent(opacity)
+    updateSliderValues()
   }
   @objc private func colorChanged() {
     if tool == .flatten {
@@ -317,7 +349,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     if let field = notification.object as? NSTextField { sizeChanged(field) }
   }
   @objc private func applyTool() {
-    guard session.ready, !prompting else { return }
+    guard regionActionsEnabled else { return }
     window?.makeFirstResponder(canvas)
     switch tool {
     case .mosaic: if let r = canvas.regions.selection { session.apply(.mosaic([r], UInt32(block))) }
@@ -348,21 +380,28 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       session.extract(r) { [weak self] d, p, n in self?.onExtract?(d, p, n) }
     }
   }
-  @objc private func detectText() { session.detect() }
-  @objc private func removeBox() { canvas.regions.removeActive() }
+  @objc private func detectText() {
+    if documentActionsEnabled {
+      canvas.cancel()
+      session.detect()
+    }
+  }
+  @objc private func removeBox() { if regionActionsEnabled { canvas.regions.removeActive() } }
   @objc private func dismissError() { session.clearError() }
   @objc func undo(_ sender: Any?) {
-    guard !prompting, session.state?.canUndo == true else { return }
+    guard documentActionsEnabled, session.state?.canUndo == true else { return }
     session.apply(.undo)
   }
   @objc func redo(_ sender: Any?) {
-    guard !prompting, session.state?.canRedo == true else { return }
+    guard documentActionsEnabled, session.state?.canRedo == true else { return }
     session.apply(.redo)
   }
   @objc func actualSize(_ sender: Any?) { canvas.actualSize() }
   @objc func zoomToFit(_ sender: Any?) { canvas.fit() }
-  @objc func saveDocument(_ sender: Any?) { save(as: false) { _ in } }
-  @objc func saveDocumentAs(_ sender: Any?) { save(as: true) { _ in } }
+  @objc func saveDocument(_ sender: Any?) { if documentActionsEnabled { save(as: false) { _ in } } }
+  @objc func saveDocumentAs(_ sender: Any?) {
+    if documentActionsEnabled { save(as: true) { _ in } }
+  }
   private func save(as saveAs: Bool, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
     guard let window, session.ready, !prompting else {
       completion(false)
@@ -376,13 +415,15 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     refresh()
     let panel = NSSavePanel()
     panel.title = "Save image copy"
-    panel.allowedContentTypes = [.png, .jpeg, .webP]
     panel.canCreateDirectories = true
     panel.directoryURL = (session.output ?? session.source)?.deletingLastPathComponent()
     panel.nameFieldStringValue =
       session.output?.lastPathComponent
       ?? (session.source == nil
         ? session.name : (session.name as NSString).deletingPathExtension + "-edited.png")
+    panel.isExtensionHidden = false
+    panel.canSelectHiddenExtension = false
+    panel.accessoryView = SaveFormatView(panel: panel)
     panel.beginSheetModal(for: window) { [weak self] response in
       guard let self else {
         completion(false)
@@ -429,6 +470,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     }
   }
   func windowShouldClose(_ sender: NSWindow) -> Bool {
+    if interactionBlocked { return false }
     if allowClose { return true }
     if session.busy {
       session.message = "Wait for the current edit or save to finish."
@@ -460,8 +502,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     window?.isDocumentEdited = session.dirty
     window?.representedURL = session.output ?? session.source
     empty.isHidden = session.image != nil || session.busy
-    tools.isEnabled = !session.busy && !prompting && session.state != nil
-    canvas.enabled = session.ready && !prompting
+    tools.isEnabled = !session.busy && !prompting && !interactionBlocked && session.state != nil
+    canvas.enabled = regionActionsEnabled
     if observedGeneration != session.generation {
       observedGeneration = session.generation
       canvas.cancel()
@@ -479,12 +521,12 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       }
     }
     for view in options.arrangedSubviews {
-      if let control = view as? NSControl { control.isEnabled = session.ready && !prompting }
+      if let control = view as? NSControl { control.isEnabled = regionActionsEnabled }
     }
     refreshStatus()
   }
   private func refreshStatus() {
-    let ready = session.ready && !prompting
+    let ready = regionActionsEnabled
     for b in actionButtons {
       b.isEnabled = ready
       if b.action == #selector(extractSelection)
@@ -525,7 +567,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     canvas.setAccessibilityValue(status.stringValue)
   }
   func validateMenuItem(_ item: NSMenuItem) -> Bool {
-    guard !prompting else { return false }
+    guard !prompting, !interactionBlocked else { return false }
     if item.action == #selector(chooseTool(_:)) {
       item.state = item.tag == tool.rawValue ? .on : .off
     }
@@ -536,9 +578,11 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
 }
 
 extension EditorWindow: NSDraggingDestination {
-  func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation { prompting ? [] : .copy }
+  func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+    (prompting || interactionBlocked) ? [] : .copy
+  }
   func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-    guard !prompting,
+    guard !prompting, !interactionBlocked,
       let urls = sender.draggingPasteboard.readObjects(
         forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty
     else { return false }

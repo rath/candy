@@ -51,6 +51,15 @@ struct Regions: Equatable {
 final class CanvasView: NSView {
   override var isFlipped: Bool { true }
   override var acceptsFirstResponder: Bool { true }
+  override func setFrameSize(_ newSize: NSSize) {
+    super.setFrameSize(newSize)
+    needsDisplay = true
+    onChange?()
+  }
+  override func viewDidMoveToWindow() {
+    super.viewDidMoveToWindow()
+    onChange?()
+  }
   var image: CGImage? { didSet { needsDisplay = true } }
   var imageSize = CGSize.zero
   var tool: Tool = .select {

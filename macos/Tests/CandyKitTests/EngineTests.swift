@@ -105,3 +105,48 @@ private var fixture: URL {
     #expect(canvas.zoomPercent == 100)
   }
 }
+
+@Test func exportFormatsChooseVisibleExtensions() {
+  #expect(ExportFormat.forFilename("photo.JPEG") == .jpeg)
+  #expect(ExportFormat.webp.filename("한글 photo.png") == "한글 photo.webp")
+  #expect(ExportFormat.jpeg.filename("photo") == "photo.jpg")
+}
+
+extension SessionTests {
+  @Test func quittingFreezesEditingAndRestoresItOnCancellation() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    editor.session.load(fixture)
+    try await settled(editor.session)
+    editor.session.apply(.resize(200, 132))
+    try await settled(editor.session)
+    let revision = editor.session.generation
+    editor.interactionBlocked = true
+    #expect(!editor.canvas.enabled)
+    editor.undo(nil)
+    #expect(editor.session.generation == revision)
+    #expect(!editor.windowShouldClose(editor.window!))
+    editor.interactionBlocked = false
+    #expect(editor.canvas.enabled)
+    editor.undo(nil)
+    try await settled(editor.session)
+    #expect(editor.session.state?.width == 1000)
+  }
+  @Test func detectingProtectsRegionsButAllowsOtherTools() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    editor.session.load(fixture)
+    try await settled(editor.session)
+    editor.selectTool(.text)
+    editor.session.detect()
+    #expect(!editor.canvas.enabled)
+    editor.selectTool(.highlight)
+    #expect(editor.canvas.enabled)
+    editor.selectTool(.text)
+    #expect(!editor.canvas.enabled)
+    // Invalidate before the queued snapshot returns, so this state test does not
+    // start a Vision request. Native OCR is covered by the Rust integration tests.
+    editor.session.invalidate()
+  }
+}

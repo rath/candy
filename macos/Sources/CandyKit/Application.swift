@@ -65,7 +65,35 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     ]
     panel.begin { [weak self] result in if result == .OK { self?.open(panel.urls) } }
   }
-  public func validateMenuItem(_ item: NSMenuItem) -> Bool { !terminating }
+  private var activeEditor: EditorWindow? {
+    (NSApp.keyWindow?.windowController ?? NSApp.mainWindow?.windowController) as? EditorWindow
+  }
+  @objc func undoDocument(_ sender: Any?) {
+    if let text = NSApp.keyWindow?.firstResponder as? NSTextView {
+      text.undoManager?.undo()
+    } else {
+      activeEditor?.undo(sender)
+    }
+  }
+  @objc func redoDocument(_ sender: Any?) {
+    if let text = NSApp.keyWindow?.firstResponder as? NSTextView {
+      text.undoManager?.redo()
+    } else {
+      activeEditor?.redo(sender)
+    }
+  }
+  public func validateMenuItem(_ item: NSMenuItem) -> Bool {
+    guard !terminating else { return false }
+    if item.action == #selector(undoDocument(_:)) || item.action == #selector(redoDocument(_:)) {
+      let redo = item.action == #selector(redoDocument(_:))
+      if let text = NSApp.keyWindow?.firstResponder as? NSTextView {
+        return redo ? (text.undoManager?.canRedo ?? false) : (text.undoManager?.canUndo ?? false)
+      }
+      guard let editor = activeEditor, !editor.prompting, editor.session.ready else { return false }
+      return redo ? editor.session.state?.canRedo == true : editor.session.state?.canUndo == true
+    }
+    return true
+  }
   public func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
     guard !terminating else { return .terminateLater }
     if editors.values.contains(where: { $0.session.busy || $0.prompting }) {
@@ -75,6 +103,7 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     terminating = true
     // Stable identities: later Open events are queued until the decision ends.
     let documents = Array(editors.values)
+    for editor in documents { editor.interactionBlocked = true }
     Task { @MainActor in self.confirmTermination(documents, index: 0) }
     return .terminateLater
   }
@@ -89,6 +118,7 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
         self.confirmTermination(documents, index: index + 1)
       } else {
         self.terminating = false
+        for editor in documents { editor.interactionBlocked = false }
         NSApp.reply(toApplicationShouldTerminate: false)
         let urls = self.queuedURLs
         self.queuedURLs = []
@@ -136,8 +166,8 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     add(file, "Save…", #selector(EditorWindow.saveDocument(_:)), "s")
     add(file, "Save As…", #selector(EditorWindow.saveDocumentAs(_:)), "s", shift: true)
     let edit = submenu("Edit")
-    add(edit, "Undo", #selector(EditorWindow.undo(_:)), "z")
-    add(edit, "Redo", #selector(EditorWindow.redo(_:)), "z", shift: true)
+    add(edit, "Undo", #selector(undoDocument(_:)), "z", target: self)
+    add(edit, "Redo", #selector(redoDocument(_:)), "z", shift: true, target: self)
     edit.addItem(.separator())
     add(edit, "Cut", #selector(NSText.cut(_:)), "x")
     add(edit, "Copy", #selector(NSText.copy(_:)), "c")
