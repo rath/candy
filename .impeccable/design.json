@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-11T00:06:02.813895+00:00",
+  "generatedAt": "2026-10-11T01:35:07.675245+00:00",
   "title": "Design System: Candy editor",
   "extensions": {
     "colorMeta": {
@@ -11,14 +11,6 @@
       "accent-dark": {
         "role": "primary",
         "displayName": "Warm coral · dark"
-      },
-      "canvas-light": {
-        "role": "neutral",
-        "displayName": "Canvas · light"
-      },
-      "canvas-dark": {
-        "role": "neutral",
-        "displayName": "Canvas · dark"
       },
       "checker-light-a": {
         "role": "neutral",
@@ -38,104 +30,177 @@
       },
       "handle-fill": {
         "role": "neutral",
-        "displayName": "Selection handle fill"
+        "displayName": "Region handle fill"
       }
     },
     "typographyMeta": {
       "headline": {
         "displayName": "Empty-state headline",
-        "purpose": "Empty-state message with egui strong treatment."
-      },
-      "title": {
-        "displayName": "Toolbar title",
-        "purpose": "Candy label with egui strong treatment."
-      },
-      "body": {
-        "displayName": "Body",
-        "purpose": "Instructions, dimensions, and status values."
+        "purpose": "System font with semibold weight."
       },
       "label": {
-        "displayName": "Control label",
-        "purpose": "Buttons and editing controls."
+        "displayName": "Context label",
+        "purpose": "Regular contextual instruction and field labels."
+      },
+      "value": {
+        "displayName": "Slider value",
+        "purpose": "Regular monospaced digits, right aligned."
       },
       "small": {
-        "displayName": "Small",
-        "purpose": "Latest status notice."
+        "displayName": "Supported-format line",
+        "purpose": "Secondary empty-state text."
       }
     },
     "native": {
-      "renderer": "egui/eframe",
-      "units": "egui logical points",
+      "platform": "macOS desktop",
+      "renderer": "Swift 6 / AppKit",
+      "units": "macOS logical points",
       "themePreference": "System",
       "window": {
-        "initialInnerSize": [
+        "initialContentRect": [
           1120,
           780
         ],
-        "minimumInnerSize": [
+        "minimumWindowSize": [
           760,
           520
-        ]
+        ],
+        "tabbingMode": "automatic",
+        "tabbingIdentifier": "org.candyapp.image",
+        "toolbarStyle": "unified"
       },
       "layout": {
-        "controlRows": "horizontal_wrapped",
-        "documentTabs": "horizontal scroll",
-        "interactionHeightBaseline": 28,
-        "toolbarRowGap": 3,
+        "contextControls": "Horizontal NSStackView inside NSScrollView; horizontal scrolling, no wrapping",
+        "documentTabs": "Native NSWindow tabs",
         "fitTotalAllowance": 40,
-        "modalMaxWidth": 400
+        "saveFormatAccessoryFrame": [
+          300,
+          38
+        ]
+      },
+      "semanticColors": {
+        "canvas": "NSColor.underPageBackgroundColor",
+        "status": "NSColor.secondaryLabelColor",
+        "error": "NSColor.systemRed",
+        "supportedFormats": "NSColor.secondaryLabelColor"
+      },
+      "colorSources": {
+        "accent": "NSColor(srgbRed:green:blue:alpha:) component values recorded as CSS rgb percentages",
+        "checker": "NSColor(white:alpha:) component values recorded as neutral RGB percentages"
+      },
+      "typography": {
+        "default": "AppKit control and label defaults",
+        "status": "NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)",
+        "headlineWeight": "semibold",
+        "valueWeight": "regular"
       },
       "selection": {
-        "controlFill": "accent.gamma_multiply(0.22)",
-        "ocrFill": "accent.gamma_multiply(0.12)",
-        "outlineWidth": 1.5,
-        "ocrOutlineWidth": 1,
-        "activeOcrOutlineWidth": 2,
-        "handleBorderWidth": 1,
-        "handleHitRadius": 9
+        "ocrFillAlpha": 0.12,
+        "activeOutlineWidth": 2,
+        "inactiveOcrOutlineWidth": 1,
+        "handleHitRadius": 9,
+        "handleBorder": "NSBezierPath default line width"
       },
       "canvas": {
         "checkerCellSize": 12,
         "zoomRange": [
           0.01,
-          16.0
+          16
         ],
-        "frame": "Frame::NONE"
+        "actualSize": "One image pixel per backing pixel",
+        "fit": "Never upscales beyond one image pixel per backing pixel",
+        "previewMaximumSide": 4096,
+        "brushCapsAndJoins": "round",
+        "previewClipping": "Visible image/canvas intersection"
       },
-      "inheritedStyles": "Panel/control/text/error colors, ordinary radii, hover/focus/disabled states, modal/popup elevation, and progress spinners use egui defaults.",
-      "previewPolicy": "No HTML/CSS component translations or synthetic tonal ramps: the implemented system is native egui.",
+      "interaction": {
+        "ocr": "Text-region editing locks during detection; other tools remain available",
+        "quit": "All document windows lock during confirmation; queued Open events resume on cancellation",
+        "saveFormats": [
+          "PNG",
+          "JPEG",
+          "WebP (lossless)"
+        ]
+      },
+      "inheritedStyles": "Native surfaces, control colors and typography, disabled states, focus, selection, tabs, rounded bezels, popups, sheets, and progress indicators retain AppKit styling.",
+      "previewPolicy": "No invented HTML/CSS component translations or synthetic tonal ramps. This is a native AppKit interface; system appearance values are semantic API names, not fixed web tokens.",
+      "components": [
+        {
+          "name": "Tool selector",
+          "class": "NSSegmentedControl",
+          "behavior": "Text labels, single selection, centered in unified NSToolbar"
+        },
+        {
+          "name": "Document tabs",
+          "class": "NSWindow",
+          "behavior": "Automatic tabbing with native Window menu actions"
+        },
+        {
+          "name": "Contextual controls",
+          "class": "NSStackView / NSScrollView",
+          "behavior": "Native buttons, sliders with numeric readouts, fields, checkbox, and color wells"
+        },
+        {
+          "name": "Image canvas",
+          "class": "CanvasView: NSView",
+          "behavior": "Custom image drawing, checkerboard, region outlines, and clipped brush preview"
+        },
+        {
+          "name": "Status strip",
+          "class": "NSTextField / NSProgressIndicator",
+          "behavior": "Middle truncation, full-text tooltip, spinner, system-red error and Dismiss"
+        },
+        {
+          "name": "Save format",
+          "class": "NSSavePanel / NSPopUpButton",
+          "behavior": "Visible Format accessory selects export type and filename extension"
+        },
+        {
+          "name": "Unsaved confirmation",
+          "class": "NSAlert",
+          "behavior": "Document sheet with Save copy or Save, Cancel, and Discard"
+        }
+      ],
       "sources": [
-        "crates/candy/src/gui.rs",
-        "crates/candy/src/canvas.rs"
+        "macos/Sources/CandyKit/EditorWindow.swift",
+        "macos/Sources/CandyKit/Canvas.swift",
+        "macos/Sources/CandyKit/SaveFormatView.swift",
+        "macos/Sources/CandyKit/Application.swift"
       ],
       "visualEvidence": [
-        ".impeccable/review/editor-final.png",
-        ".impeccable/review/editor-small-final.png"
+        ".impeccable/review/appkit-select.png",
+        ".impeccable/review/appkit-ocr.png",
+        ".impeccable/review/appkit-compact-tabs.png",
+        ".impeccable/review/appkit-format-sheet.png",
+        ".impeccable/review/appkit-unsaved-sheet.png",
+        ".impeccable/review/appkit-dark-highlight.png"
       ],
-      "visualEvidenceScope": "Light appearance at standard and compact window sizes; dark palette checked in source."
+      "visualEvidenceScope": "Native light appearance, compact tabs, OCR, save-format and unsaved sheets; dark appearance at 760 × 560 with a settled highlight edit. Captures verified by the implementation agent. No web detector ran and no web/iOS mapping applies."
     }
   },
   "components": [],
   "narrative": {
     "northStar": "A familiar Preview-like image workspace",
-    "overview": "Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. Compact text controls, contextual options, document tabs, and a status strip surround the canvas. The application follows the system light or dark appearance.",
+    "overview": "Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. A native toolbar and contextual controls sit above the canvas; a compact status strip sits below it. Document windows support native macOS tabs and follow the system light or dark appearance.",
     "keyCharacteristics": [
-      "Text labels for editing tools and file actions.",
-      "Coral selection accents on neutral editor surfaces.",
-      "A flexible canvas with compact, wrapping control rows.",
-      "Visible document, selection, progress, and error state."
+      "Native AppKit controls, menus, document windows, and sheets.",
+      "System fonts and semantic colors for ordinary interface elements.",
+      "Coral outlines for custom image regions.",
+      "Visible tool values, document state, progress, and errors."
     ],
     "rules": [],
     "dos": [
       "Do keep the canvas as the main workspace.",
-      "Do use coral for selected tools, selected documents, and image-region outlines.",
-      "Do preserve system-following light and dark appearances.",
-      "Do retain text labels, contextual options, and visible status feedback."
+      "Do use native AppKit controls and their system appearance.",
+      "Do reserve the custom coral palette for image-region overlays.",
+      "Do keep numeric values and units visible beside editing controls.",
+      "Do preserve keyboard commands, native tabs, and document-scoped sheets."
     ],
     "donts": [
       "Don't add decorative cards or dashboard composition to the editor.",
-      "Don't treat the colors or typography inside an opened image as Candy interface tokens.",
-      "Don't replace inherited egui styles with guessed native or web values."
+      "Don't treat colors or typography inside an opened image as Candy interface tokens.",
+      "Don't replace system colors, font metrics, control shapes, or focus states with guessed values.",
+      "Don't use preview dimensions for edits or exports."
     ]
   }
 }

@@ -1,57 +1,53 @@
 ---
 name: Candy editor
-description: A compact native macOS workspace for quick image edits.
+description: A compact AppKit workspace for quick image edits.
 colors:
-  accent-light: "#B74632"
-  accent-dark: "#FF9B83"
-  canvas-light: "#E2E2E2"
-  canvas-dark: "#181818"
-  checker-light-a: "#F6F6F6"
-  checker-light-b: "#EAEAEA"
-  checker-dark-a: "#363636"
-  checker-dark-b: "#2A2A2A"
+  accent-light: "rgb(71.8% 27.5% 19.6%)"
+  accent-dark: "rgb(100% 60.8% 51.4%)"
+  checker-light-a: "rgb(96% 96% 96%)"
+  checker-light-b: "rgb(91% 91% 91%)"
+  checker-dark-a: "rgb(21% 21% 21%)"
+  checker-dark-b: "rgb(16% 16% 16%)"
   handle-fill: "#FFFFFF"
 typography:
   headline:
-    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontFamily: "macOS system font"
     fontSize: "22pt"
-  heading:
-    fontFamily: "SF Pro (system), egui proportional fallback"
-    fontSize: "15pt"
-  body:
-    fontFamily: "SF Pro (system), egui proportional fallback"
-    fontSize: "13pt"
   label:
-    fontFamily: "SF Pro (system), egui proportional fallback"
-    fontSize: "13pt"
+    fontFamily: "macOS system font"
+    fontSize: "12pt"
+  value:
+    fontFamily: "macOS monospaced-digit system font"
+    fontSize: "12pt"
   small:
-    fontFamily: "SF Pro (system), egui proportional fallback"
+    fontFamily: "macOS system font"
     fontSize: "11pt"
 rounded:
-  control: "6pt"
-  canvas: "0pt"
-  selection-handle: "1pt"
+  region: "0pt"
 spacing:
-  item-horizontal: "8pt"
-  item-vertical: "6pt"
-  button-horizontal: "10pt"
-  button-vertical: "4pt"
-  panel-inset: "12pt"
-  section: "12pt"
+  options-gap: "10pt"
+  status-gap: "8pt"
+  horizontal-inset: "12pt"
+  options-vertical-inset: "10pt"
+  status-vertical-inset: "6pt"
+  empty-gap: "12pt"
 components:
-  button:
-    typography: "{typography.label}"
-    padding: "4pt 10pt"
-    rounded: "{rounded.control}"
-  canvas-light:
-    backgroundColor: "{colors.canvas-light}"
-    rounded: "{rounded.canvas}"
-  canvas-dark:
-    backgroundColor: "{colors.canvas-dark}"
-    rounded: "{rounded.canvas}"
+  options:
+    padding: "10pt 12pt"
+    height: "54pt"
+  status:
+    padding: "6pt 12pt"
+    height: "32pt"
+  slider:
+    width: "115pt"
+  slider-value:
+    typography: "{typography.value}"
+    width: "36pt"
+  dimension-field:
+    width: "76pt"
   selection-handle:
     backgroundColor: "{colors.handle-fill}"
-    rounded: "{rounded.selection-handle}"
+    rounded: "{rounded.region}"
     size: "7pt"
 ---
 
@@ -61,92 +57,88 @@ components:
 
 **Creative North Star: "A familiar Preview-like image workspace"**
 
-Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. File, history, view and tool commands live in the macOS menu bar; the window holds a tool strip with contextual options, document tabs when more than one image is open, the canvas, and a status strip. The application follows the system light or dark appearance.
+Candy is a native macOS image utility in Operate mode: a familiar Preview-like workspace with the image in focus. A native toolbar and contextual controls sit above the canvas; a compact status strip sits below it. Document windows support native macOS tabs and follow the system light or dark appearance.
 
 **Key Characteristics:**
-- Native menu bar for commands; text labels for in-window tool selection.
-- The macOS system font at macOS control sizes.
-- Coral selection accents on neutral editor surfaces.
-- One shared horizontal inset so panels line up down the window.
-- Visible document, selection, progress, and error state.
 
-This document records the implemented native egui interface. Token lengths use egui logical points; they are not CSS sizing instructions. Source of truth: `crates/candy/src/gui.rs` (`configure`, `menus`, `toolbar`, `tabs`, `options`, `status`, `close_dialog`, and `ui`), `crates/candy/src/canvas.rs` (`Canvas::show`) and `crates/candy-macos/src/menu.rs`. The light appearance was visually checked against the `.impeccable/review/layout-*.png` captures. Dark colors are verified from code, not those captures.
+- Native AppKit controls, menus, document windows, and sheets.
+- System fonts and semantic colors for ordinary interface elements.
+- Coral outlines for custom image regions.
+- Visible tool values, document state, progress, and errors.
+
+This records the implemented Swift 6/AppKit interface. Lengths are macOS logical points, not web CSS instructions. The source of truth is `macos/Sources/CandyKit/EditorWindow.swift`, `Canvas.swift`, `SaveFormatView.swift`, and `Application.swift`. Native screenshot evidence is listed in `.impeccable/design.json`; it covers light and dark appearance, compact native tabs, OCR, and save/close sheets. The dark capture shows a settled highlight edit at compact window size. No web detector or web/iOS platform mapping is used.
 
 ## Colors
 
 ### Primary
 
-Warm coral changes with system appearance. `accent-light` and `accent-dark` drive the selection stroke color for egui selectable controls and the custom image-region outlines. Selected-control fill uses the current accent with `Color32::gamma_multiply(0.22)`; OCR-region fill uses `gamma_multiply(0.12)`. These are egui color operations, not CSS opacity declarations.
+Warm coral changes with system appearance. `accent-light` and `accent-dark` are the explicit sRGB components used for custom region outlines. OCR boxes use the same accent with 0.12 alpha. Native tool selection, tabs, and buttons retain AppKit's appearance and system accent behavior.
 
 ### Neutral
 
-The `canvas` pair fills the surrounding workspace. Each `checker` pair indicates image transparency within the image bounds. `handle-fill` fills the selection's corner handles. Panel, control, ordinary text, disabled text, divider, and error colors remain inherited from egui's light/dark visuals; Candy does not define separate palette values for them.
+The checker pairs indicate transparency inside the visible image area; their tokens record the white-component values passed to `NSColor(white:alpha:)`. `handle-fill` fills square region handles. The surrounding canvas uses `NSColor.underPageBackgroundColor`. Status text and the supported-format line use `secondaryLabelColor`; errors use `systemRed`. Standard surfaces, control text, disabled states, and separators remain system-defined. Do not convert these semantic colors into a fixed light/dark palette.
+
+Highlight color defaults to `systemYellow` at 0.4 opacity and the flattening background defaults to white. These are editable image-operation defaults, not an interface accent scheme.
 
 ## Typography
 
-The egui Proportional family is loaded at runtime from the Mac: the system UI font (SF Pro, `/System/Library/Fonts/SFNS.ttf`) first, then egui's bundled fonts for symbols and emoji, then Apple SD Gothic Neo as the Korean fallback. No font file is redistributed; if a system font is missing, egui's defaults remain.
-
-- **Headline:** Empty-state message, using egui's strong treatment.
-- **Heading:** The unsaved-changes modal title.
-- **Body:** Ordinary instructions, dimensions, and field labels.
-- **Label:** Buttons, tabs and editing controls.
-- **Small:** The status strip and the supported-format line.
-
-Weights, line heights, and letter spacing are not overridden. Text in an opened image is document content, not part of this hierarchy.
+Use AppKit system fonts and its native fallback for Korean and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are the semibold empty-state headline, regular contextual labels, regular monospaced-digit slider values, and the supported-format line, as recorded in the frontmatter. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
 
 ## Layout
 
-The initial viewport is (1120 × 780 pt), with a minimum inner size of (760 × 520 pt). From top to bottom: document tabs (only with two or more images); the toolbar panel holding the tool strip and, when a document is open, the active tool's options (6 pt) below it; the canvas; a bottom status strip. Every panel uses the (12 pt) horizontal inset; the toolbar uses (8 pt) vertical padding and the tab and status strips (4 pt).
+The initial content rectangle is (1120 × 780 pt), before the native titlebar and toolbar. `NSWindow.minSize` is (760 × 520 pt), which constrains the whole window rather than its content area. A unified native toolbar centers the tool selector between flexible spaces. AppKit owns titlebar and tab-bar layout.
 
-Control rows use `horizontal_wrapped`; tabs use a horizontal scroll area. There are no custom breakpoints. Item spacing is (8 pt) horizontally and (6 pt) vertically, tightened to (4 pt) between tool labels and (2 pt) between a tab and its close control. The interaction-height baseline is (24 pt).
+Below the toolbar, a fixed-height contextual strip uses a horizontal `NSStackView` inside an `NSScrollView`. It scrolls horizontally when needed and autohides its scroller; controls do not wrap. The canvas fills the remaining area above a native separator and fixed-height status strip. The frontmatter records actual strip heights, insets, gaps, and control widths. There are no custom breakpoints. The empty state is a centered vertical stack containing a headline, instruction, Open image action, and supported-format line.
 
-The canvas takes remaining space. Fit centers the image with (40 pt) total allowance in each axis and does not enlarge it beyond its native dimensions. Manual zoom ranges from (1%–1600%); panning preserves image-coordinate editing. The empty state uses centered text, an Open image action, and a supported-format line, separated by (8/16/12 pt) gaps.
+Fit centers the image with (40 pt) total allowance per axis and never scales above one image pixel per backing pixel. Actual Size is exactly one image pixel per backing pixel, including on Retina displays. Manual zoom ranges from (1%–1600%). Scrolling and trackpad magnification zoom around the pointer; Space-drag pans. A preview is capped at 4096 pixels per side, while coordinates, editing, and exports use the full-resolution oriented image.
 
 ## Elevation & Depth
 
-The workspace uses neutral fills, panel dividers, and state accents. The canvas uses `Frame::NONE`; no custom editor shadows are defined. The unsaved-changes modal and standard egui popups retain their library elevation and interaction styling. There are no application-defined decorative animations; progress uses egui spinners.
+Native titlebars, controls, color panels, popups, and sheets provide their own depth. The custom canvas has no shadow treatment. A native separator distinguishes the status strip. Progress uses a small spinning `NSProgressIndicator`; no decorative application animation is defined.
 
 ## Shapes
 
-The canvas, checkerboard, OCR boxes, and selected-image rectangles have square corners. Selection corner handles use the documented handle shape. Other button, panel, input, and modal radii are inherited from egui; the provisional seed's radius values were not implemented as Candy overrides.
+Image rectangles, checker cells, region outlines, and handles have square corners. Checker cells are (12 pt) squares in screen space. Buttons use AppKit's rounded bezel style; their actual radius and focus treatment are system-defined. Text fields, the segmented selector, color wells, and sheets retain their native shapes.
 
 ## Components
 
-### Menu bar
+### Menus and tool selector
 
-Open, Close Tab, Save, Save As, Undo, Redo, Actual Size, Zoom to Fit and the six tools are native menu items with Cmd key equivalents (File, Edit, View, Tools), beside the standard application and Window menus. Items disable when unavailable, while the document is busy, and while the unsaved-changes prompt is open; the active tool carries a check mark.
+The macOS menu bar provides file, text-editing, history, view, tool, and window commands with native key equivalents. A centered `NSSegmentedControl` selects Select, Mosaic, Highlight, Text mosaic, Resize, or Flatten alpha. It uses text labels and single selection. Menu check marks mirror the active tool. Commands and controls disable when their document state makes them unavailable.
 
-### Tool strip
+### Document windows and tabs
 
-Selectable labels for Select, Mosaic, Highlight, Text mosaic, Resize, and Flatten alpha. Selection colors come from the coral theme overrides; hover, focus, and disabled rendering otherwise remain standard egui behavior.
-
-### Document tabs
-
-Shown only when more than one image is open. Selectable filename labels carry the coral active treatment, a trailing dot marks unsaved edits, and a frameless × closes the tab. The native window title always reflects the active filename and dirty marker.
+Each document has its own `NSWindow` and editing session. Windows share a tabbing identifier and use automatic native tabbing. Show Tab Bar, Merge All Windows, and Move Tab to New Window expose AppKit's tab behavior. Native window titles, represented URLs, and `isDocumentEdited` communicate identity and unsaved changes; do not draw a replacement tab strip or dirty marker.
 
 ### Contextual controls
 
-The options row uses egui buttons, sliders, color controls, drag-value fields, and a ratio checkbox as needed by the selected tool. Image measurements are labeled in pixels. OCR exposes detection, region count, block size, Apply to all, and Remove box; regions remain visible for adjustment before applying.
+Select exposes region instructions and Extract to new image. Mosaic exposes block size and Apply mosaic. Highlight exposes a native color well, width, and opacity. Text mosaic exposes Detect text, block size, Apply to all, and Remove box; region count appears in status. Resize exposes width and height text fields, Keep ratio, and Apply resize. Flatten alpha exposes a background color well and its apply action.
+
+Sliders have adjacent right-aligned numeric values; opacity displays as a percentage. Image measurements use pixels. Block size ranges from 2–96, brush width from 2–100, and resize dimensions accept 1–65535 subject to engine allocation limits. During OCR detection, text-region controls and canvas region editing lock, while other tools remain available. An edit or save disables document editing until it completes.
 
 ### Canvas and region overlays
 
-Transparency cells are (12 pt) squares in screen space. Ordinary selection outlines use a (1.5 pt) inside stroke. OCR regions use a (1 pt) outline, with (2 pt) for the active region, plus the accent fill described above. The selected region receives white corner handles with a (1 pt) accent border. Handle hit detection uses a (9 pt) radius around each corner. The pointer becomes a crosshair for selection/highlight or a grab cursor while Space is held.
+Active regions have a (2 pt) coral outline and square white corner handles; inactive OCR regions have a (1 pt) outline. Handle hit detection uses a (9 pt) radius. OCR boxes also receive the translucent accent fill described above. Live brush strokes have round caps and joins and are clipped to the image/canvas intersection. The canvas uses a crosshair; holding Space changes it to an open hand. Escape cancels an active drag and restores the prior regions, or clears the selection/active box when idle. Delete removes the active OCR box when region editing is enabled.
 
-### Status and confirmations
+### Status and native sheets
 
-The bottom strip uses the small text style: image dimensions, zoom and the selected region joined by dots on the left; progress with a (12 pt) spinner, or otherwise the latest notice in weak text, on the right. Errors replace the left group in egui's error foreground with a Dismiss action. An unsaved-changes modal has a (400 pt) maximum content width and Save copy, Discard, and Cancel actions. File selection uses native dialogs.
+Status combines image dimensions, zoom, selected-region coordinates and dimensions, OCR region count where applicable, and the latest message. It truncates in the middle and exposes the full text in a tooltip. Progress appears alongside it. Errors use the system error color and a small Dismiss button.
+
+Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visible Format popup offering PNG, JPEG, and WebP (lossless); changing the format updates the filename extension. The first save creates a copy. Closing a modified document presents an `NSAlert` sheet with Save copy… (or Save for an existing output), Cancel, and Discard. Quit confirms stable document identities, blocks editing across all windows, and queues new Open events. Cancel restores window controls and processes queued opens.
 
 ## Do's and Don'ts
 
 ### Do:
+
 - Do keep the canvas as the main workspace.
-- Do use coral for selected tools, selected documents, and image-region outlines.
-- Do preserve system-following light and dark appearances.
-- Do retain text labels, contextual options, and visible status feedback.
-- Do put new commands in the menu bar with a Cmd shortcut rather than adding window buttons.
+- Do use native AppKit controls and their system appearance.
+- Do reserve the custom coral palette for image-region overlays.
+- Do keep numeric values and units visible beside editing controls.
+- Do preserve keyboard commands, native tabs, and document-scoped sheets.
 
 ### Don't:
+
 - Don't add decorative cards or dashboard composition to the editor.
-- Don't treat the colors or typography inside an opened image as Candy interface tokens.
-- Don't replace inherited egui styles with guessed native or web values.
-- Don't bundle fonts; load system fonts at runtime and keep egui's defaults as the fallback.
+- Don't treat colors or typography inside an opened image as Candy interface tokens.
+- Don't replace system colors, font metrics, control shapes, or focus states with guessed values.
+- Don't use preview dimensions for edits or exports.

@@ -4,11 +4,11 @@
 
 ## Platform
 
-Native macOS desktop application and CLI (not a web or iOS app).
+Native macOS desktop application and Rust CLI (not a web or iOS app).
 
 ## Stack
 
-Rust, egui/eframe with wgpu, Image I/O and Apple Vision through Rust bindings.
+Swift 6 and AppKit for the desktop interface. Rust `candy-core` shares pixel operations between CLI and GUI; `candy-macos` provides native Image I/O and Apple Vision integration; `candy-ffi` exposes the engine to Swift through a C ABI. The Rust `candy` executable provides terminal commands and launches the native app when needed.
 
 ## Users and purpose
 
@@ -16,11 +16,13 @@ People working in a terminal who want to inspect an image immediately and open a
 
 ## Capabilities and constraints
 
-Kitty terminal display; region extraction; region and OCR text mosaic; highlighter; resize; transparency flattening. Open PNG, JPEG, WebP, HEIC and AVIF; export PNG, JPEG and WebP. OCR stays on the Mac. First save creates a new file. macOS 14+; initially validated on Apple Silicon. MIT open source; no publishing requested.
+Kitty terminal display; region extraction; region and OCR text mosaic; highlighter; resize; transparency flattening. Open PNG, JPEG, WebP, HEIC and AVIF; export PNG, JPEG and WebP. OCR stays on the Mac. Native document windows support macOS tabs, menus, save sheets, and unsaved-change confirmation. Full-resolution pixels remain authoritative even when the display preview is reduced.
+
+First GUI save creates a new file; subsequent saves can update that output. Originals remain protected, including aliases. The CLI never replaces its input. macOS 14+; initially validated on Apple Silicon. MIT open source; the app bundle is a local build without Developer ID signing or notarization.
 
 ## Brand commitments
 
-Name: Candy. User requested a small, familiar Preview-like utility, not a large creative suite. Use English UI for this draft; support Korean filenames and Korean/English OCR.
+Name: Candy. A small, familiar Preview-like utility in Operate mode. Use English UI and support Korean filenames and Korean/English OCR. Follow system appearance, fonts, and controls; reserve custom coral accents for image regions.
 
 ## Product principles
 
@@ -28,3 +30,4 @@ Name: Candy. User requested a small, familiar Preview-like utility, not a large 
 - Keep the image in focus.
 - Preserve originals by default.
 - Share image operations between CLI and GUI.
+- Use familiar macOS document and interaction conventions.
