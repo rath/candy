@@ -226,36 +226,66 @@ pub fn run(path: Option<PathBuf>) -> Result<()> {
     .map_err(|e| anyhow::anyhow!("Cannot open Candy: {e}"))
 }
 
-fn configure(ctx: &egui::Context) {
-    // Use macOS's installed Korean font as a fallback, without redistributing it.
+/// Horizontal inset shared by every panel so content lines up down the window.
+const PANEL_INSET: i8 = 12;
+
+/// Loads installed macOS fonts at runtime (never redistributed): the system UI
+/// font first, then Apple SD Gothic Neo as the Korean fallback. egui's bundled
+/// fonts remain behind them for symbols and emoji.
+fn configure_fonts(ctx: &egui::Context) {
+    let mut fonts = egui::FontDefinitions::default();
+    let proportional = fonts
+        .families
+        .entry(egui::FontFamily::Proportional)
+        .or_default();
+    if let Ok(font) = std::fs::read("/System/Library/Fonts/SFNS.ttf") {
+        fonts.font_data.insert(
+            "macos-system".into(),
+            egui::FontData::from_owned(font).into(),
+        );
+        proportional.insert(0, "macos-system".into());
+    }
     if let Ok(font) = std::fs::read("/System/Library/Fonts/AppleSDGothicNeo.ttc") {
-        let mut fonts = egui::FontDefinitions::default();
         fonts.font_data.insert(
             "macos-korean".into(),
             egui::FontData::from_owned(font).into(),
         );
-        fonts
-            .families
-            .entry(egui::FontFamily::Proportional)
-            .or_default()
-            .push("macos-korean".into());
-        ctx.set_fonts(fonts);
+        proportional.push("macos-korean".into());
     }
+    ctx.set_fonts(fonts);
+}
+
+fn configure(ctx: &egui::Context) {
+    configure_fonts(ctx);
     ctx.set_theme(egui::ThemePreference::System);
     for theme in [egui::Theme::Light, egui::Theme::Dark] {
         ctx.style_mut_of(theme, |style| {
-            style.spacing.item_spacing = Vec2::new(8.0, 8.0);
-            style.spacing.button_padding = Vec2::new(10.0, 6.0);
-            style.spacing.interact_size.y = 28.0;
+            // macOS control metrics: 13 pt text, 22–24 pt controls, 6 pt radii.
+            style.spacing.item_spacing = Vec2::new(8.0, 6.0);
+            style.spacing.button_padding = Vec2::new(10.0, 4.0);
+            style.spacing.interact_size.y = 24.0;
+            style.spacing.slider_width = 120.0;
+            for visuals in [
+                &mut style.visuals.widgets.noninteractive,
+                &mut style.visuals.widgets.inactive,
+                &mut style.visuals.widgets.hovered,
+                &mut style.visuals.widgets.active,
+                &mut style.visuals.widgets.open,
+            ] {
+                visuals.corner_radius = egui::CornerRadius::same(6);
+            }
             style
                 .text_styles
-                .insert(egui::TextStyle::Body, egui::FontId::proportional(14.0));
+                .insert(egui::TextStyle::Body, egui::FontId::proportional(13.0));
             style
                 .text_styles
-                .insert(egui::TextStyle::Button, egui::FontId::proportional(14.0));
+                .insert(egui::TextStyle::Button, egui::FontId::proportional(13.0));
             style
                 .text_styles
-                .insert(egui::TextStyle::Small, egui::FontId::proportional(12.0));
+                .insert(egui::TextStyle::Small, egui::FontId::proportional(11.0));
+            style
+                .text_styles
+                .insert(egui::TextStyle::Heading, egui::FontId::proportional(15.0));
             let accent = if theme == egui::Theme::Dark {
                 Color32::from_rgb(255, 155, 131)
             } else {
@@ -786,193 +816,206 @@ impl Editor {
             }
         }
     }
-    /// Tool selection strip. File, history and view actions live in the menu bar.
-    fn toolbar(&mut self, ui: &mut egui::Ui) {
-        egui::Panel::top("toolbar").show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                for (tool, name) in TOOLS {
-                    if ui.selectable_label(self.tool == tool, name).clicked() {
-                        self.select_tool(tool);
+    fn panel_frame(ui: &egui::Ui, vertical: i8) -> egui::Frame {
+        egui::Frame::side_top_panel(ui.style())
+            .inner_margin(egui::Margin::symmetric(PANEL_INSET, vertical))
+    }
+    /// Tool strip with the active tool's options beneath it. File, history and
+    /// view actions live in the menu bar.
+    fn toolbar(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        egui::Panel::top("toolbar")
+            .frame(Self::panel_frame(ui, 8))
+            .show(ui, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 4.0;
+                    for (tool, name) in TOOLS {
+                        if ui.selectable_label(self.tool == tool, name).clicked() {
+                            self.select_tool(tool);
+                        }
+                    }
+                });
+                if !self.documents.is_empty() {
+                    ui.add_space(6.0);
+                    self.options(ui, ctx);
+                }
+            });
+    }
+    fn options(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+        let ready = !self.documents[self.active].busy();
+        ui.add_enabled_ui(ready, |ui| {
+            ui.horizontal_wrapped(|ui| match self.tool {
+                Tool::Select => {
+                    ui.label("Drag to select. Move the box or drag a corner to adjust.");
+                    let selected = self.documents[self.active].canvas.selection.is_some();
+                    if ui
+                        .add_enabled(selected, egui::Button::new("Extract to new image"))
+                        .clicked()
+                    {
+                        self.extract(ctx);
+                    }
+                }
+                Tool::Mosaic => {
+                    ui.label("Select the area to pixelate.");
+                    ui.add(egui::Slider::new(&mut self.block, 2..=96).text("Block px"));
+                    if ui
+                        .add_enabled(
+                            self.documents[self.active].canvas.selection.is_some(),
+                            egui::Button::new("Apply mosaic"),
+                        )
+                        .clicked()
+                        && let Some(rect) = self.documents[self.active].canvas.selection
+                    {
+                        self.apply(
+                            Operation::Mosaic {
+                                regions: vec![rect],
+                                block: self.block,
+                            },
+                            ctx,
+                        );
+                    }
+                }
+                Tool::Highlight => {
+                    ui.label("Draw over the image.");
+                    let mut rgb = [
+                        self.brush_color[0],
+                        self.brush_color[1],
+                        self.brush_color[2],
+                    ];
+                    if ui.color_edit_button_srgb(&mut rgb).changed() {
+                        self.brush_color[..3].copy_from_slice(&rgb);
+                    }
+                    ui.add(egui::Slider::new(&mut self.brush_width, 2.0..=100.0).text("Width px"));
+                    ui.add(egui::Slider::new(&mut self.brush_color[3], 16..=220).text("Opacity"));
+                }
+                Tool::Text => {
+                    let doc = &self.documents[self.active];
+                    if ui
+                        .add_enabled(
+                            !doc.detecting,
+                            egui::Button::new(if doc.detecting {
+                                "Detecting…"
+                            } else {
+                                "Detect text"
+                            }),
+                        )
+                        .clicked()
+                    {
+                        self.detect(ctx);
+                    }
+                    let count = self.documents[self.active].canvas.boxes.len();
+                    ui.label(format!("{count} regions"));
+                    ui.add(egui::Slider::new(&mut self.block, 2..=96).text("Block px"));
+                    if ui
+                        .add_enabled(count > 0, egui::Button::new("Apply to all"))
+                        .clicked()
+                    {
+                        let regions = self.documents[self.active].canvas.boxes.clone();
+                        self.apply(
+                            Operation::Mosaic {
+                                regions,
+                                block: self.block,
+                            },
+                            ctx,
+                        );
+                    }
+                    if ui
+                        .add_enabled(
+                            self.documents[self.active].canvas.active_box.is_some(),
+                            egui::Button::new("Remove box"),
+                        )
+                        .clicked()
+                    {
+                        self.documents[self.active].canvas.remove_active_box();
+                    }
+                    ui.weak("Drag to add or adjust a box.");
+                }
+                Tool::Resize => {
+                    ui.label("Width");
+                    let width_changed = ui
+                        .add(
+                            egui::DragValue::new(&mut self.resize_width)
+                                .range(1..=65535)
+                                .suffix(" px"),
+                        )
+                        .changed();
+                    ui.label("Height");
+                    let height_changed = ui
+                        .add(
+                            egui::DragValue::new(&mut self.resize_height)
+                                .range(1..=65535)
+                                .suffix(" px"),
+                        )
+                        .changed();
+                    ui.checkbox(&mut self.aspect_lock, "Keep ratio");
+                    let doc = &self.documents[self.active];
+                    if self.aspect_lock && (width_changed || height_changed) {
+                        let dims = candy_core::resize_dimensions(
+                            doc.image.width(),
+                            doc.image.height(),
+                            width_changed.then_some(self.resize_width),
+                            (!width_changed).then_some(self.resize_height),
+                        );
+                        if let Ok((w, h)) = dims {
+                            self.resize_width = w;
+                            self.resize_height = h;
+                        }
+                    }
+                    if ui.button("Apply resize").clicked() {
+                        self.apply(
+                            Operation::Resize {
+                                width: self.resize_width,
+                                height: self.resize_height,
+                            },
+                            ctx,
+                        );
+                    }
+                }
+                Tool::Flatten => {
+                    ui.label("Replace transparency with");
+                    ui.color_edit_button_srgb(&mut self.background);
+                    if ui.button("Flatten alpha").clicked() {
+                        self.apply(Operation::Flatten(self.background), ctx);
                     }
                 }
             });
         });
     }
-    fn options(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        if self.documents.is_empty() {
-            return;
-        }
-        egui::Panel::top("tool-options").show(ui, |ui| {
-            let ready = !self.documents[self.active].busy();
-            ui.add_enabled_ui(ready, |ui| {
-                ui.horizontal_wrapped(|ui| match self.tool {
-                    Tool::Select => {
-                        ui.label("Drag to select. Move the box or drag a corner to adjust.");
-                        let selected = self.documents[self.active].canvas.selection.is_some();
-                        if ui
-                            .add_enabled(selected, egui::Button::new("Extract to new image"))
-                            .clicked()
-                        {
-                            self.extract(ctx);
-                        }
-                    }
-                    Tool::Mosaic => {
-                        ui.label("Select the area to pixelate.");
-                        ui.add(egui::Slider::new(&mut self.block, 2..=96).text("Block px"));
-                        if ui
-                            .add_enabled(
-                                self.documents[self.active].canvas.selection.is_some(),
-                                egui::Button::new("Apply mosaic"),
-                            )
-                            .clicked()
-                            && let Some(rect) = self.documents[self.active].canvas.selection
-                        {
-                            self.apply(
-                                Operation::Mosaic {
-                                    regions: vec![rect],
-                                    block: self.block,
-                                },
-                                ctx,
-                            );
-                        }
-                    }
-                    Tool::Highlight => {
-                        ui.label("Draw over the image.");
-                        let mut rgb = [
-                            self.brush_color[0],
-                            self.brush_color[1],
-                            self.brush_color[2],
-                        ];
-                        if ui.color_edit_button_srgb(&mut rgb).changed() {
-                            self.brush_color[..3].copy_from_slice(&rgb);
-                        }
-                        ui.add(
-                            egui::Slider::new(&mut self.brush_width, 2.0..=100.0).text("Width px"),
-                        );
-                        ui.add(
-                            egui::Slider::new(&mut self.brush_color[3], 16..=220).text("Opacity"),
-                        );
-                    }
-                    Tool::Text => {
-                        let doc = &self.documents[self.active];
-                        if ui
-                            .add_enabled(
-                                !doc.detecting,
-                                egui::Button::new(if doc.detecting {
-                                    "Detecting…"
-                                } else {
-                                    "Detect text"
-                                }),
-                            )
-                            .clicked()
-                        {
-                            self.detect(ctx);
-                        }
-                        let count = self.documents[self.active].canvas.boxes.len();
-                        ui.label(format!("{count} regions"));
-                        ui.add(egui::Slider::new(&mut self.block, 2..=96).text("Block px"));
-                        if ui
-                            .add_enabled(count > 0, egui::Button::new("Apply to all"))
-                            .clicked()
-                        {
-                            let regions = self.documents[self.active].canvas.boxes.clone();
-                            self.apply(
-                                Operation::Mosaic {
-                                    regions,
-                                    block: self.block,
-                                },
-                                ctx,
-                            );
-                        }
-                        if ui
-                            .add_enabled(
-                                self.documents[self.active].canvas.active_box.is_some(),
-                                egui::Button::new("Remove box"),
-                            )
-                            .clicked()
-                        {
-                            self.documents[self.active].canvas.remove_active_box();
-                        }
-                        ui.weak("Drag to add or adjust a box.");
-                    }
-                    Tool::Resize => {
-                        ui.label("Width");
-                        let width_changed = ui
-                            .add(
-                                egui::DragValue::new(&mut self.resize_width)
-                                    .range(1..=65535)
-                                    .suffix(" px"),
-                            )
-                            .changed();
-                        ui.label("Height");
-                        let height_changed = ui
-                            .add(
-                                egui::DragValue::new(&mut self.resize_height)
-                                    .range(1..=65535)
-                                    .suffix(" px"),
-                            )
-                            .changed();
-                        ui.checkbox(&mut self.aspect_lock, "Keep ratio");
-                        let doc = &self.documents[self.active];
-                        if self.aspect_lock && (width_changed || height_changed) {
-                            let dims = candy_core::resize_dimensions(
-                                doc.image.width(),
-                                doc.image.height(),
-                                width_changed.then_some(self.resize_width),
-                                (!width_changed).then_some(self.resize_height),
-                            );
-                            if let Ok((w, h)) = dims {
-                                self.resize_width = w;
-                                self.resize_height = h;
-                            }
-                        }
-                        if ui.button("Apply resize").clicked() {
-                            self.apply(
-                                Operation::Resize {
-                                    width: self.resize_width,
-                                    height: self.resize_height,
-                                },
-                                ctx,
-                            );
-                        }
-                    }
-                    Tool::Flatten => {
-                        ui.label("Replace transparency with");
-                        ui.color_edit_button_srgb(&mut self.background);
-                        if ui.button("Flatten alpha").clicked() {
-                            self.apply(Operation::Flatten(self.background), ctx);
-                        }
-                    }
-                });
-            });
-        });
-    }
+    /// Document tabs, shown only when there is something to switch between. A
+    /// single document is already named in the window title.
     fn tabs(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        if self.documents.is_empty() {
+        if self.documents.len() < 2 {
             return;
         }
         let mut close = None;
         let mut activate = None;
-        egui::Panel::top("documents").show(ui, |ui| {
-            egui::ScrollArea::horizontal().show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    for (i, doc) in self.documents.iter().enumerate() {
-                        let name = format!("{}{}", doc.name, if doc.dirty() { " *" } else { "" });
-                        if ui.selectable_label(self.active == i, name).clicked() {
-                            activate = Some(i);
+        egui::Panel::top("documents")
+            .frame(Self::panel_frame(ui, 4))
+            .show(ui, |ui| {
+                egui::ScrollArea::horizontal().show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        for (i, doc) in self.documents.iter().enumerate() {
+                            ui.horizontal(|ui| {
+                                ui.spacing_mut().item_spacing.x = 2.0;
+                                let name = if doc.dirty() {
+                                    format!("{} •", doc.name)
+                                } else {
+                                    doc.name.clone()
+                                };
+                                if ui.selectable_label(self.active == i, name).clicked() {
+                                    activate = Some(i);
+                                }
+                                if ui
+                                    .add(egui::Button::new("×").frame(false))
+                                    .on_hover_text("Close this image · Cmd+W")
+                                    .clicked()
+                                {
+                                    close = Some(doc.id);
+                                }
+                            });
                         }
-                        if ui
-                            .small_button("Close")
-                            .on_hover_text("Close this image · Cmd+W")
-                            .clicked()
-                        {
-                            close = Some(doc.id);
-                        }
-                        ui.separator();
-                    }
+                    });
                 });
             });
-        });
         if let Some(i) = activate {
             self.active = i;
             self.sync_dimensions();
@@ -981,54 +1024,77 @@ impl Editor {
             self.request_close(Close::Tab(id), ctx);
         }
     }
+    /// Document facts on the left, progress and the latest notice on the right.
     fn status(&mut self, ui: &mut egui::Ui) {
-        egui::Panel::bottom("status").show(ui, |ui| {
-            if let Some(error) = self.error.clone() {
-                ui.horizontal_wrapped(|ui| {
-                    ui.colored_label(ui.visuals().error_fg_color, error);
-                    if ui.small_button("Dismiss").clicked() {
-                        self.error = None;
-                    }
-                });
+        let doc = self.documents.get(self.active);
+        let mut facts = Vec::new();
+        if let Some(doc) = doc {
+            facts.push(format!("{} × {} px", doc.image.width(), doc.image.height()));
+            facts.push(format!("{:.0}%", doc.canvas.actual_zoom * 100.0));
+            let shown_region = if self.tool == Tool::Text {
+                doc.canvas
+                    .active_box
+                    .and_then(|i| doc.canvas.boxes.get(i).copied())
+            } else {
+                doc.canvas.selection
+            };
+            if let Some(rect) = shown_region {
+                facts.push(format!(
+                    "Selection {}, {} · {} × {}",
+                    rect.x, rect.y, rect.width, rect.height
+                ));
             }
-            ui.horizontal_wrapped(|ui| {
-                if self.loading > 0 {
-                    ui.spinner();
-                    ui.label(format!("Opening {} image(s)…", self.loading));
+        }
+        let progress = if self.loading > 0 {
+            Some(format!("Opening {} image(s)…", self.loading))
+        } else {
+            doc.and_then(|doc| {
+                if doc.saving {
+                    Some("Saving…".to_string())
+                } else if doc.rendering {
+                    Some("Applying edit…".to_string())
+                } else if doc.detecting {
+                    Some("Detecting text locally…".to_string())
+                } else {
+                    None
                 }
-                if let Some(doc) = self.documents.get(self.active) {
-                    ui.label(format!("{} × {} px", doc.image.width(), doc.image.height()));
-                    ui.separator();
-                    ui.label(format!("{:.0}%", doc.canvas.actual_zoom * 100.0));
-                    let shown_region = if self.tool == Tool::Text {
-                        doc.canvas
-                            .active_box
-                            .and_then(|i| doc.canvas.boxes.get(i).copied())
+            })
+        };
+        egui::Panel::bottom("status")
+            .frame(Self::panel_frame(ui, 4))
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    if let Some(error) = self.error.clone() {
+                        ui.add(
+                            egui::Label::new(
+                                RichText::new(error)
+                                    .small()
+                                    .color(ui.visuals().error_fg_color),
+                            )
+                            .truncate(),
+                        );
+                        if ui.small_button("Dismiss").clicked() {
+                            self.error = None;
+                        }
                     } else {
-                        doc.canvas.selection
-                    };
-                    if let Some(rect) = shown_region {
-                        ui.separator();
-                        ui.label(format!(
-                            "Selection {}, {} · {} × {}",
-                            rect.x, rect.y, rect.width, rect.height
-                        ));
+                        ui.small(facts.join("  ·  "));
                     }
-                    if doc.rendering || doc.saving || doc.detecting {
-                        ui.spinner();
-                        ui.label(if doc.saving {
-                            "Saving…"
-                        } else if doc.rendering {
-                            "Applying edit…"
-                        } else {
-                            "Detecting text locally…"
-                        });
-                    }
-                }
-                ui.separator();
-                ui.small(&self.notice);
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        match &progress {
+                            Some(progress) => {
+                                ui.small(progress);
+                                ui.add(egui::Spinner::new().size(12.0));
+                            }
+                            None => {
+                                ui.add(egui::Label::new(
+                                    RichText::new(&self.notice).small().weak(),
+                                ));
+                            }
+                        }
+                    });
+                });
             });
-        });
     }
     fn close_dialog(&mut self, ctx: &egui::Context) {
         let Some(prompt) = self.closing else {
@@ -1105,9 +1171,8 @@ impl eframe::App for Editor {
             .map(|d| format!("{}{} — Candy", d.name, if d.dirty() { " *" } else { "" }))
             .unwrap_or_else(|| "Candy".into());
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
-        self.toolbar(ui);
         self.tabs(ui, &ctx);
-        self.options(ui, &ctx);
+        self.toolbar(ui, &ctx);
         self.status(ui);
         egui::CentralPanel::default()
             .frame(egui::Frame::NONE)
@@ -1129,20 +1194,24 @@ impl eframe::App for Editor {
                     }
                 } else {
                     ui.vertical_centered(|ui| {
-                        ui.add_space((ui.available_height() / 2.0 - 100.0).max(24.0));
+                        ui.add_space((ui.available_height() / 2.0 - 80.0).max(24.0));
                         ui.label(
                             RichText::new("A little room for your images.")
-                                .size(24.0)
+                                .size(22.0)
                                 .strong(),
                         );
-                        ui.add_space(8.0);
+                        ui.add_space(6.0);
                         ui.label("Drop an image here, or open one to get started.");
                         ui.add_space(16.0);
-                        if ui.button("Open image…").clicked() {
+                        if ui.button("Open Image…").clicked() {
                             self.open_dialog(&ctx);
                         }
                         ui.add_space(12.0);
-                        ui.weak("PNG · JPEG · WebP · HEIC · AVIF");
+                        ui.add(egui::Label::new(
+                            RichText::new("PNG · JPEG · WebP · HEIC · AVIF")
+                                .small()
+                                .weak(),
+                        ));
                     });
                 }
             });
