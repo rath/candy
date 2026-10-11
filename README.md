@@ -1,5 +1,7 @@
 # Candy
 
+[Website](https://candy.told.me/) · [한국어](https://candy.told.me/ko/)
+
 A small image tool for your Mac. View an image in a Kitty-compatible terminal,
 then open a lightweight editor when you need to change it.
 
@@ -185,3 +187,5 @@ GitHub Actions runs the checks and produces a zipped local app bundle on macOS.
 
 MIT licensed. See [PRODUCT.md](PRODUCT.md) for scope and [DESIGN.md](DESIGN.md)
 for the editor's visual conventions.
+
+The bilingual GitHub Pages landing page is in `site/`. See [website maintenance](docs/website.md) for preview, publishing, and DNS setup.
