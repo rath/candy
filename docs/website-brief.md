@@ -8,9 +8,9 @@ THESIS: A compact product introduction that shows the real editor and returns vi
 
 OWN-WORLD: White, deep ink, coral image stage, familiar rounded controls, clear sans-serif lettering. Actual native screenshot is the main visual; no invented app UI or testimonials.
 
-STORY: Understand the small-edit workflow, see the six capabilities, discover terminal integration, then build from source or read GitHub. macOS 14+, local OCR and original protection are factual proof.
+STORY: Understand the small-edit workflow, see the six capabilities, discover terminal integration, then install with Homebrew or download the signed app. macOS 14+, local OCR and original protection are factual proof.
 
-FIRST VIEWPORT: Wordmark and language links; generous headline and concise copy beside a coral stage containing the actual highlighted synthetic test image. Source-build action is beside GitHub. A command strip begins the second section.
+FIRST VIEWPORT: Wordmark and language links; generous headline and concise copy beside a coral stage containing the actual highlighted synthetic test image. Install action is beside GitHub. A command strip begins the second section.
 
 FORM: Direct code-led implementation of the user's narrow request for a simple introduction, extending Candy's established coral/native identity. No new visual-world selection or generated comp.
 

@@ -83,7 +83,7 @@ The authoritative implementation is `site/assets/style.css`; the surface purpose
 
 ## Colors
 
-Coral gives the editor screenshot its main visual emphasis. The deeper accent colors the second headline line, hovered links, primary-button hover and keyboard focus. Ink carries headings and primary actions; muted text carries descriptions and supporting facts. White is the default canvas, soft gray groups terminal content, and a pale warm background groups source-build instructions. Fine neutral rules separate features and file-format information.
+Coral gives the editor screenshot its main visual emphasis. The deeper accent colors the second headline line, hovered links, primary-button hover and keyboard focus. Ink carries headings and primary actions; muted text carries descriptions and supporting facts. White is the default canvas, soft gray groups terminal content, and a pale warm background groups installation instructions. Fine neutral rules separate features and file-format information.
 
 The site explicitly uses a light color scheme, independently of the native app's appearance.
 
@@ -111,10 +111,10 @@ Rounded corners identify the primary action, image, coral stage and build block.
 
 ## Components
 
-- **Primary action:** an anchor styled as an ink button, with a minimum height of 48px. Its destination is the source-build section. Supporting actions remain underlined text links.
+- **Primary action:** an anchor styled as an ink button, with a minimum height of 48px. Its destination is the installation section. Supporting actions remain underlined text links.
 - **Language navigation:** visible English and Korean links, each declaring its language. The current page is bold and marked with `aria-current="page"`.
 - **Editor figure:** one real, unmodified Candy capture with intrinsic dimensions, descriptive localized alternative text and a caption identifying the synthetic sample. Asset provenance is recorded in `site/assets/credits.txt`.
-- **Terminal example:** selectable command text, with decorative shell prompts excluded from selection and the accessibility tree. Build commands remain plain text inside a white inset block.
+- **Terminal example:** selectable command text, with decorative shell prompts excluded from selection and the accessibility tree. The Homebrew install command remains plain text inside a white inset block.
 - **Page structure:** one main heading, labeled sections, native links, header, main and footer landmarks. A localized skip link appears on keyboard focus. Links receive a 3px accent focus outline offset by 5px.
 
 ## Do's and Don'ts
@@ -122,5 +122,5 @@ Rounded corners identify the primary action, image, coral stage and build block.
 - **Do** preserve equivalent content and navigation in both languages, including localized alternative text and document language.
 - **Do** preserve visible keyboard focus, reduced-motion handling and readable code overflow when adjusting layouts.
 - **Do** show real native application imagery and retain its provenance.
-- **Don't** imply that the source-build action downloads a signed release.
+- **Do** distinguish notarized public downloads from local source builds; state the Apple Silicon and macOS requirements beside installation instructions.
 - **Don't** apply these website tokens to native AppKit controls or replace the native design documents.

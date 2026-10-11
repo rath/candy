@@ -67,7 +67,7 @@
               >View on GitHub</a
             >
           </div>
-          <p class="requirement">macOS 14+ · Free & open source</p>
+          <p class="requirement">macOS 14+ · Apple Silicon · Free & open source</p>
         </div>
         <figure class="hero-visual">
           <div class="stage">
@@ -158,25 +158,22 @@
           <div>
             <h2 id="get-title">Small tool.<br />Open source.</h2>
             <p>
-              Candy is free under the MIT license. Build the app from source and
-              make it part of your workflow.
+              Candy is free under the MIT license. Install the app and terminal
+              command together with Homebrew, or download the app directly.
             </p>
             <a
               class="text-link"
-              href="https://github.com/rath/candy#build-and-run"
-              >Build instructions on GitHub</a
+              href="https://github.com/rath/candy/releases/latest"
+              >Download Candy for Mac</a
             >
           </div>
           <div>
             <div class="build">
-              <pre><code>git clone https://github.com/rath/candy.git
-cd candy
-scripts/build-app.sh
-open dist/Candy.app</code></pre>
+              <pre><code>brew install --cask rath/tap/candy</code></pre>
             </div>
             <p class="build-note">
-              Requires Rust 1.95+ and Xcode 16+ (Swift 6). The local app bundle
-              is not signed or notarized. Currently tested on Apple Silicon.
+              For Apple Silicon Macs running macOS 14 or later. Signed with
+              Developer ID and notarized by Apple. No build tools needed.
             </p>
           </div>
         </div>
