@@ -56,7 +56,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false
     )
     window.title = "Candy"
-    window.tabbingIdentifier = "org.candyapp.image"
+    window.tabbingIdentifier = "me.told.candy.app.image"
     window.tabbingMode = .automatic
     window.isReleasedWhenClosed = false
     super.init(window: window)

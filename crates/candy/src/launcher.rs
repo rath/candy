@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-const BUNDLE_ID: &str = "org.candyapp.Candy";
+const BUNDLE_ID: &str = "me.told.candy.app";
 
 fn valid_app(path: &Path) -> bool {
     path.join("Contents/Info.plist").is_file() && path.join("Contents/MacOS/Candy").is_file()

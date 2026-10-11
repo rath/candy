@@ -37,7 +37,7 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
     <key>CFBundleExecutable</key><string>Candy</string>
-    <key>CFBundleIdentifier</key><string>org.candyapp.Candy</string>
+    <key>CFBundleIdentifier</key><string>me.told.candy.app</string>
     <key>CFBundleName</key><string>Candy</string>
     <key>CFBundleDisplayName</key><string>Candy</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>

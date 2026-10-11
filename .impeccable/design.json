@@ -66,7 +66,7 @@
           520
         ],
         "tabbingMode": "automatic",
-        "tabbingIdentifier": "org.candyapp.image",
+        "tabbingIdentifier": "me.told.candy.app.image",
         "toolbarStyle": "unified"
       },
       "layout": {

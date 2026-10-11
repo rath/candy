@@ -3,7 +3,7 @@ import AppKit
 @MainActor
 final class DocumentSession {
   let id = UUID()
-  private let worker = DispatchQueue(label: "org.candyapp.document", qos: .userInitiated)
+  private let worker = DispatchQueue(label: "me.told.candy.app.document", qos: .userInitiated)
   private var engine: RustDocument?
   private(set) var state: DocumentState?
   private(set) var image: CGImage?
