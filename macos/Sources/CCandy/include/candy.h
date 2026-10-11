@@ -24,6 +24,8 @@ void candy_document_free(CandyDocument *document);
 CandyState candy_document_state(CandyDocument *document, char **error);
 uint8_t candy_document_history(CandyDocument *document, uint8_t redo, char **error);
 uint8_t candy_document_resize(CandyDocument *document, uint32_t width, uint32_t height, char **error);
+// Quarter turn; non-zero `clockwise` turns right, zero turns left.
+uint8_t candy_document_rotate(CandyDocument *document, uint8_t clockwise, char **error);
 uint8_t candy_document_flatten(CandyDocument *document, uint8_t r, uint8_t g, uint8_t b, char **error);
 uint8_t candy_document_mosaic(CandyDocument *document, const CandyRect *rects, size_t count, uint32_t block, char **error);
 uint8_t candy_document_highlight(CandyDocument *document, const CandyPoint *points, size_t count, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a, char **error);

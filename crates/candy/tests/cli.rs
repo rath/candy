@@ -22,6 +22,8 @@ fn commands_produce_expected_images_and_protect_originals() {
     let original = std::fs::read(&src).unwrap();
     let cases = [
         (vec!["resize", "--width", "500"], (500, 330)),
+        (vec!["rotate", "--cw"], (660, 1000)),
+        (vec!["rotate", "--ccw"], (660, 1000)),
         (vec!["crop", "--rect", "40,50,200,100"], (200, 100)),
         (vec!["mosaic", "--rect", "40,50,200,100"], (1000, 660)),
         (vec!["flatten", "--background", "#223344"], (1000, 660)),

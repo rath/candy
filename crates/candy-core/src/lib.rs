@@ -89,7 +89,14 @@ pub enum Operation {
         width: u32,
         height: u32,
     },
+    Rotate(Rotation),
     Flatten([u8; 3]),
+}
+/// A quarter turn; the output swaps width and height.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Rotation {
+    Clockwise,
+    CounterClockwise,
 }
 
 pub fn apply(input: &RgbaImage, op: &Operation) -> Result<RgbaImage> {
@@ -124,6 +131,8 @@ pub fn apply(input: &RgbaImage, op: &Operation) -> Result<RgbaImage> {
             }
             Ok(out)
         }
+        Operation::Rotate(Rotation::Clockwise) => Ok(imageops::rotate90(input)),
+        Operation::Rotate(Rotation::CounterClockwise) => Ok(imageops::rotate270(input)),
         Operation::Flatten(background) => {
             let mut out = input.clone();
             for p in out.pixels_mut() {
@@ -608,6 +617,20 @@ mod tests {
         );
         assert!(resize_dimensions(400, 200, Some(0), None).is_err());
         assert!(validate_dimensions(u32::MAX, u32::MAX).is_err());
+    }
+    #[test]
+    fn quarter_turns_swap_dimensions_and_undo_each_other() {
+        let image = grid();
+        let cw = apply(&image, &Operation::Rotate(Rotation::Clockwise)).unwrap();
+        assert_eq!(cw.dimensions(), (6, 8));
+        // The top-left pixel moves to the top-right corner.
+        assert_eq!(cw.get_pixel(5, 0), image.get_pixel(0, 0));
+        assert_eq!(cw.get_pixel(0, 0), image.get_pixel(0, 5));
+        let back = apply(&cw, &Operation::Rotate(Rotation::CounterClockwise)).unwrap();
+        assert_eq!(back, image);
+        let ccw = apply(&image, &Operation::Rotate(Rotation::CounterClockwise)).unwrap();
+        assert_eq!(ccw.dimensions(), (6, 8));
+        assert_eq!(ccw.get_pixel(0, 0), image.get_pixel(7, 0));
     }
     #[test]
     fn save_roundtrips_and_never_clobbers_by_default() {

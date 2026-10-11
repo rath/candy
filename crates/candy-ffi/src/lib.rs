@@ -4,7 +4,7 @@
 #![allow(clippy::missing_safety_doc)]
 
 use anyhow::{Context, Result, ensure};
-use candy_core::{History, Operation, PixelRect};
+use candy_core::{History, Operation, PixelRect, Rotation};
 use image::RgbaImage;
 use std::{
     ffi::{CStr, CString, c_char},
@@ -208,6 +208,21 @@ pub unsafe extern "C" fn candy_document_resize(
 ) -> u8 {
     guarded(error, || {
         unsafe { doc(document)? }.apply(Operation::Resize { width, height })
+    })
+}
+/// Rotates by a quarter turn: clockwise when `clockwise` is non-zero.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn candy_document_rotate(
+    document: *mut CandyDocument,
+    clockwise: u8,
+    error: *mut *mut c_char,
+) -> u8 {
+    guarded(error, || {
+        unsafe { doc(document)? }.apply(Operation::Rotate(if clockwise != 0 {
+            Rotation::Clockwise
+        } else {
+            Rotation::CounterClockwise
+        }))
     })
 }
 #[unsafe(no_mangle)]
@@ -415,6 +430,11 @@ mod tests {
             assert!(!error.is_null());
             candy_error_free(error);
             let mut d = document();
+            assert_eq!(candy_document_rotate(&mut d, 1, &mut error), 1);
+            assert!(error.is_null());
+            assert_eq!((d.image.width(), d.image.height()), (6, 8));
+            assert_eq!(candy_document_rotate(&mut d, 0, &mut error), 1);
+            assert_eq!((d.image.width(), d.image.height()), (8, 6));
             let preview = candy_document_preview(&mut d, &mut error);
             assert!(error.is_null());
             assert_eq!((*preview).length, 8 * 6 * 4);

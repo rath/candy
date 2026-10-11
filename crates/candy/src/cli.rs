@@ -1,6 +1,6 @@
 use crate::launcher::launch;
 use anyhow::{Context, Result, ensure};
-use candy_core::{Operation, PixelRect};
+use candy_core::{Operation, PixelRect, Rotation};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{io::IsTerminal, path::PathBuf};
 
@@ -44,6 +44,17 @@ pub enum Action {
         width: Option<u32>,
         #[arg(long)]
         height: Option<u32>,
+    },
+    /// Rotate by 90 degrees.
+    Rotate {
+        #[command(flatten)]
+        files: Files,
+        /// Turn clockwise (to the right).
+        #[arg(long, required_unless_present = "ccw", conflicts_with = "ccw")]
+        cw: bool,
+        /// Turn counterclockwise (to the left).
+        #[arg(long)]
+        ccw: bool,
     },
     /// Extract a pixel rectangle into a new image.
     Crop {
@@ -93,6 +104,13 @@ pub fn run(cli: Cli) -> Result<()> {
             let (width, height) =
                 candy_core::resize_dimensions(image.width(), image.height(), width, height)?;
             Ok(Operation::Resize { width, height })
+        }),
+        Some(Action::Rotate { files, cw, .. }) => edit(files, |_| {
+            Ok(Operation::Rotate(if cw {
+                Rotation::Clockwise
+            } else {
+                Rotation::CounterClockwise
+            }))
         }),
         Some(Action::Crop { files, rect }) => edit(files, |_| Ok(Operation::Crop(rect))),
         Some(Action::Mosaic {
@@ -185,6 +203,22 @@ mod tests {
             Cli::try_parse_from(["candy", "resize", "a.png", "-o", "b.png", "--width", "10"])
                 .is_ok()
         );
+    }
+    #[test]
+    fn rotate_takes_exactly_one_direction() {
+        assert!(Cli::try_parse_from(["candy", "rotate", "a.png", "-o", "b.png"]).is_err());
+        assert!(
+            Cli::try_parse_from(["candy", "rotate", "a.png", "-o", "b.png", "--cw", "--ccw"])
+                .is_err()
+        );
+        for flag in ["--cw", "--ccw"] {
+            assert!(matches!(
+                Cli::try_parse_from(["candy", "rotate", "a.png", "-o", "b.png", flag])
+                    .unwrap()
+                    .command,
+                Some(Action::Rotate { cw, ccw, .. }) if cw == (flag == "--cw") && ccw != cw
+            ));
+        }
     }
     #[test]
     fn inspect_takes_a_path_and_an_optional_json_flag() {
