@@ -141,14 +141,16 @@ mosaic is a visual effect, not a guarantee of irreversible redaction.
 
 ## CLI edits
 
-All editing commands require a separate output path, whose extension selects
-the format. Rectangle coordinates are `x,y,width,height` in image pixels,
-measured from the top-left after EXIF rotation.
+Editing commands write to an output path (`-o`), whose extension selects the
+format, or replace the input itself with `-i`/`--in-place`. Rectangle
+coordinates are `x,y,width,height` in image pixels, measured from the top-left
+after EXIF rotation.
 
 ```sh
 candy resize photo.heic --width 1200 -o smaller.png
 candy resize scan.tif --width 800 --height 600 -o exact.webp
 candy rotate photo.heic --cw -o upright.heic
+candy rotate photo.jpg --ccw -i
 candy crop photo.png --rect 20,30,300,200 -o crop.heic
 candy mosaic photo.png --rect 20,30,300,200 --block-size 16 -o mosaic.png
 candy mosaic screenshot.png --text -o text-mosaic.png
@@ -158,7 +160,12 @@ candy flatten logo.png --background '#ffffff' -o flat.jpg
 One resize dimension preserves the aspect ratio; providing both sets the exact
 size. `rotate` turns a quarter turn clockwise (`--cw`) or counterclockwise
 (`--ccw`). Use `--force` to replace an existing output; it never permits overwriting
-the input. Run `candy --help` or `candy <command> --help` for details.
+the input. `--in-place` is the one way to change the input: the result is
+re-encoded in the file's own format and swapped in atomically, keeping the
+file's permissions and following a symlink to the file it points at. Metadata
+such as EXIF is not carried over, and lossy formats are recompressed, so prefer
+`-o` when the original matters. Run `candy --help` or `candy <command> --help`
+for details.
 
 `candy inspect photo.heic` reads the stored format, dimensions, EXIF
 orientation, color model, bit depth, alpha, color profile and DPI from the

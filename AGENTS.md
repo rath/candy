@@ -68,7 +68,9 @@ live in the SwiftPM package under `macos`.
 - Clip live brush previews to the image/canvas intersection.
 - First GUI save creates a copy. Preserve original protection, including
   symlink/hardlink aliases, and atomic output writes. CLI `--force` permits
-  replacing a separate output, never the input.
+  replacing a separate output, never the input; only an explicit `--in-place`
+  writes over the input, through the same atomic replacement, keeping the file's
+  permissions and resolving a symlink to its target first.
 - Keep alpha-aware compositing and resize behavior. Removing alpha means
   compositing onto a color, not simply dropping the alpha channel.
 - Saving routes by extension through `candy_macos::save`: PNG, JPEG, WebP, GIF
