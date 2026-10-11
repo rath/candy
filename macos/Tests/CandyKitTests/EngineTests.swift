@@ -171,6 +171,24 @@ extension SessionTests {
     try await settled(editor.session)
     #expect(window.frame == fitted)
   }
+  @Test func openingShowsTheWindowOnlyAfterTheImageLoaded() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    let window = try #require(editor.window)
+    editor.open(fixture)
+    #expect(editor.session.busy && !window.isVisible)
+    try await settled(editor.session)
+    #expect(window.isVisible && editor.session.state?.width == 1000)
+    window.orderOut(nil)
+    let failing = EditorWindow()
+    defer { failing.session.invalidate() }
+    let missing = FileManager.default.temporaryDirectory.appendingPathComponent("\(UUID()).png")
+    failing.open(missing)
+    try await settled(failing.session)
+    #expect(failing.window?.isVisible == true && failing.session.error != nil)
+    failing.window?.orderOut(nil)
+  }
   @Test func detectingProtectsRegionsButAllowsOtherTools() async throws {
     _ = NSApplication.shared
     let editor = EditorWindow()

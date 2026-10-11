@@ -48,6 +48,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   private var shownRevision: UInt64?
   private var shownSize = CGSize.zero
   private var userSized = false
+  private var showWhenLoaded = false
   private var observedGeneration: UInt64 = 0
 
   init() {
@@ -500,6 +501,12 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     canvas.needsDisplay = true
     refreshStatus()
   }
+  /// Loads `url` and shows the window once the load has finished, so it appears already sized
+  /// to the image, or with the error, instead of resizing in front of the user.
+  func open(_ url: URL) {
+    showWhenLoaded = true
+    session.load(url)
+  }
   func windowDidEndLiveResize(_ notification: Notification) { userSized = true }
   func windowDidChangeBackingProperties(_ notification: Notification) {
     canvas.needsDisplay = true
@@ -577,6 +584,10 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       if let control = view as? NSControl { control.isEnabled = regionActionsEnabled }
     }
     refreshStatus()
+    if showWhenLoaded, !session.busy {
+      showWhenLoaded = false
+      showWindow(nil)
+    }
   }
   private func refreshStatus() {
     let ready = regionActionsEnabled

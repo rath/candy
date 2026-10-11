@@ -50,9 +50,12 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
       let empty = editors.values.first {
         $0.session.state == nil && !$0.session.busy && $0.session.source == nil && !$0.prompting
       }
-      let editor = empty ?? makeEditor()
-      editor.showWindow(nil)
-      editor.session.load(url)
+      if let empty {
+        empty.showWindow(nil)
+        empty.session.load(url)
+      } else {
+        makeEditor().open(url)
+      }
     }
   }
   @objc public func openDocument(_ sender: Any?) {
