@@ -79,6 +79,13 @@ bin directory. Keep the ARM architecture and macOS Sonoma requirements.
 Run Cask style/audit and installation checks, commit, and push. Its CI verifies
 the packaged version, architecture, signature, notarization and a CLI edit.
 
+Once the release is public, point the website's download links at the new ZIP:
+the hero button, the installation link and the JSON-LD `downloadUrl` in both
+`site/index.html` and `site/ko/index.html` use
+`https://github.com/rath/candy/releases/download/v<version>/Candy-<version>-macos-arm64.zip`
+so the button downloads directly. Change them only after `gh release create`;
+an earlier push would publish a link to a missing asset.
+
 Update both website languages and README installation instructions when needed.
 Pushing `main` publishes committed website changes (see
 [website maintenance](website.md)). Finally verify the public release assets, tap
