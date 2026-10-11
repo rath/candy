@@ -129,4 +129,4 @@ Rounded corners identify the primary action, image, coral stage and build block.
 
 ## Korean copy
 
-Write natural Korean descriptions of actions rather than translating English slogans literally. The hero reads “이미지 편집, 간단하게.” Use “형광펜” for the highlight tool, “모자이크” for pixelation and “문자 인식” for OCR in visitor-facing explanations. Use consistent polite instructions and keep the Korean search descriptions and social card aligned with the page.
+Write natural Korean descriptions of actions rather than translating English slogans literally. The hero names the reader’s dilemma: “미리보기론 안 되고, 포토샵은 과하고.” The Korean social card sets the same two lines without end punctuation. Use “형광펜” for the highlight tool, “모자이크” for pixelation and “문자 인식” for OCR in visitor-facing explanations. Use consistent polite instructions and keep the Korean search descriptions and social card aligned with the page.
