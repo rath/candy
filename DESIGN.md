@@ -86,7 +86,7 @@ Use AppKit system fonts and its native fallback for Korean and other scripts. Do
 
 ## Layout
 
-The initial content rectangle is (1120 × 780 pt), before the native titlebar and toolbar. `NSWindow.minSize` is (760 × 520 pt), which constrains the whole window rather than its content area. A unified native toolbar centers the tool selector between flexible spaces. AppKit owns titlebar and tab-bar layout.
+The initial content rectangle is (1120 × 780 pt), before the native titlebar and toolbar. When a window receives its first image, it resizes around its center so Fit shows the image at Actual Size. An image larger than the screen's visible frame shrinks on both axes together, and the window stays inside that frame. Tabbed, full-screen and user-resized windows keep their size; later edits never resize the window. `NSWindow.contentMinSize` is (560 × 268 pt), a (560 × 320 pt) window with the unified toolbar; `minSize` is avoided because it is converted before the toolbar lays out. The width fits the widest contextual strip and the tool selector. A unified native toolbar centers the tool selector between flexible spaces. AppKit owns titlebar and tab-bar layout.
 
 Below the toolbar, a fixed-height contextual strip uses a horizontal `NSStackView` inside an `NSScrollView`. It scrolls horizontally when needed and autohides its scroller; controls do not wrap. The canvas fills the remaining area above a native separator and fixed-height status strip. The frontmatter records actual strip heights, insets, gaps, and control widths. There are no custom breakpoints. The empty state is a centered vertical stack containing a headline, instruction, Open image action, and supported-format line.
 
@@ -104,7 +104,7 @@ Image rectangles, checker cells, region outlines, and handles have square corner
 
 ### Menus and tool selector
 
-The macOS menu bar provides file, text-editing, history, view, tool, and window commands with native key equivalents. A centered `NSSegmentedControl` selects Select, Mosaic, Highlight, Text mosaic, Resize, or Flatten alpha. It uses text labels and single selection. Menu check marks mirror the active tool. Commands and controls disable when their document state makes them unavailable.
+The macOS menu bar provides file, text-editing, history, view, tool, and window commands with native key equivalents. A centered `NSSegmentedControl` selects Select, Mosaic, Highlight, Text mosaic, Resize, or Flatten alpha. It uses SF Symbol icons with tooltips and accessibility descriptions naming each tool, and single selection. Menu check marks mirror the active tool. Commands and controls disable when their document state makes them unavailable.
 
 ### Document windows and tabs
 

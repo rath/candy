@@ -97,11 +97,14 @@ final class CanvasView: NSView {
       ? NSColor(srgbRed: 1, green: 0.608, blue: 0.514, alpha: 1)
       : NSColor(srgbRed: 0.718, green: 0.275, blue: 0.196, alpha: 1)
   }
+  /// Total space Fit leaves around the image on each axis.
+  nonisolated static let fitMargin: CGFloat = 40
   var transform: CanvasTransform {
     let backing = window?.backingScaleFactor ?? 2
+    let margin = CanvasView.fitMargin
     let fit = min(
-      max(1, bounds.width - 40) / max(1, imageSize.width),
-      max(1, bounds.height - 40) / max(1, imageSize.height), 1 / backing)
+      max(1, bounds.width - margin) / max(1, imageSize.width),
+      max(1, bounds.height - margin) / max(1, imageSize.height), 1 / backing)
     let scale = zoom.map { $0 / backing } ?? fit
     return CanvasTransform(
       origin: CGPoint(

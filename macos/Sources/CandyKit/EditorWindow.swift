@@ -16,7 +16,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   private let dismiss = NSButton(title: "Dismiss", target: nil, action: nil)
   private let empty = NSStackView()
   private let tools = NSSegmentedControl(
-    labels: Tool.allCases.map(\.title), trackingMode: .selectOne, target: nil, action: nil)
+    images: Tool.allCases.map {
+      NSImage(systemSymbolName: $0.symbol, accessibilityDescription: $0.title) ?? NSImage()
+    }, trackingMode: .selectOne, target: nil, action: nil)
   private var actionButtons: [NSButton] = []
   private var tool: Tool = .select
   private var block: Double = 12
@@ -45,6 +47,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   private var allowClose = false
   private var shownRevision: UInt64?
   private var shownSize = CGSize.zero
+  private var userSized = false
   private var observedGeneration: UInt64 = 0
 
   init() {
@@ -52,7 +55,6 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       contentRect: NSRect(x: 0, y: 0, width: 1120, height: 780),
       styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false
     )
-    window.minSize = NSSize(width: 760, height: 520)
     window.title = "Candy"
     window.tabbingIdentifier = "org.candyapp.image"
     window.tabbingMode = .automatic
@@ -66,10 +68,15 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     toolbar.allowsUserCustomization = false
     window.toolbar = toolbar
     window.toolbarStyle = .unified
+    // A content minimum: `minSize` would be converted with the titlebar height before the
+    // toolbar lays out, which later adds 24 pt. 560 pt fits the widest contextual strip
+    // (Text mosaic) and the tool selector beside a truncated title.
+    window.contentMinSize = NSSize(width: 560, height: 268)
     tools.target = self
     tools.action = #selector(changeTool)
     tools.selectedSegment = 0
     tools.setAccessibilityLabel("Editing tool")
+    for tool in Tool.allCases { tools.setToolTip(tool.title, forSegment: tool.rawValue) }
     buildContent()
     configureOptions()
     session.onChange = { [weak self] in self?.refresh() }
@@ -493,9 +500,53 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     canvas.needsDisplay = true
     refreshStatus()
   }
+  func windowDidEndLiveResize(_ notification: Notification) { userSized = true }
   func windowDidChangeBackingProperties(_ notification: Notification) {
     canvas.needsDisplay = true
     refreshStatus()
+  }
+  /// Sizes the window for its first image so Fit shows it at Actual Size, or as large as the
+  /// screen allows. Tabs share one frame, so a tabbed window keeps it, as does a full-screen
+  /// window or one the user has resized.
+  private func fitWindow(to image: CGSize) {
+    guard let window, !userSized, !window.styleMask.contains(.fullScreen),
+      (window.tabbedWindows?.count ?? 1) <= 1, let screen = window.screen ?? NSScreen.main
+    else { return }
+    window.contentView?.layoutSubtreeIfNeeded()
+    let frame = EditorWindow.compactFrame(
+      image: image, scale: screen.backingScaleFactor,
+      decor: CGSize(
+        width: window.frame.width - canvas.bounds.width,
+        height: window.frame.height - canvas.bounds.height),
+      around: window.frame, minimum: window.minSize, visible: screen.visibleFrame)
+    if window.isVisible {
+      window.animator().setFrame(frame, display: true)
+    } else {
+      window.setFrame(frame, display: false)
+    }
+  }
+  /// A window frame whose canvas holds `image` pixels at `scale` pixels per point plus the Fit
+  /// margin, shrunk proportionally to fit `visible` and centered on the current frame. `decor` is
+  /// the frame space outside the canvas: titlebar, toolbar, option and status strips.
+  nonisolated static func compactFrame(
+    image: CGSize, scale: CGFloat, decor: CGSize, around frame: CGRect, minimum: CGSize,
+    visible: CGRect
+  ) -> CGRect {
+    let margin = CanvasView.fitMargin
+    let points = CGSize(width: image.width / scale, height: image.height / scale)
+    let shrink = min(
+      1, (visible.width - decor.width - margin) / points.width,
+      (visible.height - decor.height - margin) / points.height)
+    let size = CGSize(
+      width: min(
+        visible.width,
+        max(minimum.width, (points.width * shrink).rounded(.up) + margin + decor.width)),
+      height: min(
+        visible.height,
+        max(minimum.height, (points.height * shrink).rounded(.up) + margin + decor.height)))
+    let x = min(max(frame.midX - size.width / 2, visible.minX), visible.maxX - size.width)
+    let y = min(max(frame.midY - size.height / 2, visible.minY), visible.maxY - size.height)
+    return CGRect(origin: CGPoint(x: x.rounded(), y: y.rounded()), size: size)
   }
   private func refresh() {
     window?.title = session.name
@@ -514,8 +565,10 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       canvas.imageSize = state.size
       canvas.clear()
       if shownSize != state.size {
+        let first = shownSize == .zero
         shownSize = state.size
         canvas.fit()
+        if first { fitWindow(to: state.size) }
         widthField?.stringValue = String(state.width)
         heightField?.stringValue = String(state.height)
       }

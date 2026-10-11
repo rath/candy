@@ -106,6 +106,24 @@ private var fixture: URL {
   }
 }
 
+@Test func compactWindowsShowTheImageAtActualSizeWithinTheScreen() {
+  let visible = CGRect(x: 0, y: 30, width: 1600, height: 970)
+  func frame(_ width: CGFloat, _ height: CGFloat, around: CGRect) -> CGRect {
+    EditorWindow.compactFrame(
+      image: CGSize(width: width, height: height), scale: 2,
+      decor: CGSize(width: 0, height: 140), around: around,
+      minimum: CGSize(width: 560, height: 320), visible: visible)
+  }
+  let centered = CGRect(x: 240, y: 100, width: 1120, height: 780)
+  // 2000×1400 px is 1000×700 pt at 2×; the canvas adds only the Fit margin.
+  #expect(frame(2000, 1400, around: centered) == CGRect(x: 280, y: 50, width: 1040, height: 880))
+  // Too tall for the screen: both axes shrink together, so no side bars appear.
+  #expect(frame(4032, 3024, around: centered) == CGRect(x: 253, y: 30, width: 1094, height: 970))
+  #expect(frame(200, 100, around: centered) == CGRect(x: 520, y: 330, width: 560, height: 320))
+  let corner = CGRect(x: 1500, y: 900, width: 1120, height: 780)
+  #expect(visible.contains(frame(2000, 1400, around: corner)))
+}
+
 @Test func exportFormatsChooseVisibleExtensions() {
   #expect(ExportFormat.forFilename("photo.JPEG") == .jpeg)
   #expect(ExportFormat.webp.filename("한글 photo.png") == "한글 photo.webp")
@@ -132,6 +150,26 @@ extension SessionTests {
     editor.undo(nil)
     try await settled(editor.session)
     #expect(editor.session.state?.width == 1000)
+  }
+  @Test func firstImageSizesTheWindowAndLaterEditsKeepIt() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    let window = try #require(editor.window)
+    let initial = window.frame
+    editor.session.load(fixture)
+    try await settled(editor.session)
+    let fitted = window.frame
+    #expect(fitted != initial)
+    window.contentView?.layoutSubtreeIfNeeded()
+    // A display too small for the fixture fills one axis and shrinks the image instead.
+    let visible = try #require((window.screen ?? NSScreen.main)?.visibleFrame)
+    #expect(
+      editor.canvas.zoomPercent == 100 || fitted.width == visible.width
+        || fitted.height == visible.height)
+    editor.session.apply(.resize(200, 132))
+    try await settled(editor.session)
+    #expect(window.frame == fitted)
   }
   @Test func detectingProtectsRegionsButAllowsOtherTools() async throws {
     _ = NSApplication.shared

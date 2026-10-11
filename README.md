@@ -125,7 +125,8 @@ replacement, and closing unsaved documents prompts to save or discard.
 
 Actual Size maps one image pixel to one display backing pixel (so a 1000 px
 image occupies 500 logical points on a 2× Retina display). Fit never enlarges
-images beyond that size; manual zoom ranges from 1% to 1600%.
+images beyond that size; manual zoom ranges from 1% to 1600%. A new window sizes
+itself to show its first image at Actual Size, or as large as the screen allows.
 
 OCR boxes are locked while detection runs. Other tools remain available; editing
 the image discards the old detection result. During quit confirmation all
