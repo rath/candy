@@ -200,13 +200,18 @@ h1 span {
   padding: 38px 24px;
   transform: rotate(-2deg);
 }
+.stage video,
 .stage img {
   width: 100%;
   height: auto;
   display: block;
-  border-radius: 10px;
+  /* The recorded window's own corner radius at hero size. */
+  border-radius: 12px;
   box-shadow: 0 18px 36px #57231335;
   transform: rotate(2deg);
+}
+.stage .still {
+  display: none;
 }
 figure {
   margin: 0;
@@ -216,6 +221,45 @@ figcaption {
   color: var(--muted);
   text-align: center;
   margin-top: 22px;
+}
+.hero-visual figcaption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+.pause {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+.pause:hover {
+  color: var(--accent);
+  border-color: currentColor;
+}
+.pause::before {
+  content: "";
+  width: 8px;
+  height: 9px;
+  box-sizing: border-box;
+  border-inline: 3px solid currentColor;
+}
+.pause[data-paused="true"]::before {
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-block: 5px solid transparent;
+  border-inline: 8px solid currentColor;
+  border-inline-end: 0;
 }
 .terminal-section {
   background: var(--soft);
@@ -551,6 +595,13 @@ footer a {
 @media (prefers-reduced-motion: reduce) {
   :root {
     scroll-behavior: auto;
+  }
+  .stage .demo,
+  .hero-visual .pause {
+    display: none;
+  }
+  .stage .still {
+    display: block;
   }
   .hero-visual,
   .github-corner .octo-arm {

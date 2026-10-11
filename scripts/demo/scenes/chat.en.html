@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>College friends</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 820px; height: 560px; overflow: hidden; }
+  body { font: 14.5px/1.45 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #1c1f23; background: #eef1f4; -webkit-font-smoothing: antialiased; }
+  .head { height: 52px; background: #f8f9fa; border-bottom: 1px solid #dfe3e7; display: flex; align-items: center; padding: 0 18px; gap: 10px; }
+  .head .title { font-weight: 650; font-size: 15px; }
+  .head .count { color: #8a9099; font-size: 13px; }
+  .head .icons { margin-left: auto; display: flex; gap: 18px; color: #6f767f; }
+  .feed { padding: 10px 22px 0; }
+  .day { text-align: center; margin: 6px 0 12px; }
+  .day span { background: #dde2e8; color: #5d6670; font-size: 12px; border-radius: 10px; padding: 2px 10px; }
+  .msg { display: flex; gap: 9px; margin-bottom: 9px; align-items: flex-start; }
+  .av { width: 36px; height: 36px; border-radius: 13px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: #fff; }
+  .name { font-size: 12.5px; color: #4f5862; margin: 0 0 3px 2px; }
+  .line { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 4px; }
+  .bubble { background: #fff; border-radius: 4px 14px 14px 14px; padding: 7px 11px; max-width: 470px; box-shadow: 0 1px 0 #d6dbe0; }
+  .time { font-size: 11px; color: #8a9099; white-space: nowrap; }
+  .me { justify-content: flex-end; }
+  .me .bubble { background: #cfe3ff; border-radius: 14px 4px 14px 14px; box-shadow: none; }
+  .me .line { flex-direction: row-reverse; }
+  .input { position: absolute; left: 0; right: 0; bottom: 0; height: 54px; background: #fff; border-top: 1px solid #dfe3e7; display: flex; align-items: center; padding: 0 18px; color: #a0a6ad; font-size: 14px; }
+  .input .send { margin-left: auto; background: #e9ecef; color: #9aa1a9; border-radius: 6px; padding: 5px 12px; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <span class="title">College friends</span><span class="count">6</span>
+    <span class="icons"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="7.8" cy="7.8" r="5.3"/><path d="M11.8 11.8 16 16"/></svg><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13"/></svg></span>
+  </div>
+  <div class="feed">
+    <div class="day"><span>Sunday, October 11, 2026</span></div>
+    <div class="msg">
+      <div class="av" style="background:#e39b7b">M</div>
+      <div>
+        <div class="name">Mia Chen</div>
+        <div class="line"><div class="bubble">everyone free next Saturday?</div></div>
+        <div class="line"><div class="bubble">booked it! Saturday Oct 17, 7 PM at the fountain by the station</div><span class="time">3:12 PM</span></div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="av" style="background:#7fa7d9">J</div>
+      <div>
+        <div class="name">Josh Park</div>
+        <div class="line"><div class="bubble">nice, count me in 🙌</div><span class="time">3:14 PM</span></div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="av" style="background:#e39b7b">M</div>
+      <div>
+        <div class="name">Mia Chen</div>
+        <div class="line"><div class="bubble">it’s $30 each, send it by Friday<br />PayPal: mia.chen@example.com</div><span class="time">3:15 PM</span></div>
+      </div>
+    </div>
+    <div class="msg">
+      <div class="av" style="background:#8cc0a0">G</div>
+      <div>
+        <div class="name">Grace Lee</div>
+        <div class="line"><div class="bubble">might be late after work, I’ll call you at (415) 555-0142 when I’m close</div><span class="time">3:21 PM</span></div>
+      </div>
+    </div>
+    <div class="msg me">
+      <div class="line"><div class="bubble">sent 👍</div><span class="time">3:24 PM</span></div>
+    </div>
+  </div>
+  <div class="input">Message<span class="send">Send</span></div>
+</body>
+</html>

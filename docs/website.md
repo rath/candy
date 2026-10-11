@@ -1,8 +1,9 @@
 # Website
 
 The landing page lives in `site/`: English at `/`, Korean at `/ko/`. Both pages
-are plain HTML sharing one stylesheet and a real app screenshot. No JavaScript,
-package installation, analytics, or third-party font request is required.
+are plain HTML sharing one stylesheet, each with a recorded app demo in its own
+language. No JavaScript, package installation, analytics, or third-party font
+request is required; a few inline lines only add a pause button to the demo.
 Update both pages when changing product copy.
 
 Preview locally:
@@ -41,8 +42,8 @@ Check status with `gh api repos/rath/candy/pages`. Do not assume that publishing
 files also provisions DNS.
 
 Canonical URLs, language alternates, sitemap and social metadata use the custom
-domain. The screenshot uses synthetic fixture content; provenance is embedded
-in the PNG and recorded in `site/assets/credits.txt`.
+domain. The demo edits made-up scenes from `scripts/demo/scenes/`; provenance
+is recorded in `site/assets/credits.txt`.
 
 ## Search and sharing
 

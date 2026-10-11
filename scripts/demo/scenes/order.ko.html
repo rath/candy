@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>주문 상세 - 솔방울상점 판매자센터</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 820px; height: 560px; overflow: hidden; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #1f2329; background: #f5f6f8; -webkit-font-smoothing: antialiased; }
+  .top { height: 48px; background: #fff; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; padding: 0 20px; gap: 10px; }
+  .logo { font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
+  .logo b { color: #2f6fed; }
+  .logo span { color: #6b7280; font-weight: 500; margin-left: 4px; }
+  .top .right { margin-left: auto; display: flex; align-items: center; gap: 18px; color: #4b5563; font-size: 13px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: #c9d6ee; color: #3d4f75; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-right: 6px; }
+  .account { display: inline-flex; align-items: center; }
+  .layout { display: flex; height: 512px; }
+  .side { width: 156px; background: #fff; border-right: 1px solid #e3e5e8; padding: 14px 10px; font-size: 13.5px; }
+  .side a { display: block; padding: 7px 10px; border-radius: 6px; color: #374151; text-decoration: none; }
+  .side a.on { background: #eaf1fe; color: #1d4ed8; font-weight: 600; }
+  .side .group { color: #9ca3af; font-size: 11.5px; padding: 12px 10px 4px; }
+  main { flex: 1; padding: 18px 24px; }
+  .crumb { color: #6b7280; font-size: 12.5px; }
+  h1 { font-size: 19px; margin: 4px 0 14px; letter-spacing: -0.3px; }
+  h1 small { font-size: 12.5px; color: #6b7280; font-weight: 500; margin-left: 8px; }
+  .alert { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid #f1c6c6; border-left: 4px solid #d93b3b; color: #b42318; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 14px; }
+  .alert i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; background: #d93b3b; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+  .alert small { color: #b75656; font-size: 12px; margin-left: 4px; }
+  .card { background: #fff; border: 1px solid #e3e5e8; border-radius: 10px; padding: 4px 18px; }
+  .row { display: flex; padding: 9px 0; border-bottom: 1px solid #f0f1f3; font-size: 13.5px; }
+  .row:last-child { border-bottom: 0; }
+  .row dt { width: 96px; color: #6b7280; flex: none; }
+  .row dd { margin: 0; }
+  .status { display: flex; align-items: center; gap: 8px; }
+  .select { border: 1px solid #cfd4da; border-radius: 6px; padding: 4px 26px 4px 10px; font-size: 13px; position: relative; background: #fff; }
+  .select::after { content: ""; position: absolute; right: 10px; top: 11px; border: 4px solid transparent; border-top-color: #6b7280; }
+  .btn { background: #2f6fed; color: #fff; border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+  .badge { background: #fff4d6; color: #8a5a00; font-size: 12px; border-radius: 4px; padding: 1px 6px; margin-left: 6px; }
+  .muted { color: #6b7280; }
+  h2 { font-size: 13.5px; margin: 14px 0 6px; color: #374151; }
+  .log { font-size: 12.5px; color: #4b5563; }
+  .log div { padding: 3px 0; }
+  .log time { color: #9ca3af; display: inline-block; width: 92px; font-variant-numeric: tabular-nums; }
+  .log .fail { color: #b42318; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo"><b>솔방울상점</b><span>판매자센터</span></div>
+    <div class="right">
+      <span>공지사항</span><span>도움말</span>
+      <span class="account"><span class="avatar">서</span>seoyeon.kim@example.com</span>
+    </div>
+  </div>
+  <div class="layout">
+    <nav class="side">
+      <a>대시보드</a>
+      <div class="group">판매</div>
+      <a class="on">주문 관리</a>
+      <a>반품·교환</a>
+      <a>상품 관리</a>
+      <div class="group">운영</div>
+      <a>정산</a>
+      <a>고객 문의</a>
+      <a>설정</a>
+    </nav>
+    <main>
+      <div class="crumb">주문 관리 › 주문 상세</div>
+      <h1>주문 20261011-0384 <small>2026.10.11 14:22 결제</small></h1>
+      <div class="alert"><i>!</i><div>주문 상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요. <small>(ORD-409)</small></div></div>
+      <dl class="card">
+        <div class="row"><dt>상품</dt><dd>린넨 셔츠 (오트밀, M) 외 1건</dd></div>
+        <div class="row"><dt>결제 금액</dt><dd>58,400원 <span class="muted">· 카드 일시불</span></dd></div>
+        <div class="row"><dt>주문자</dt><dd>이도윤</dd></div>
+        <div class="row"><dt>이메일</dt><dd>doyun.lee@example.com</dd></div>
+        <div class="row"><dt>배송지</dt><dd>서울특별시 마포구 솔내길 27, 502호</dd></div>
+        <div class="row"><dt>주문 상태</dt><dd class="status"><span class="select">배송 준비중</span><span class="btn">상태 변경</span><span class="badge">출고 대기 1일</span></dd></div>
+      </dl>
+      <h2>처리 이력</h2>
+      <div class="log">
+        <div><time>10.11 14:22</time>결제 완료</div>
+        <div><time>10.11 14:25</time>배송 준비중으로 변경</div>
+        <div class="fail"><time>10.11 15:02</time>상태 변경 실패 (ORD-409)</div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

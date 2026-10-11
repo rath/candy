@@ -10,12 +10,12 @@ OWN-WORLD: White, deep ink, coral image stage, familiar rounded controls, clear 
 
 STORY: Understand the small-edit workflow, see the six capabilities, discover terminal integration, then install with Homebrew or download the signed app. macOS 14+, local OCR and original protection are factual proof.
 
-FIRST VIEWPORT: Wordmark and language links; generous headline and concise copy beside a coral stage containing the actual highlighted synthetic test image. Install action is beside GitHub. A command strip begins the second section.
+FIRST VIEWPORT: Name and language links; generous headline and concise copy beside a coral stage playing a recording of the real editor in the page language. Install action is beside GitHub. A command strip begins the second section.
 
 FORM: Direct code-led implementation of the user's narrow request for a simple introduction, extending Candy's established coral/native identity. No new visual-world selection or generated comp.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-Asset provenance: site/assets/candy-editor.png is a real Retina Candy AppKit window capture from .impeccable/review/fixture-editor-final.png. The fictional travel card combines committed AI-generated coastal artwork with reproducible English/Korean typography from scripts/make-fixtures.swift. The headline highlight and email mosaic were applied in Candy. candy-editor.webp is the compressed web version; neither capture has fabricated application UI. No personal data. See site/assets/credits.txt and scripts/fixture-assets/README.md.
+Asset provenance: site/assets/candy-demo-en.mp4 and candy-demo-ko.mp4 are real recordings of the Candy AppKit window editing made-up scenes (scripts/demo/scenes/) in the light appearance, with the interface in the page language. Every mosaic and highlight was applied by Candy; no application UI is fabricated or composited. candy-editor-en.png and candy-editor-ko.png are window captures of the finished order page, used as posters, reduced-motion images and social-card sources. No personal data. See site/assets/credits.txt.
 
-Social sharing: language-specific 1200 × 630 cards use the real editor capture, coral stage, warm paper and large localized headlines. The authored export source is scripts/og/index.html; the static PNGs live in site/assets/og-en.png and og-ko.png. Each page points search and social crawlers to its own language, while canonical and reciprocal hreflang links connect both versions.
+Social sharing: language-specific 1200 × 630 cards use the language's real editor still, coral stage, warm paper and large localized headlines. The authored export source is scripts/og/index.html; the static PNGs live in site/assets/og-en.png and og-ko.png. Each page points search and social crawlers to its own language, while canonical and reciprocal hreflang links connect both versions.

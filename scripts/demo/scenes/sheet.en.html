@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>October offsite fees</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 820px; height: 560px; overflow: hidden; }
+  body { font: 13.5px/1.4 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #202124; background: #fff; -webkit-font-smoothing: antialiased; }
+  .bar { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #dadce0; background: #f8f9fa; }
+  .ref { width: 64px; border: 1px solid #dadce0; border-radius: 4px; background: #fff; padding: 3px 8px; font-size: 12.5px; color: #3c4043; }
+  .fx { color: #80868b; font-style: italic; font-family: Georgia, serif; font-size: 14px; }
+  .formula { flex: 1; color: #3c4043; font-size: 13px; }
+  table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+  col.rn { width: 40px; }
+  th, td { border: 1px solid #e2e3e5; height: 30px; padding: 0 8px; white-space: nowrap; overflow: hidden; }
+  thead th { background: #f8f9fa; color: #5f6368; font-weight: 500; font-size: 12px; height: 24px; text-align: center; }
+  tbody th { background: #f8f9fa; color: #5f6368; font-weight: 500; font-size: 12px; text-align: center; padding: 0; }
+  .h td { font-weight: 650; background: #f1f4f8; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .c { text-align: center; }
+  .no { color: #c5221f; font-weight: 600; }
+  .ok { color: #188038; }
+  .title td { font-size: 15px; font-weight: 700; border-color: transparent; }
+  .sum td { font-weight: 650; border-top: 2px solid #9aa0a6; }
+  .sel { outline: 2px solid #1a73e8; outline-offset: -2px; }
+</style>
+</head>
+<body>
+  <div class="bar"><span class="ref">E14</span><span class="fx">fx</span><span class="formula">=SUM(E4:E13)</span></div>
+  <table>
+    <colgroup><col class="rn" /><col style="width:46px" /><col style="width:122px" /><col style="width:106px" /><col style="width:140px" /><col style="width:80px" /><col style="width:80px" /><col /></colgroup>
+    <thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr></thead>
+    <tbody>
+      <tr class="title"><th>1</th><td colspan="7">October offsite fees (Oct 24–25, lake house)</td></tr>
+      <tr><th>2</th><td colspan="7" style="color:#5f6368;border-color:transparent">$85 per person · due Friday, Oct 16</td></tr>
+      <tr class="h"><th>3</th><td class="c">No</td><td>Name</td><td>Team</td><td>Phone</td><td class="num">Fee</td><td class="c">Paid</td><td>Notes</td></tr>
+      <tr><th>4</th><td class="c">1</td><td>Liam Carter</td><td>Engineering</td><td>(212) 555-0148</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr><th>5</th><td class="c">2</td><td>Emma Brooks</td><td>Design</td><td>(212) 555-0173</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr><th>6</th><td class="c">3</td><td>Noah Patel</td><td>Engineering</td><td>(646) 555-0129</td><td class="num">$85</td><td class="c ok">Yes</td><td>Driving</td></tr>
+      <tr><th>7</th><td class="c">4</td><td>Olivia Kim</td><td>Marketing</td><td>(212) 555-0186</td><td class="num">$0</td><td class="c no">Unpaid</td><td></td></tr>
+      <tr><th>8</th><td class="c">5</td><td>Ethan Rivera</td><td>Engineering</td><td>(917) 555-0112</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr><th>9</th><td class="c">6</td><td>Ava Nguyen</td><td>Operations</td><td>(646) 555-0164</td><td class="num">$85</td><td class="c ok">Yes</td><td>One night only</td></tr>
+      <tr><th>10</th><td class="c">7</td><td>Lucas Foster</td><td>Design</td><td>(212) 555-0135</td><td class="num">$0</td><td class="c no">Unpaid</td><td></td></tr>
+      <tr><th>11</th><td class="c">8</td><td>Mia Thompson</td><td>Marketing</td><td>(917) 555-0197</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr><th>12</th><td class="c">9</td><td>Mason Reed</td><td>Engineering</td><td>(646) 555-0151</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr><th>13</th><td class="c">10</td><td>Sophia Hughes</td><td>Operations</td><td>(212) 555-0108</td><td class="num">$85</td><td class="c ok">Yes</td><td></td></tr>
+      <tr class="sum"><th>14</th><td></td><td>Total</td><td></td><td></td><td class="num sel">$680</td><td class="c">8 / 10</td><td></td></tr>
+      <tr><th>15</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</body>
+</html>

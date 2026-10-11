@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Order details - Pinecone Market Seller Center</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 820px; height: 560px; overflow: hidden; }
+  body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #1f2329; background: #f5f6f8; -webkit-font-smoothing: antialiased; }
+  .top { height: 48px; background: #fff; border-bottom: 1px solid #e3e5e8; display: flex; align-items: center; padding: 0 20px; gap: 10px; }
+  .logo { font-weight: 700; font-size: 15px; letter-spacing: -0.2px; }
+  .logo b { color: #2f6fed; }
+  .logo span { color: #6b7280; font-weight: 500; margin-left: 4px; }
+  .top .right { margin-left: auto; display: flex; align-items: center; gap: 18px; color: #4b5563; font-size: 13px; }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: #c9d6ee; color: #3d4f75; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; margin-right: 6px; }
+  .account { display: inline-flex; align-items: center; }
+  .layout { display: flex; height: 512px; }
+  .side { width: 156px; background: #fff; border-right: 1px solid #e3e5e8; padding: 14px 10px; font-size: 13.5px; }
+  .side a { display: block; padding: 7px 10px; border-radius: 6px; color: #374151; text-decoration: none; }
+  .side a.on { background: #eaf1fe; color: #1d4ed8; font-weight: 600; }
+  .side .group { color: #9ca3af; font-size: 11.5px; padding: 12px 10px 4px; }
+  main { flex: 1; padding: 18px 24px; }
+  .crumb { color: #6b7280; font-size: 12.5px; }
+  h1 { font-size: 19px; margin: 4px 0 14px; letter-spacing: -0.3px; }
+  h1 small { font-size: 12.5px; color: #6b7280; font-weight: 500; margin-left: 8px; }
+  .alert { display: flex; gap: 10px; align-items: flex-start; background: #fff; border: 1px solid #f1c6c6; border-left: 4px solid #d93b3b; color: #b42318; border-radius: 8px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 14px; }
+  .alert i { font-style: normal; width: 18px; height: 18px; border-radius: 50%; background: #d93b3b; color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; margin-top: 1px; }
+  .alert small { color: #b75656; font-size: 12px; margin-left: 4px; }
+  .card { background: #fff; border: 1px solid #e3e5e8; border-radius: 10px; padding: 4px 18px; }
+  .row { display: flex; padding: 9px 0; border-bottom: 1px solid #f0f1f3; font-size: 13.5px; }
+  .row:last-child { border-bottom: 0; }
+  .row dt { width: 96px; color: #6b7280; flex: none; }
+  .row dd { margin: 0; }
+  .status { display: flex; align-items: center; gap: 8px; }
+  .select { border: 1px solid #cfd4da; border-radius: 6px; padding: 4px 26px 4px 10px; font-size: 13px; position: relative; background: #fff; }
+  .select::after { content: ""; position: absolute; right: 10px; top: 11px; border: 4px solid transparent; border-top-color: #6b7280; }
+  .btn { background: #2f6fed; color: #fff; border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+  .badge { background: #fff4d6; color: #8a5a00; font-size: 12px; border-radius: 4px; padding: 1px 6px; margin-left: 6px; }
+  .muted { color: #6b7280; }
+  h2 { font-size: 13.5px; margin: 14px 0 6px; color: #374151; }
+  .log { font-size: 12.5px; color: #4b5563; }
+  .log div { padding: 3px 0; }
+  .log time { color: #9ca3af; display: inline-block; width: 118px; font-variant-numeric: tabular-nums; }
+  .log .fail { color: #b42318; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="logo"><b>Pinecone Market</b><span>Seller Center</span></div>
+    <div class="right">
+      <span>Notices</span><span>Help</span>
+      <span class="account"><span class="avatar">S</span>sarah.kim@example.com</span>
+    </div>
+  </div>
+  <div class="layout">
+    <nav class="side">
+      <a>Dashboard</a>
+      <div class="group">Sales</div>
+      <a class="on">Orders</a>
+      <a>Returns</a>
+      <a>Products</a>
+      <div class="group">Operations</div>
+      <a>Payouts</a>
+      <a>Messages</a>
+      <a>Settings</a>
+    </nav>
+    <main>
+      <div class="crumb">Orders › Order details</div>
+      <h1>Order 20261011-0384 <small>Paid Oct 11, 2026, 2:22 PM</small></h1>
+      <div class="alert"><i>!</i><div>Couldn’t update the order status. Try again in a moment. <small>(ORD-409)</small></div></div>
+      <dl class="card">
+        <div class="row"><dt>Items</dt><dd>Linen shirt (Oatmeal, M) and 1 more</dd></div>
+        <div class="row"><dt>Total</dt><dd>$48.40 <span class="muted">· Visa</span></dd></div>
+        <div class="row"><dt>Customer</dt><dd>Daniel Lee</dd></div>
+        <div class="row"><dt>Email</dt><dd>daniel.lee@example.com</dd></div>
+        <div class="row"><dt>Ship to</dt><dd>27 Pinecone Row, Apt 502, Portland, OR</dd></div>
+        <div class="row"><dt>Status</dt><dd class="status"><span class="select">Preparing</span><span class="btn">Update status</span><span class="badge">Ships in 1 day</span></dd></div>
+      </dl>
+      <h2>History</h2>
+      <div class="log">
+        <div><time>Oct 11, 2:22 PM</time>Payment completed</div>
+        <div><time>Oct 11, 2:25 PM</time>Status changed to Preparing</div>
+        <div class="fail"><time>Oct 11, 3:02 PM</time>Status update failed (ORD-409)</div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

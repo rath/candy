@@ -23,12 +23,12 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Candy: Preview can’t. Photoshop is overkill. A native Mac editor showing a highlighted travel card and a pixelated sample email." />
+    <meta property="og:image:alt" content="Candy: Preview can’t. Photoshop is overkill. The Candy editor with an order page’s error message highlighted and the customer’s details pixelated." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Candy — Free Mac Image Editor for Highlights &amp; Mosaic" />
     <meta name="twitter:description" content="A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched." />
     <meta name="twitter:image" content="https://candy.told.me/assets/og-en.png" />
-    <meta name="twitter:image:alt" content="Candy: Preview can’t. Photoshop is overkill. A native Mac editor showing a highlighted travel card and a pixelated sample email." />
+    <meta name="twitter:image:alt" content="Candy: Preview can’t. Photoshop is overkill. The Candy editor with an order page’s error message highlighted and the customer’s details pixelated." />
     <meta name="theme-color" content="#f2a28e" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./assets/style.css" />
@@ -83,7 +83,7 @@
           "isAccessibleForFree": true,
           "license": "https://github.com/rath/candy/blob/main/LICENSE",
           "downloadUrl": "https://github.com/rath/candy/releases/latest",
-          "screenshot": "https://candy.told.me/assets/candy-editor.png",
+          "screenshot": "https://candy.told.me/assets/candy-editor-en.png",
           "offers": {
             "@type": "Offer",
             "price": "0",
@@ -136,19 +136,32 @@
         </div>
         <figure class="hero-visual">
           <div class="stage">
-            <picture>
-              <source srcset="./assets/candy-editor.webp" type="image/webp" />
+            <video
+              class="demo"
+              autoplay
+              muted
+              loop
+              playsinline
+              width="1280"
+              height="1100"
+              poster="./assets/candy-editor-en.webp"
+              aria-label="Candy editing three made-up screenshots in turn: an order page, a group chat and a spreadsheet. Personal details are pixelated and the lines that matter are highlighted."
+            >
+              <source src="./assets/candy-demo-en.mp4" type="video/mp4" />
+            </video>
+            <picture class="still">
+              <source srcset="./assets/candy-editor-en.webp" type="image/webp" />
               <img
-                src="./assets/candy-editor.png"
-                width="2080"
-                height="1678"
-                fetchpriority="high"
-                alt="Candy editing a fictional coastal travel card, with the headline highlighted in yellow and the sample email pixelated"
+                src="./assets/candy-editor-en.png"
+                width="1280"
+                height="1100"
+                loading="lazy"
+                alt="Candy with an order page open: the error message is highlighted and the customer’s details are pixelated"
               />
             </picture>
           </div>
           <figcaption>
-            A fictional travel card. A real highlight and mosaic, made in Candy.
+            Made-up screenshots, edited for real in Candy.
           </figcaption>
         </figure>
       </section>
@@ -272,5 +285,25 @@
         >
       </div>
     </footer>
+    <script>
+      // A pause control for the looping demo; the page works without it.
+      (() => {
+        const video = document.querySelector(".hero-visual video");
+        const caption = document.querySelector(".hero-visual figcaption");
+        if (!video || !caption) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pause";
+        const sync = () => {
+          button.dataset.paused = video.paused;
+          button.setAttribute("aria-label", video.paused ? "Play the demo" : "Pause the demo");
+        };
+        button.addEventListener("click", () => (video.paused ? video.play() : video.pause()));
+        video.addEventListener("play", sync);
+        video.addEventListener("pause", sync);
+        sync();
+        caption.append(button);
+      })();
+    </script>
   </body>
 </html>

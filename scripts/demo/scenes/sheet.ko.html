@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>10월 워크숍 참가비 정산</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 820px; height: 560px; overflow: hidden; }
+  body { font: 13.5px/1.4 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; color: #202124; background: #fff; -webkit-font-smoothing: antialiased; }
+  .bar { height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #dadce0; background: #f8f9fa; }
+  .ref { width: 64px; border: 1px solid #dadce0; border-radius: 4px; background: #fff; padding: 3px 8px; font-size: 12.5px; color: #3c4043; }
+  .fx { color: #80868b; font-style: italic; font-family: Georgia, serif; font-size: 14px; }
+  .formula { flex: 1; color: #3c4043; font-size: 13px; }
+  table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+  col.rn { width: 40px; }
+  th, td { border: 1px solid #e2e3e5; height: 30px; padding: 0 8px; white-space: nowrap; overflow: hidden; }
+  thead th { background: #f8f9fa; color: #5f6368; font-weight: 500; font-size: 12px; height: 24px; text-align: center; }
+  tbody th { background: #f8f9fa; color: #5f6368; font-weight: 500; font-size: 12px; text-align: center; padding: 0; }
+  .h td { font-weight: 650; background: #f1f4f8; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .c { text-align: center; }
+  .no { color: #c5221f; font-weight: 600; }
+  .ok { color: #188038; }
+  .title td { font-size: 15px; font-weight: 700; border-color: transparent; }
+  .sum td { font-weight: 650; border-top: 2px solid #9aa0a6; }
+  .sel { outline: 2px solid #1a73e8; outline-offset: -2px; }
+</style>
+</head>
+<body>
+  <div class="bar"><span class="ref">E14</span><span class="fx">fx</span><span class="formula">=SUM(E4:E13)</span></div>
+  <table>
+    <colgroup><col class="rn" /><col style="width:46px" /><col style="width:92px" /><col style="width:104px" /><col style="width:150px" /><col style="width:104px" /><col style="width:96px" /><col /></colgroup>
+    <thead><tr><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr></thead>
+    <tbody>
+      <tr class="title"><th>1</th><td colspan="7">10월 워크숍 참가비 정산 (10/24–25, 가평)</td></tr>
+      <tr><th>2</th><td colspan="7" style="color:#5f6368;border-color:transparent">1인 85,000원 · 10월 16일(금)까지 입금</td></tr>
+      <tr class="h"><th>3</th><td class="c">No</td><td>이름</td><td>부서</td><td>연락처</td><td class="num">참가비</td><td class="c">입금</td><td>비고</td></tr>
+      <tr><th>4</th><td class="c">1</td><td>김민준</td><td>개발팀</td><td>010-0482-1937</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr><th>5</th><td class="c">2</td><td>이서연</td><td>디자인팀</td><td>010-0915-2648</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr><th>6</th><td class="c">3</td><td>박지훈</td><td>개발팀</td><td>010-0273-5816</td><td class="num">85,000</td><td class="c ok">완료</td><td>차량 지원</td></tr>
+      <tr><th>7</th><td class="c">4</td><td>최유나</td><td>마케팅팀</td><td>010-0638-4092</td><td class="num">0</td><td class="c no">미입금</td><td></td></tr>
+      <tr><th>8</th><td class="c">5</td><td>정우진</td><td>개발팀</td><td>010-0751-3384</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr><th>9</th><td class="c">6</td><td>강하은</td><td>운영팀</td><td>010-0194-7625</td><td class="num">85,000</td><td class="c ok">완료</td><td>1박만 참석</td></tr>
+      <tr><th>10</th><td class="c">7</td><td>조현우</td><td>디자인팀</td><td>010-0826-0453</td><td class="num">0</td><td class="c no">미입금</td><td></td></tr>
+      <tr><th>11</th><td class="c">8</td><td>윤지아</td><td>마케팅팀</td><td>010-0347-9182</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr><th>12</th><td class="c">9</td><td>장도윤</td><td>개발팀</td><td>010-0569-2701</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr><th>13</th><td class="c">10</td><td>임수빈</td><td>운영팀</td><td>010-0412-8836</td><td class="num">85,000</td><td class="c ok">완료</td><td></td></tr>
+      <tr class="sum"><th>14</th><td></td><td>합계</td><td></td><td></td><td class="num sel">680,000</td><td class="c">8 / 10</td><td></td></tr>
+      <tr><th>15</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</body>
+</html>

@@ -23,12 +23,12 @@
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Candy — 미리보기론 안 되고, 포토샵은 과하고. 여행 카드의 제목을 형광펜으로 강조하고 이메일 주소를 모자이크로 가린 Candy 편집 화면." />
+    <meta property="og:image:alt" content="캔디: 미리보기론 안 되고 포토샵은 과하고. 주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Candy — 간편한 Mac용 무료 이미지 편집기" />
     <meta name="twitter:description" content="Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다." />
     <meta name="twitter:image" content="https://candy.told.me/assets/og-ko.png" />
-    <meta name="twitter:image:alt" content="Candy — 미리보기론 안 되고, 포토샵은 과하고. 여행 카드의 제목을 형광펜으로 강조하고 이메일 주소를 모자이크로 가린 Candy 편집 화면." />
+    <meta name="twitter:image:alt" content="캔디: 미리보기론 안 되고 포토샵은 과하고. 주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면." />
     <meta name="theme-color" content="#f2a28e" />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../assets/style.css" />
@@ -83,7 +83,7 @@
           "isAccessibleForFree": true,
           "license": "https://github.com/rath/candy/blob/main/LICENSE",
           "downloadUrl": "https://github.com/rath/candy/releases/latest",
-          "screenshot": "https://candy.told.me/assets/candy-editor.png",
+          "screenshot": "https://candy.told.me/assets/candy-editor-ko.png",
           "offers": {
             "@type": "Offer",
             "price": "0",
@@ -138,19 +138,32 @@
         </div>
         <figure class="hero-visual">
           <div class="stage">
-            <picture>
-              <source srcset="../assets/candy-editor.webp" type="image/webp" />
+            <video
+              class="demo"
+              autoplay
+              muted
+              loop
+              playsinline
+              width="1280"
+              height="1100"
+              poster="../assets/candy-editor-ko.webp"
+              aria-label="Candy로 가상의 스크린샷 세 장을 차례로 편집하는 화면. 주문 화면, 단톡방, 정산 시트에서 개인 정보를 모자이크로 가리고 중요한 줄에 형광펜을 긋습니다."
+            >
+              <source src="../assets/candy-demo-ko.mp4" type="video/mp4" />
+            </video>
+            <picture class="still">
+              <source srcset="../assets/candy-editor-ko.webp" type="image/webp" />
               <img
-                src="../assets/candy-editor.png"
-                width="2080"
-                height="1678"
-                fetchpriority="high"
-                alt="여행 카드의 제목을 노란색 형광펜으로 강조하고 이메일 주소를 모자이크로 가린 Candy 편집 화면"
+                src="../assets/candy-editor-ko.png"
+                width="1280"
+                height="1100"
+                loading="lazy"
+                alt="주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면"
               />
             </picture>
           </div>
           <figcaption>
-            가상의 여행 카드에 Candy로 형광펜과 모자이크를 적용한 화면입니다.
+            가상의 스크린샷을 Candy로 실제 편집한 화면입니다.
           </figcaption>
         </figure>
       </section>
@@ -275,5 +288,25 @@
         >
       </div>
     </footer>
+    <script>
+      // A pause control for the looping demo; the page works without it.
+      (() => {
+        const video = document.querySelector(".hero-visual video");
+        const caption = document.querySelector(".hero-visual figcaption");
+        if (!video || !caption) return;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pause";
+        const sync = () => {
+          button.dataset.paused = video.paused;
+          button.setAttribute("aria-label", video.paused ? "데모 재생" : "데모 일시 정지");
+        };
+        button.addEventListener("click", () => (video.paused ? video.play() : video.pause()));
+        video.addEventListener("play", sync);
+        video.addEventListener("pause", sync);
+        sync();
+        caption.append(button);
+      })();
+    </script>
   </body>
 </html>
