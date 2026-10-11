@@ -61,7 +61,7 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
             <string>public.camera-raw-image</string><string>com.adobe.raw-image</string>
         </array>
     </dict></array>
-    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Candy contributors. MIT license.</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Jang-Ho Hwang. MIT license.</string>
 </dict></plist>
 PLIST
 plutil -replace CFBundleShortVersionString -string "$candy_version" "$candy_app/Contents/Info.plist"

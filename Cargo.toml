@@ -7,6 +7,7 @@ version = "0.2.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT"
+authors = ["Jang-Ho Hwang <rath@xrath.com>"]
 
 [workspace.dependencies]
 anyhow = "1"

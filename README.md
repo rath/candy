@@ -249,7 +249,7 @@ CANDY_OCR_TIMING=1 cargo run --locked --release -p candy-macos --example ocr-tim
 The opt-in log separates image preparation from Vision execution and reports no
 image contents. Timings depend on the machine and macOS version.
 
-MIT licensed. See [PRODUCT.md](PRODUCT.md) for scope and [DESIGN.md](DESIGN.md)
+Made by [Jang-Ho Hwang](https://xrath.com). MIT licensed. See [PRODUCT.md](PRODUCT.md) for scope and [DESIGN.md](DESIGN.md)
 for the editor's visual conventions.
 
 Maintainers: see [releasing](docs/releasing.md) for signing, notarization,
