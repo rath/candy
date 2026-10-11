@@ -119,7 +119,14 @@
         "saveFormats": [
           "PNG",
           "JPEG",
-          "WebP (lossless)"
+          "HEIC",
+          "WebP (lossless)",
+          "AVIF (when macOS can encode it)",
+          "TIFF",
+          "GIF",
+          "BMP",
+          "JPEG 2000",
+          "TGA"
         ]
       },
       "inheritedStyles": "Native surfaces, control colors and typography, disabled states, focus, selection, tabs, rounded bezels, popups, sheets, and progress indicators retain AppKit styling.",

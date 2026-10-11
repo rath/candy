@@ -124,7 +124,7 @@ Active regions have a (2 pt) coral outline and square white corner handles; inac
 
 Status combines image dimensions, zoom, selected-region coordinates and dimensions, OCR region count where applicable, and the latest message. It truncates in the middle and exposes the full text in a tooltip. Progress appears alongside it. Errors use the system error color and a small Dismiss button.
 
-Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visible Format popup offering PNG, JPEG, and WebP (lossless); changing the format updates the filename extension. The first save creates a copy. Closing a modified document presents an `NSAlert` sheet with Save copy… (or Save for an existing output), Cancel, and Discard. Quit confirms stable document identities, blocks editing across all windows, and queues new Open events. Cancel restores window controls and processes queued opens.
+Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visible Format popup offering PNG, JPEG, HEIC, WebP (lossless), AVIF where macOS can encode it, TIFF, GIF, BMP, JPEG 2000 and TGA; changing the format updates the filename extension. The first save creates a copy. Closing a modified document presents an `NSAlert` sheet with Save copy… (or Save for an existing output), Cancel, and Discard. Quit confirms stable document identities, blocks editing across all windows, and queues new Open events. Cancel restores window controls and processes queued opens.
 
 ### Application icon
 

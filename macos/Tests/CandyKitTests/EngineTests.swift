@@ -29,7 +29,8 @@ private var fixture: URL {
   let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
   defer { try? FileManager.default.removeItem(at: folder) }
-  for ext in ["png", "jpg", "webp"] {
+  let avif = ExportFormat.available.contains(.avif) ? ["avif"] : []
+  for ext in ["png", "jpg", "webp", "heic", "tif", "gif", "bmp", "jp2", "tga"] + avif {
     let out = folder.appendingPathComponent("한글 copy.\(ext)")
     #expect(try !crop.save(out).dirty)
     #expect(try RustDocument.open(out).state().height == 30)
@@ -126,8 +127,19 @@ private var fixture: URL {
 
 @Test func exportFormatsChooseVisibleExtensions() {
   #expect(ExportFormat.forFilename("photo.JPEG") == .jpeg)
+  #expect(ExportFormat.forFilename("photo.HEIF") == .heic)
+  #expect(ExportFormat.forFilename("scan.tiff") == .tiff)
+  #expect(ExportFormat.forFilename("photo.psd") == .png)
   #expect(ExportFormat.webp.filename("한글 photo.png") == "한글 photo.webp")
   #expect(ExportFormat.jpeg.filename("photo") == "photo.jpg")
+  #expect(ExportFormat.jpeg2000.filename("photo.png") == "photo.jp2")
+  #expect(ExportFormat.available.first == .png)
+  #expect(ExportFormat.available.contains(.heic))
+  // AVIF is the only format whose encoder depends on the macOS version.
+  #expect(
+    ExportFormat.allCases.filter { !ExportFormat.available.contains($0) }.allSatisfy { $0 == .avif }
+  )
+  #expect(Set(ExportFormat.allCases.map(\.type)).count == ExportFormat.allCases.count)
 }
 
 extension SessionTests {

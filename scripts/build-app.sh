@@ -54,6 +54,11 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
         <key>LSItemContentTypes</key><array>
             <string>public.png</string><string>public.jpeg</string><string>org.webmproject.webp</string>
             <string>public.heic</string><string>public.heif</string><string>public.avif</string>
+            <string>com.compuserve.gif</string><string>public.tiff</string><string>com.microsoft.bmp</string>
+            <string>public.jpeg-2000</string><string>public.jpeg-xl</string><string>com.adobe.photoshop-image</string>
+            <string>com.truevision.tga-image</string><string>com.microsoft.ico</string><string>com.apple.icns</string>
+            <string>com.ilm.openexr-image</string><string>public.radiance</string><string>public.pbm</string>
+            <string>public.camera-raw-image</string><string>com.adobe.raw-image</string>
         </array>
     </dict></array>
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Candy contributors. MIT license.</string>

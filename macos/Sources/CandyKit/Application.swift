@@ -63,11 +63,19 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     let panel = NSOpenPanel()
     panel.allowsMultipleSelection = true
     panel.canChooseDirectories = false
-    panel.allowedContentTypes = [
-      .png, .jpeg, .webP, .heic, .heif, UTType(filenameExtension: "avif") ?? .image,
-    ]
+    panel.allowedContentTypes = CandyApplication.openableTypes
     panel.begin { [weak self] result in if result == .OK { self?.open(panel.urls) } }
   }
+  /// Everything Candy opens: whatever Image I/O decodes. Identifiers the
+  /// running macOS does not know, such as JPEG XL before macOS 26, drop out.
+  /// Keep in step with LSItemContentTypes in scripts/build-app.sh.
+  static let openableTypes: [UTType] = [
+    "public.png", "public.jpeg", "org.webmproject.webp", "public.heic", "public.heif",
+    "public.avif", "com.compuserve.gif", "public.tiff", "com.microsoft.bmp", "public.jpeg-2000",
+    "public.jpeg-xl", "com.adobe.photoshop-image", "com.truevision.tga-image",
+    "com.microsoft.ico", "com.apple.icns", "com.ilm.openexr-image", "public.radiance",
+    "public.pbm", "public.camera-raw-image", "com.adobe.raw-image",
+  ].compactMap { UTType($0) }
   private var activeEditor: EditorWindow? {
     (NSApp.keyWindow?.windowController ?? NSApp.mainWindow?.windowController) as? EditorWindow
   }

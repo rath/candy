@@ -183,7 +183,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       title: "Open image…", target: nil, action: #selector(CandyApplication.openDocument(_:)))
     open.bezelStyle = .rounded
     empty.addArrangedSubview(open)
-    let formats = NSTextField(labelWithString: "PNG · JPEG · WebP · HEIC · AVIF")
+    let formats = NSTextField(
+      labelWithString: "PNG · JPEG · WebP · HEIC · AVIF · TIFF · GIF · BMP · PSD · RAW and more")
     formats.textColor = .secondaryLabelColor
     formats.font = .systemFont(ofSize: 11)
     empty.addArrangedSubview(formats)
