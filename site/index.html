@@ -158,16 +158,25 @@
             <p>
               Preview an image in a Kitty-compatible terminal, directly or
               inside tmux. Check a file’s format, size and colors without
-              opening it. Need an edit? Open a native macOS window sized to the
-              image, with familiar tabs, shortcuts and save dialogs.
+              opening it. Crop, resize, mosaic and flatten right there, with
+              the same engine as the app. Want to see what you’re doing? Open
+              a native macOS window sized to the image, with familiar tabs,
+              shortcuts and save dialogs.
             </p>
           </div>
           <pre
             class="commands"
-          ><code><span class="prompt" aria-hidden="true">$ </span>candy photo.png
-<span class="prompt" aria-hidden="true">$ </span>candy inspect photo.png
-<span class="prompt" aria-hidden="true">$ </span>candy edit photo.png
-<span class="comment"># Your shell is ready for the next command.</span></code></pre>
+          ><code><span class="comment"># Look</span>
+<span class="prompt" aria-hidden="true">$ </span>candy photo.png
+<span class="prompt" aria-hidden="true">$ </span>candy inspect photo.heic
+<span class="comment"># Edit in the terminal</span>
+<span class="prompt" aria-hidden="true">$ </span>candy crop photo.png --rect 20,30,300,200 -o crop.png
+<span class="prompt" aria-hidden="true">$ </span>candy resize photo.heic --width 1200 -o small.webp
+<span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --text -o safe.png
+<span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --rect 40,80,300,60 -o safe.png
+<span class="prompt" aria-hidden="true">$ </span>candy flatten logo.png --background '#ffffff' -o flat.jpg
+<span class="comment"># Edit in the app; your shell stays free</span>
+<span class="prompt" aria-hidden="true">$ </span>candy edit photo.png</code></pre>
         </div>
       </section>
       <section class="features wrap" aria-labelledby="features-title">
@@ -216,8 +225,8 @@
           </article>
         </div>
         <div class="formats">
-          <p><strong>Open</strong> &nbsp; PNG · JPEG · WebP · HEIC · AVIF</p>
-          <p><strong>Save</strong> &nbsp; PNG · JPEG · WebP</p>
+          <p><strong>Open</strong> &nbsp; PNG · JPEG · WebP · HEIC · AVIF · GIF · TIFF · BMP · PSD · RAW, and whatever else your Mac decodes</p>
+          <p><strong>Save</strong> &nbsp; PNG · JPEG · HEIC · WebP · AVIF (macOS 26) · TIFF · GIF · BMP · JPEG 2000 · TGA</p>
         </div>
       </section>
       <section id="get" class="get" aria-labelledby="get-title">
