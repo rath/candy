@@ -105,8 +105,9 @@ has a native window, toolbar, contextual controls, canvas, and undo/redo. Native
 tabs follow your macOS preference; use Window → Merge All Windows or Move Tab
 to New Window to group or separate documents.
 First Save asks for a new file; subsequent saves update that copy. Save As
-creates another copy. The save panel has a Format selector for PNG, JPEG and
-lossless WebP. Original input paths, including
+creates another copy. The save panel has a Format selector for PNG, JPEG, HEIC,
+lossless WebP, AVIF (where macOS can encode it), TIFF, GIF, BMP, JPEG 2000 and
+TGA. Original input paths, including
 symlink and hardlink aliases, are protected. Files are encoded before an atomic
 replacement, and closing unsaved documents prompts to save or discard.
 
@@ -140,12 +141,14 @@ mosaic is a visual effect, not a guarantee of irreversible redaction.
 
 ## CLI edits
 
-All editing commands require a separate output path. Rectangle coordinates are
-`x,y,width,height` in image pixels, measured from the top-left after EXIF rotation.
+All editing commands require a separate output path, whose extension selects
+the format. Rectangle coordinates are `x,y,width,height` in image pixels,
+measured from the top-left after EXIF rotation.
 
 ```sh
 candy resize photo.heic --width 1200 -o smaller.png
-candy crop photo.png --rect 20,30,300,200 -o crop.png
+candy resize scan.tif --width 800 --height 600 -o exact.webp
+candy crop photo.png --rect 20,30,300,200 -o crop.heic
 candy mosaic photo.png --rect 20,30,300,200 --block-size 16 -o mosaic.png
 candy mosaic screenshot.png --text -o text-mosaic.png
 candy flatten logo.png --background '#ffffff' -o flat.jpg
@@ -167,13 +170,16 @@ prints the same report as one JSON object; `pixels` is `null` and
 
 | Operation | Formats |
 | --- | --- |
-| Open | PNG, JPEG, WebP, HEIC, AVIF |
-| Save | PNG, JPEG (quality 92), lossless WebP |
+| Open | Anything Image I/O on your Mac decodes: PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, camera RAW and DNG, and JPEG XL on macOS 26 or later |
+| Save | PNG, JPEG (quality 92), lossless WebP, HEIC, AVIF and JPEG 2000 (Image I/O quality 0.85), TIFF (LZW), GIF (256 colors), BMP, TGA |
 
 Images are edited as 8-bit sRGB RGBA. EXIF orientation is applied on load;
 source metadata, HDR data and wide-gamut profiles are not retained on export.
-JPEG exports flatten transparency onto white. Only the first image/frame is
-loaded. Images are limited to approximately 64 megapixels. The GUI preview is
+JPEG exports flatten transparency onto white; GIF keeps pixels at or above 50%
+alpha and drops the rest. AVIF saving needs an Image I/O with an AVIF encoder,
+which arrived after macOS 14 (verified on macOS 26); older systems explain this
+when asked. RAW files are developed with Image I/O's defaults. Only the first
+image/frame is loaded. Images are limited to approximately 64 megapixels. The GUI preview is
 limited to 4096 pixels per side; edits and saves use full image resolution.
 
 This version has no layers, animation editing, cloud services or LLM integration.
@@ -213,7 +219,8 @@ Quit any existing test instance first. This does not change system preferences
 and is not included in release builds.
 
 Tests cover edit boundaries, alpha compositing, save protection, undo state,
-terminal encoding, FFI ownership, native document/async-state regressions, all five input formats, EXIF
+terminal encoding, FFI ownership, native document/async-state regressions, a save-and-reopen
+round trip through every export format, PSD/ICO/ICNS/OpenEXR/PBM decoding, EXIF
 orientation and Korean/English text-region coverage. Synthetic fixtures can be regenerated with
 `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
 GitHub Actions runs the checks and produces a zipped local app bundle on macOS.

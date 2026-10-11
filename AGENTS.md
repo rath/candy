@@ -71,6 +71,13 @@ live in the SwiftPM package under `macos`.
   replacing a separate output, never the input.
 - Keep alpha-aware compositing and resize behavior. Removing alpha means
   compositing onto a color, not simply dropping the alpha channel.
+- Saving routes by extension through `candy_macos::save`: PNG, JPEG, WebP, GIF
+  and TGA use the `image` crate in `candy-core`; HEIC, AVIF, TIFF, BMP and
+  JPEG 2000 use Image I/O. Image I/O cannot read the alpha BMP the `image` crate
+  writes, and AVIF encoding exists only on newer macOS, so check `can_encode`
+  instead of assuming. Loading accepts whatever Image I/O decodes; when naming
+  a format, update the display names, the open-panel types and the
+  `LSItemContentTypes` list together.
 
 ## Terminal and native UI checks
 

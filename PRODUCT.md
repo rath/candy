@@ -16,7 +16,7 @@ People working in a terminal who want to inspect an image immediately and open a
 
 ## Capabilities and constraints
 
-Kitty terminal display; region extraction; region and OCR text mosaic; highlighter; resize; transparency flattening. Open PNG, JPEG, WebP, HEIC and AVIF; export PNG, JPEG and WebP. OCR stays on the Mac. Native document windows support macOS tabs, menus, save sheets, and unsaved-change confirmation. Full-resolution pixels remain authoritative even when the display preview is reduced.
+Kitty terminal display; region extraction; region and OCR text mosaic; highlighter; resize; transparency flattening. Open anything macOS Image I/O decodes, including PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD and camera RAW; export PNG, JPEG, HEIC, WebP, AVIF (where macOS encodes it), TIFF, GIF, BMP, JPEG 2000 and TGA. OCR stays on the Mac. Native document windows support macOS tabs, menus, save sheets, and unsaved-change confirmation. Full-resolution pixels remain authoritative even when the display preview is reduced.
 
 First GUI save creates a new file; subsequent saves can update that output. Originals remain protected, including aliases. The CLI never replaces its input. macOS 14+; release binaries support Apple Silicon. MIT open source; public releases are Developer ID signed and notarized, while ordinary source builds are ad-hoc signed for local use. Homebrew installs the app and CLI together.
 
