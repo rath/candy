@@ -17,3 +17,5 @@ FORM: Direct code-led implementation of the user's narrow request for a simple i
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 Asset provenance: site/assets/candy-editor.png is a real Retina Candy AppKit window capture from .impeccable/review/fixture-editor-final.png. The fictional travel card combines committed AI-generated coastal artwork with reproducible English/Korean typography from scripts/make-fixtures.swift. The headline highlight and email mosaic were applied in Candy. candy-editor.webp is the compressed web version; neither capture has fabricated application UI. No personal data. See site/assets/credits.txt and scripts/fixture-assets/README.md.
+
+Social sharing: language-specific 1200 × 630 cards use the real editor capture, coral stage, warm paper and large localized headlines. The authored export source is scripts/og/index.html; the static PNGs live in site/assets/og-en.png and og-ko.png. Each page points search and social crawlers to its own language, while canonical and reciprocal hreflang links connect both versions.
