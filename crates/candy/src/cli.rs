@@ -29,6 +29,13 @@ pub enum Display {
 pub enum Action {
     /// Open an image in the GUI editor and return to the shell.
     Edit { path: PathBuf },
+    /// Show an image's format, dimensions, color and pixel statistics.
+    Inspect {
+        path: PathBuf,
+        /// Print the report as JSON.
+        #[arg(long)]
+        json: bool,
+    },
     /// Resize; one dimension preserves the aspect ratio.
     Resize {
         #[command(flatten)]
@@ -77,6 +84,7 @@ pub struct Files {
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
         Some(Action::Edit { path }) => launch(Some(path)),
+        Some(Action::Inspect { path, json }) => crate::inspect::run(&path, json),
         Some(Action::Resize {
             files,
             width,
@@ -177,5 +185,16 @@ mod tests {
             Cli::try_parse_from(["candy", "resize", "a.png", "-o", "b.png", "--width", "10"])
                 .is_ok()
         );
+    }
+    #[test]
+    fn inspect_takes_a_path_and_an_optional_json_flag() {
+        assert!(Cli::try_parse_from(["candy", "inspect"]).is_err());
+        assert!(Cli::try_parse_from(["candy", "inspect", "a.png"]).is_ok());
+        assert!(matches!(
+            Cli::try_parse_from(["candy", "inspect", "a.png", "--json"])
+                .unwrap()
+                .command,
+            Some(Action::Inspect { json: true, .. })
+        ));
     }
 }

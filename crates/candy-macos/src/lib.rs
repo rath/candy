@@ -5,7 +5,8 @@ use candy_core::{PixelRect, validate_dimensions};
 use image::{DynamicImage, RgbaImage};
 use objc2::{AnyThread, rc::autoreleasepool};
 use objc2_core_foundation::{
-    CFData, CFDictionary, CFNumber, CFRetained, CFString, CGPoint, CGRect, CGSize,
+    CFBoolean, CFData, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGPoint, CGRect,
+    CGSize, ConcreteType,
 };
 use objc2_core_graphics::{
     CGBitmapContextCreate, CGBitmapInfo, CGColorRenderingIntent, CGColorSpace, CGContext,
@@ -13,37 +14,53 @@ use objc2_core_graphics::{
 };
 use objc2_foundation::{NSArray, NSDictionary};
 use objc2_image_io::{
-    CGImageSource, kCGImagePropertyOrientation, kCGImagePropertyPixelHeight,
-    kCGImagePropertyPixelWidth,
+    CGImageSource, kCGImagePropertyColorModel, kCGImagePropertyDPIHeight, kCGImagePropertyDPIWidth,
+    kCGImagePropertyDepth, kCGImagePropertyHasAlpha, kCGImagePropertyIsFloat,
+    kCGImagePropertyIsIndexed, kCGImagePropertyOrientation, kCGImagePropertyPixelHeight,
+    kCGImagePropertyPixelWidth, kCGImagePropertyProfileName,
 };
 use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::path::Path;
 
+/// Image I/O type identifiers Candy can edit, with their display names.
+const FORMATS: [(&str, &str); 6] = [
+    ("public.png", "PNG"),
+    ("public.jpeg", "JPEG"),
+    ("org.webmproject.webp", "WebP"),
+    ("public.heic", "HEIC"),
+    ("public.heif", "HEIF"),
+    ("public.avif", "AVIF"),
+];
+
+fn format_name(uti: &str) -> Option<&'static str> {
+    FORMATS
+        .iter()
+        .find(|(kind, _)| *kind == uti)
+        .map(|(_, name)| *name)
+}
+
+/// Opens an image file and reads the first image's header properties.
+fn open(path: &Path) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
+    let bytes = std::fs::read(path).with_context(|| format!("Cannot read {}", path.display()))?;
+    let data = CFData::from_bytes(&bytes);
+    // SAFETY: All options are absent, and retained CF objects outlive each native call.
+    let source =
+        unsafe { CGImageSource::with_data(&data, None) }.context("Cannot decode this image")?;
+    let kind = unsafe { source.r#type() }
+        .context("Unknown image format")?
+        .to_string();
+    let props =
+        unsafe { source.properties_at_index(0, None) }.context("Cannot read image properties")?;
+    Ok((source, kind, props))
+}
+
 pub fn load(path: &Path) -> Result<RgbaImage> {
     autoreleasepool(|_| {
-        let bytes =
-            std::fs::read(path).with_context(|| format!("Cannot read {}", path.display()))?;
-        let data = CFData::from_bytes(&bytes);
-        // SAFETY: All options are absent, and retained CF objects outlive each native call.
-        let source =
-            unsafe { CGImageSource::with_data(&data, None) }.context("Cannot decode this image")?;
-        let kind = unsafe { source.r#type() }
-            .context("Unknown image format")?
-            .to_string();
+        let (source, kind, props) = open(path)?;
         ensure!(
-            [
-                "public.png",
-                "public.jpeg",
-                "org.webmproject.webp",
-                "public.heic",
-                "public.heif",
-                "public.avif"
-            ]
-            .contains(&kind.as_str()),
+            format_name(&kind).is_some(),
             "Supported image formats are PNG, JPEG, WebP, HEIC and AVIF (found {kind})"
         );
-        let props = unsafe { source.properties_at_index(0, None) }
-            .context("Cannot read image dimensions")?;
         let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
             .context("Missing image width")?;
         let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
@@ -99,11 +116,103 @@ pub fn load(path: &Path) -> Result<RgbaImage> {
     })
 }
 
-fn property_number(props: &CFDictionary, key: &CFString) -> Option<i64> {
-    // SAFETY: Image I/O documents these three property keys as CFNumber values.
-    // The dictionary retains them throughout this borrow; null is checked.
+fn property<'a, T: ConcreteType>(props: &'a CFDictionary, key: &CFString) -> Option<&'a T> {
+    // SAFETY: Image I/O property values are CF objects that the dictionary
+    // retains throughout this borrow. Null is checked, and `downcast_ref`
+    // verifies the concrete type before the reference is used as `T`.
     let ptr = unsafe { props.value((key as *const CFString).cast()) };
-    unsafe { ptr.cast::<CFNumber>().as_ref() }.and_then(CFNumber::as_i64)
+    unsafe { ptr.cast::<CFType>().as_ref() }.and_then(CFType::downcast_ref)
+}
+
+fn property_number(props: &CFDictionary, key: &CFString) -> Option<i64> {
+    property::<CFNumber>(props, key).and_then(CFNumber::as_i64)
+}
+
+fn property_f64(props: &CFDictionary, key: &CFString) -> Option<f64> {
+    property::<CFNumber>(props, key).and_then(CFNumber::as_f64)
+}
+
+fn property_bool(props: &CFDictionary, key: &CFString) -> bool {
+    // Image I/O includes these flags only when they are set, as CFBoolean; a
+    // numeric 0/1 is accepted too.
+    property::<CFBoolean>(props, key)
+        .map(CFBoolean::as_bool)
+        .or_else(|| property_number(props, key).map(|n| n != 0))
+        .unwrap_or(false)
+}
+
+fn property_string(props: &CFDictionary, key: &CFString) -> Option<String> {
+    property::<CFString>(props, key).map(ToString::to_string)
+}
+
+/// Header properties of an image file, read without decoding its pixels.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Metadata {
+    /// Uniform type identifier, such as `public.heic`.
+    pub uti: String,
+    /// Display name when Candy can edit the format; `None` for other files
+    /// Image I/O can read.
+    pub format: Option<&'static str>,
+    /// Stored pixel dimensions, before EXIF orientation.
+    pub width: u32,
+    pub height: u32,
+    /// EXIF orientation 1–8; 1 when absent or invalid.
+    pub orientation: u8,
+    pub color_model: Option<String>,
+    /// Bits per channel.
+    pub depth: Option<u32>,
+    /// Image I/O reports these flags only when set; absent means false.
+    pub has_alpha: bool,
+    pub is_float: bool,
+    pub is_indexed: bool,
+    /// Embedded colour profile name, such as `Display P3`.
+    pub profile: Option<String>,
+    pub dpi: Option<(f64, f64)>,
+    /// Number of images or frames in the file.
+    pub images: usize,
+}
+
+impl Metadata {
+    /// Dimensions after orientation, as `load` returns them.
+    pub fn display_dimensions(&self) -> (u32, u32) {
+        if self.orientation >= 5 {
+            (self.height, self.width)
+        } else {
+            (self.width, self.height)
+        }
+    }
+}
+
+pub fn inspect(path: &Path) -> Result<Metadata> {
+    autoreleasepool(|_| {
+        let (source, uti, props) = open(path)?;
+        let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
+            .context("Missing image width")?;
+        let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
+            .context("Missing image height")?;
+        let orientation = property_number(&props, unsafe { kCGImagePropertyOrientation })
+            .filter(|o| (1..=8).contains(o))
+            .map_or(1, |o| o as u8);
+        let dpi = property_f64(&props, unsafe { kCGImagePropertyDPIWidth })
+            .zip(property_f64(&props, unsafe { kCGImagePropertyDPIHeight }));
+        Ok(Metadata {
+            format: format_name(&uti),
+            uti,
+            width: width.try_into().context("Invalid image width")?,
+            height: height.try_into().context("Invalid image height")?,
+            orientation,
+            color_model: property_string(&props, unsafe { kCGImagePropertyColorModel }),
+            depth: property_number(&props, unsafe { kCGImagePropertyDepth })
+                .and_then(|depth| depth.try_into().ok()),
+            has_alpha: property_bool(&props, unsafe { kCGImagePropertyHasAlpha }),
+            is_float: property_bool(&props, unsafe { kCGImagePropertyIsFloat }),
+            is_indexed: property_bool(&props, unsafe { kCGImagePropertyIsIndexed }),
+            profile: property_string(&props, unsafe { kCGImagePropertyProfileName }),
+            dpi,
+            // SAFETY: The retained source outlives this call.
+            images: unsafe { source.count() },
+        })
+    })
 }
 
 /// Vision uses normalized, bottom-left coordinates; Candy uses top-left pixels.

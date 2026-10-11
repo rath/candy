@@ -154,6 +154,14 @@ One resize dimension preserves the aspect ratio; providing both sets the exact
 size. Use `--force` to replace an existing output; it never permits overwriting
 the input. Run `candy --help` or `candy <command> --help` for details.
 
+`candy inspect photo.heic` reads the stored format, dimensions, EXIF
+orientation, color model, bit depth, alpha, color profile and DPI from the
+file's headers, then reports statistics of the pixels Candy would edit (8-bit
+sRGB after orientation): opaque, translucent and transparent counts, the
+alpha-weighted average color and the number of distinct colors. `--json`
+prints the same report as one JSON object; `pixels` is `null` and
+`pixels_error` explains why when the image cannot be decoded.
+
 ## Formats and current limits
 
 | Operation | Formats |

@@ -294,6 +294,71 @@ pub fn resize_dimensions(
     Ok((w, h))
 }
 
+/// Statistics of Candy's working pixels: 8-bit sRGB after EXIF orientation.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PixelStats {
+    pub opaque: u64,
+    pub translucent: u64,
+    pub transparent: u64,
+    /// Alpha-weighted mean of the non-transparent pixels; `None` when every
+    /// pixel is transparent.
+    pub average: Option<[u8; 3]>,
+    pub mean_alpha: f64,
+    /// Distinct RGB values among the non-transparent pixels.
+    pub colors: u64,
+}
+
+impl PixelStats {
+    pub fn total(&self) -> u64 {
+        self.opaque + self.translucent + self.transparent
+    }
+}
+
+pub fn pixel_stats(image: &RgbaImage) -> PixelStats {
+    let mut stats = PixelStats {
+        opaque: 0,
+        translucent: 0,
+        transparent: 0,
+        average: None,
+        mean_alpha: 0.0,
+        colors: 0,
+    };
+    // One bit per 24-bit colour: 2 MiB regardless of image size, where a set
+    // of a 64-megapixel image's colours could need gigabytes.
+    let mut seen = vec![0_u64; 1 << 18];
+    let mut sum = [0_u64; 3];
+    let mut weight = 0_u64;
+    let mut alpha = 0_u64;
+    for &Rgba([r, g, b, a]) in image.pixels() {
+        alpha += u64::from(a);
+        match a {
+            0 => {
+                stats.transparent += 1;
+                continue;
+            }
+            255 => stats.opaque += 1,
+            _ => stats.translucent += 1,
+        }
+        for (total, channel) in sum.iter_mut().zip([r, g, b]) {
+            *total += u64::from(channel) * u64::from(a);
+        }
+        weight += u64::from(a);
+        let key = usize::from(r) << 16 | usize::from(g) << 8 | usize::from(b);
+        let bit = 1 << (key % 64);
+        if seen[key / 64] & bit == 0 {
+            seen[key / 64] |= bit;
+            stats.colors += 1;
+        }
+    }
+    if weight > 0 {
+        stats.average = Some(sum.map(|total| ((total + weight / 2) / weight) as u8));
+    }
+    if stats.total() > 0 {
+        stats.mean_alpha = alpha as f64 / stats.total() as f64;
+    }
+    stats
+}
+
 #[derive(Clone)]
 pub struct History {
     pub original: Arc<RgbaImage>,
@@ -513,6 +578,37 @@ mod tests {
             assert_eq!(fs::read(&path).unwrap(), bytes);
             assert!(protect_original(&path, &path).is_err());
         }
+    }
+    #[test]
+    fn pixel_stats_weight_by_alpha_and_count_distinct_colours() {
+        let image = RgbaImage::from_raw(
+            3,
+            2,
+            vec![
+                255, 0, 0, 255, // opaque red
+                255, 0, 0, 255, // the same colour again
+                0, 0, 255, 128, // translucent blue
+                9, 9, 9, 0, // transparent: excluded from colours and the average
+                0, 255, 0, 255, // opaque green
+                0, 0, 255, 128, // translucent blue again
+            ],
+        )
+        .unwrap();
+        let stats = pixel_stats(&image);
+        assert_eq!(
+            (stats.opaque, stats.translucent, stats.transparent),
+            (3, 2, 1)
+        );
+        assert_eq!(stats.total(), 6);
+        assert_eq!(stats.colors, 3);
+        // Weights: 255 × 3 opaque + 128 × 2 translucent = 1021.
+        assert_eq!(stats.average, Some([127, 64, 64]));
+        assert!((stats.mean_alpha - 1021.0 / 6.0).abs() < 1e-9);
+        let clear = pixel_stats(&RgbaImage::from_pixel(2, 2, Rgba([30, 40, 50, 0])));
+        assert_eq!((clear.transparent, clear.colors), (4, 0));
+        assert_eq!(clear.average, None);
+        assert_eq!(clear.mean_alpha, 0.0);
+        assert_eq!(pixel_stats(&RgbaImage::new(0, 0)).total(), 0);
     }
     #[test]
     fn reverse_drag_clamps_and_rejects_empty_rectangles() {

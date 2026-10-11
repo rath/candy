@@ -21,6 +21,43 @@ fn all_five_formats_decode_and_webp_roundtrips() {
 }
 
 #[test]
+fn inspect_reads_headers_and_reports_orientation() {
+    for (ext, format) in [
+        ("png", "PNG"),
+        ("jpg", "JPEG"),
+        ("heic", "HEIC"),
+        ("avif", "AVIF"),
+    ] {
+        let meta = candy_macos::inspect(&fixture(&format!("sample.{ext}"))).unwrap();
+        assert_eq!((meta.width, meta.height), (1000, 660), "{ext}");
+        assert_eq!(meta.format, Some(format), "{ext}");
+        assert_eq!(meta.orientation, 1, "{ext}");
+        assert_eq!(meta.images, 1, "{ext}");
+        assert_eq!(meta.color_model.as_deref(), Some("RGB"), "{ext}");
+    }
+    let rotated = candy_macos::inspect(&fixture("orientation6.jpg")).unwrap();
+    assert_eq!(rotated.orientation, 6);
+    assert_eq!(rotated.display_dimensions(), (660, 1000));
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("alpha.png");
+    let image = image::RgbaImage::from_pixel(4, 3, image::Rgba([1, 2, 3, 128]));
+    candy_core::save_atomic(&image, &path, false).unwrap();
+    let alpha = candy_macos::inspect(&path).unwrap();
+    assert_eq!(alpha.uti, "public.png");
+    assert_eq!(alpha.format, Some("PNG"));
+    assert!(alpha.has_alpha);
+    assert!(
+        !candy_macos::inspect(&fixture("sample.jpg"))
+            .unwrap()
+            .has_alpha
+    );
+    assert_eq!(alpha.depth, Some(8));
+    let bad = dir.path().join("bad.png");
+    std::fs::write(&bad, b"not an image").unwrap();
+    assert!(candy_macos::inspect(&bad).is_err());
+}
+
+#[test]
 fn exif_orientation_is_applied_before_edit_coordinates() {
     let original = candy_macos::load(&fixture("sample.png")).unwrap();
     let rotated = candy_macos::load(&fixture("orientation6.jpg")).unwrap();

@@ -1,4 +1,5 @@
 mod cli;
+mod inspect;
 mod launcher;
 mod terminal;
 use clap::Parser;
