@@ -442,18 +442,39 @@ pub fn protect_original(source: &Path, destination: &Path) -> Result<()> {
     Ok(())
 }
 
-pub fn save_atomic(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()> {
-    let extension = path
-        .extension()
+/// File extension of `path`, lowercased and without the dot.
+pub fn extension(path: &Path) -> String {
+    path.extension()
         .and_then(|e| e.to_str())
         .unwrap_or("")
-        .to_ascii_lowercase();
-    let format = match extension.as_str() {
+        .to_ascii_lowercase()
+}
+
+/// Output formats this crate encodes itself, keyed by lowercase extension.
+/// HEIC, AVIF, TIFF, BMP and JPEG 2000 are encoded by Image I/O in `candy-macos`.
+pub fn export_format(extension: &str) -> Option<ImageFormat> {
+    Some(match extension {
         "png" => ImageFormat::Png,
         "jpg" | "jpeg" => ImageFormat::Jpeg,
         "webp" => ImageFormat::WebP,
-        _ => bail!("Save as PNG, JPEG, or WebP"),
-    };
+        "gif" => ImageFormat::Gif,
+        "tga" => ImageFormat::Tga,
+        _ => return None,
+    })
+}
+
+pub fn save_atomic(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()> {
+    let format = export_format(&extension(path)).context("Save as PNG, JPEG, WebP, GIF or TGA")?;
+    write_atomic(path, overwrite, |file| encode(image, format, file))
+}
+
+/// Writes `path` through a temporary file in the same directory, so a failed
+/// or interrupted encode never leaves a partial image behind.
+pub fn write_atomic(
+    path: &Path,
+    overwrite: bool,
+    write: impl FnOnce(&mut fs::File) -> Result<()>,
+) -> Result<()> {
     ensure!(
         overwrite || !path.exists(),
         "Output already exists; choose another path or use --force"
@@ -464,21 +485,43 @@ pub fn save_atomic(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()
         .unwrap_or(Path::new("."));
     let mut temp =
         tempfile::NamedTempFile::new_in(parent).context("Cannot create a temporary output file")?;
-    if format == ImageFormat::Jpeg {
-        let flat = apply(image, &Operation::Flatten([255; 3]))?;
-        let rgb = DynamicImage::ImageRgba8(flat).to_rgb8();
-        image::codecs::jpeg::JpegEncoder::new_with_quality(temp.as_file_mut(), 92)
-            .encode_image(&rgb)?;
-    } else {
-        DynamicImage::ImageRgba8(image.clone())
-            .write_to(temp.as_file_mut(), format)
-            .context("Image encoding failed")?;
-    }
+    write(temp.as_file_mut())?;
     temp.as_file().sync_all()?;
     if overwrite {
         temp.persist(path).map_err(|e| e.error)?;
     } else {
         temp.persist_noclobber(path).map_err(|e| e.error)?;
+    }
+    Ok(())
+}
+
+fn encode(image: &RgbaImage, format: ImageFormat, file: &mut fs::File) -> Result<()> {
+    match format {
+        ImageFormat::Jpeg => {
+            let flat = apply(image, &Operation::Flatten([255; 3]))?;
+            let rgb = DynamicImage::ImageRgba8(flat).to_rgb8();
+            image::codecs::jpeg::JpegEncoder::new_with_quality(file, 92).encode_image(&rgb)?;
+        }
+        ImageFormat::Gif => {
+            // GIF has one transparent index: pixels under 50% alpha drop out,
+            // the rest keep their own colour. Speed 10 samples the palette
+            // quickly; speed 1 would take minutes on large images.
+            let mut frame = image.clone();
+            for pixel in frame.pixels_mut() {
+                pixel[3] = if pixel[3] < 128 { 0 } else { 255 };
+            }
+            image::codecs::gif::GifEncoder::new_with_speed(file, 10)
+                .encode(
+                    &frame,
+                    frame.width(),
+                    frame.height(),
+                    image::ExtendedColorType::Rgba8,
+                )
+                .context("GIF encoding failed")?;
+        }
+        _ => DynamicImage::ImageRgba8(image.clone())
+            .write_to(file, format)
+            .context("Image encoding failed")?,
     }
     Ok(())
 }
@@ -569,15 +612,37 @@ mod tests {
     #[test]
     fn save_roundtrips_and_never_clobbers_by_default() {
         let dir = tempfile::tempdir().unwrap();
-        for ext in ["png", "jpg", "webp"] {
+        for ext in ["png", "jpg", "webp", "gif", "tga"] {
             let path = dir.path().join(format!("image.{ext}"));
             save_atomic(&grid(), &path, false).unwrap();
-            assert_eq!(image::open(&path).unwrap().dimensions(), (8, 6));
+            let decoded = image::open(&path).unwrap();
+            assert_eq!(decoded.dimensions(), (8, 6), "{ext}");
+            if matches!(ext, "png" | "webp" | "tga") {
+                assert_eq!(decoded.into_rgba8(), grid(), "{ext} is lossless");
+            }
             let bytes = fs::read(&path).unwrap();
             assert!(save_atomic(&grid(), &path, false).is_err());
             assert_eq!(fs::read(&path).unwrap(), bytes);
             assert!(protect_original(&path, &path).is_err());
         }
+        assert!(export_format("tif").is_none(), "TIFF belongs to Image I/O");
+        assert!(export_format("bmp").is_none(), "BMP belongs to Image I/O");
+        let error = save_atomic(&grid(), &dir.path().join("image.xyz"), false).unwrap_err();
+        assert!(error.to_string().starts_with("Save as PNG"), "{error}");
+    }
+    #[test]
+    fn gif_keeps_binary_transparency_and_the_pixel_colours() {
+        let image = RgbaImage::from_fn(4, 1, |x, _| {
+            Rgba([200, 40, 40, [0, 127, 128, 255][x as usize]])
+        });
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("image.gif");
+        save_atomic(&image, &path, false).unwrap();
+        let decoded = image::open(&path).unwrap().into_rgba8();
+        assert_eq!(decoded.get_pixel(0, 0)[3], 0);
+        assert_eq!(decoded.get_pixel(1, 0)[3], 0);
+        assert_eq!(decoded.get_pixel(2, 0), &Rgba([200, 40, 40, 255]));
+        assert_eq!(decoded.get_pixel(3, 0), &Rgba([200, 40, 40, 255]));
     }
     #[test]
     fn pixel_stats_weight_by_alpha_and_count_distinct_colours() {

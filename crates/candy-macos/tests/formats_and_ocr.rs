@@ -8,16 +8,87 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
-fn all_five_formats_decode_and_webp_roundtrips() {
+fn fixtures_decode_and_every_export_format_reopens() {
     for ext in ["png", "jpg", "heic", "avif"] {
         let image = candy_macos::load(&fixture(&format!("sample.{ext}"))).unwrap();
         assert_eq!(image.dimensions(), (1000, 660), "{ext}");
     }
     let original = candy_macos::load(&fixture("sample.png")).unwrap();
     let dir = tempfile::tempdir().unwrap();
-    let path = dir.path().join("sample.webp");
-    candy_core::save_atomic(&original, &path, false).unwrap();
-    assert_eq!(candy_macos::load(&path).unwrap(), original);
+    // (extension, lossless, type identifier Image I/O reports when reopened)
+    let formats = [
+        ("png", true, "public.png"),
+        ("jpg", false, "public.jpeg"),
+        ("webp", true, "org.webmproject.webp"),
+        ("heic", false, "public.heic"),
+        ("avif", false, "public.avif"),
+        ("tif", true, "public.tiff"),
+        ("gif", false, "com.compuserve.gif"),
+        ("bmp", true, "com.microsoft.bmp"),
+        ("jp2", false, "public.jpeg-2000"),
+        ("tga", true, "com.truevision.tga-image"),
+    ];
+    for (ext, lossless, uti) in formats {
+        let path = dir.path().join(format!("sample.{ext}"));
+        if ext == "avif" && !candy_macos::can_encode(uti) {
+            let error = candy_macos::save(&original, &path, false).unwrap_err();
+            assert!(error.to_string().contains("cannot encode AVIF"), "{error}");
+            continue;
+        }
+        candy_macos::save(&original, &path, false).unwrap();
+        assert!(
+            candy_macos::save(&original, &path, false).is_err(),
+            "{ext} clobbered"
+        );
+        let meta = candy_macos::inspect(&path).unwrap_or_else(|e| panic!("{ext}: {e:#}"));
+        assert_eq!(meta.uti, uti);
+        let reopened = candy_macos::load(&path).unwrap_or_else(|e| panic!("{ext}: {e:#}"));
+        assert_eq!(reopened.dimensions(), (1000, 660), "{ext}");
+        if lossless {
+            assert_eq!(reopened, original, "{ext} is lossless");
+        } else {
+            let difference: u64 = reopened
+                .as_raw()
+                .iter()
+                .zip(original.as_raw())
+                .map(|(a, b)| u64::from(a.abs_diff(*b)))
+                .sum();
+            let mean = difference as f64 / original.as_raw().len() as f64;
+            assert!(mean < 6.0, "{ext} differs by {mean} per channel");
+        }
+    }
+    let error = candy_macos::save(&original, &dir.path().join("sample.xyz"), false).unwrap_err();
+    assert!(error.to_string().starts_with("Save as PNG"), "{error}");
+}
+
+#[test]
+fn image_io_only_formats_decode_too() {
+    let card = candy_macos::load(&fixture("sample.png")).unwrap();
+    // ICO and ICNS limit sizes, so every format here uses a small square.
+    let small =
+        candy_core::apply(&card, &Operation::Crop(PixelRect::new(100, 100, 32, 32))).unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    for (uti, ext, name) in [
+        ("com.adobe.photoshop-image", "psd", "PSD"),
+        ("com.microsoft.ico", "ico", "ICO"),
+        ("com.apple.icns", "icns", "ICNS"),
+        ("com.ilm.openexr-image", "exr", "OpenEXR"),
+        ("public.pbm", "pbm", "PBM"),
+    ] {
+        let path = dir.path().join(format!("small.{ext}"));
+        let bytes = candy_macos::encode(&small, uti).unwrap_or_else(|e| panic!("{ext}: {e:#}"));
+        std::fs::write(&path, bytes).unwrap();
+        let meta = candy_macos::inspect(&path).unwrap_or_else(|e| panic!("{ext}: {e:#}"));
+        assert_eq!((meta.uti.as_str(), meta.format), (uti, Some(name)));
+        let decoded = candy_macos::load(&path).unwrap();
+        assert_eq!(decoded.dimensions(), (32, 32), "{ext}");
+        let (a, b) = (decoded.get_pixel(16, 16), small.get_pixel(16, 16));
+        assert!(
+            (0..3).all(|c| a[c].abs_diff(b[c]) < 24),
+            "{ext} centre pixel {a:?} vs {b:?}"
+        );
+    }
+    assert!(candy_macos::encode(&small, "public.nonsense").is_err());
 }
 
 #[test]

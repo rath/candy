@@ -292,7 +292,7 @@ pub unsafe extern "C" fn candy_document_save(
         if let Some(source) = &d.source {
             candy_core::protect_original(source, &file)?;
         }
-        candy_core::save_atomic(&d.image, &file, true)?;
+        candy_macos::save(&d.image, &file, true)?;
         d.saved = Some(d.history.state_id());
         Ok(1)
     })

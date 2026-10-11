@@ -10,7 +10,7 @@ license = "MIT"
 
 [workspace.dependencies]
 anyhow = "1"
-image = { version = "0.25.10", default-features = false, features = ["png", "jpeg", "webp"] }
+image = { version = "0.25.10", default-features = false, features = ["gif", "jpeg", "png", "tga", "webp"] }
 tempfile = "3"
 
 [profile.release]

@@ -1,12 +1,12 @@
 //! Small macOS boundary. Image and Vision objects stay on the calling worker
 //! thread. Shared by the CLI and the Swift app through candy-ffi.
-use anyhow::{Context, Result, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use candy_core::{PixelRect, validate_dimensions};
 use image::{DynamicImage, RgbaImage};
 use objc2::{AnyThread, rc::autoreleasepool};
 use objc2_core_foundation::{
-    CFBoolean, CFData, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGPoint, CGRect,
-    CGSize, ConcreteType,
+    CFArray, CFBoolean, CFData, CFDictionary, CFMutableData, CFNumber, CFRetained, CFString,
+    CFType, CGPoint, CGRect, CGSize, ConcreteType,
 };
 use objc2_core_graphics::{
     CGBitmapContextCreate, CGBitmapInfo, CGColorRenderingIntent, CGColorSpace, CGContext,
@@ -14,22 +14,38 @@ use objc2_core_graphics::{
 };
 use objc2_foundation::{NSArray, NSDictionary};
 use objc2_image_io::{
-    CGImageSource, kCGImagePropertyColorModel, kCGImagePropertyDPIHeight, kCGImagePropertyDPIWidth,
+    CGImageDestination, CGImageSource, kCGImageDestinationLossyCompressionQuality,
+    kCGImagePropertyColorModel, kCGImagePropertyDPIHeight, kCGImagePropertyDPIWidth,
     kCGImagePropertyDepth, kCGImagePropertyHasAlpha, kCGImagePropertyIsFloat,
     kCGImagePropertyIsIndexed, kCGImagePropertyOrientation, kCGImagePropertyPixelHeight,
-    kCGImagePropertyPixelWidth, kCGImagePropertyProfileName,
+    kCGImagePropertyPixelWidth, kCGImagePropertyProfileName, kCGImagePropertyTIFFCompression,
+    kCGImagePropertyTIFFDictionary,
 };
 use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::path::Path;
 
-/// Image I/O type identifiers Candy can edit, with their display names.
-const FORMATS: [(&str, &str); 6] = [
+/// Display names for common Image I/O type identifiers. Candy opens anything
+/// Image I/O decodes; this list only names the formats people meet most.
+const FORMATS: [(&str, &str); 19] = [
     ("public.png", "PNG"),
     ("public.jpeg", "JPEG"),
     ("org.webmproject.webp", "WebP"),
     ("public.heic", "HEIC"),
     ("public.heif", "HEIF"),
     ("public.avif", "AVIF"),
+    ("com.compuserve.gif", "GIF"),
+    ("public.tiff", "TIFF"),
+    ("com.microsoft.bmp", "BMP"),
+    ("public.jpeg-2000", "JPEG 2000"),
+    ("public.jpeg-xl", "JPEG XL"),
+    ("com.adobe.photoshop-image", "PSD"),
+    ("com.truevision.tga-image", "TGA"),
+    ("com.microsoft.ico", "ICO"),
+    ("com.apple.icns", "ICNS"),
+    ("com.ilm.openexr-image", "OpenEXR"),
+    ("public.radiance", "Radiance HDR"),
+    ("public.pbm", "PBM"),
+    ("com.adobe.raw-image", "DNG"),
 ];
 
 fn format_name(uti: &str) -> Option<&'static str> {
@@ -37,7 +53,27 @@ fn format_name(uti: &str) -> Option<&'static str> {
         .iter()
         .find(|(kind, _)| *kind == uti)
         .map(|(_, name)| *name)
+        .or_else(|| uti.ends_with("-raw-image").then_some("RAW"))
 }
+
+/// Output formats encoded by Image I/O, keyed by lowercase extension, with the
+/// destination type identifier and display name. Everything else goes through
+/// `candy_core::export_format`.
+fn image_io_format(extension: &str) -> Option<(&'static str, &'static str)> {
+    Some(match extension {
+        "heic" | "heif" => ("public.heic", "HEIC"),
+        "avif" => ("public.avif", "AVIF"),
+        "tif" | "tiff" => ("public.tiff", "TIFF"),
+        // Image I/O cannot read the alpha-capable BMP header the image crate
+        // writes, so BMP is encoded here too.
+        "bmp" => ("com.microsoft.bmp", "BMP"),
+        "jp2" | "j2k" | "jpf" | "jpx" => ("public.jpeg-2000", "JPEG 2000"),
+        _ => return None,
+    })
+}
+
+/// Image I/O quality for HEIC, AVIF and JPEG 2000 exports, on its 0–1 scale.
+pub const LOSSY_QUALITY: f64 = 0.85;
 
 /// Opens an image file and reads the first image's header properties.
 fn open(path: &Path) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
@@ -56,11 +92,7 @@ fn open(path: &Path) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CF
 
 pub fn load(path: &Path) -> Result<RgbaImage> {
     autoreleasepool(|_| {
-        let (source, kind, props) = open(path)?;
-        ensure!(
-            format_name(&kind).is_some(),
-            "Supported image formats are PNG, JPEG, WebP, HEIC and AVIF (found {kind})"
-        );
+        let (source, _, props) = open(path)?;
         let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
             .context("Missing image width")?;
         let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
@@ -150,8 +182,8 @@ fn property_string(props: &CFDictionary, key: &CFString) -> Option<String> {
 pub struct Metadata {
     /// Uniform type identifier, such as `public.heic`.
     pub uti: String,
-    /// Display name when Candy can edit the format; `None` for other files
-    /// Image I/O can read.
+    /// Display name of common formats; `None` for rarer types Image I/O reads,
+    /// which Candy still opens.
     pub format: Option<&'static str>,
     /// Stored pixel dimensions, before EXIF orientation.
     pub width: u32,
@@ -242,12 +274,74 @@ pub fn vision_rect(
     )
 }
 
+/// Saves `image` at `path`; the extension selects the format. HEIC, AVIF, TIFF
+/// (LZW), BMP and JPEG 2000 go through Image I/O, the rest through `candy_core`.
+pub fn save(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()> {
+    let extension = candy_core::extension(path);
+    if let Some((uti, name)) = image_io_format(&extension) {
+        ensure!(
+            can_encode(uti),
+            "This version of macOS cannot encode {name}; save as PNG, JPEG, WebP or HEIC"
+        );
+        let bytes = encode(image, uti)?;
+        candy_core::write_atomic(path, overwrite, |file| {
+            std::io::Write::write_all(file, &bytes).context("Cannot write the output file")
+        })
+    } else if candy_core::export_format(&extension).is_some() {
+        candy_core::save_atomic(image, path, overwrite)
+    } else {
+        bail!("Save as PNG, JPEG, WebP, HEIC, AVIF, TIFF, GIF, BMP, JPEG 2000 or TGA")
+    }
+}
+
+/// Whether this macOS version's Image I/O can write `uti`. AVIF encoding, for
+/// example, arrived after macOS 14.
+pub fn can_encode(uti: &str) -> bool {
+    // SAFETY: Image I/O returns a retained array of CFStrings.
+    let identifiers = unsafe { CGImageDestination::type_identifiers() };
+    let identifiers: &CFArray<CFString> = unsafe { identifiers.cast_unchecked() };
+    identifiers.iter().any(|kind| kind.to_string() == uti)
+}
+
+/// Encodes `image` with Image I/O as `uti` and returns the file bytes. Lossy
+/// formats use `LOSSY_QUALITY`; TIFF uses LZW compression.
+pub fn encode(image: &RgbaImage, uti: &str) -> Result<Vec<u8>> {
+    autoreleasepool(|_| {
+        let cg_image = rgba_image(image)?;
+        let data = CFMutableData::new(None, 0).context("Cannot allocate the output buffer")?;
+        let kind = CFString::from_str(uti);
+        // SAFETY: All options are absent; the retained destination, image and
+        // property dictionaries outlive each call.
+        let destination = unsafe { CGImageDestination::with_data(&data, &kind, 1, None) }
+            .with_context(|| format!("Image I/O cannot encode {uti}"))?;
+        let quality = CFNumber::new_f64(LOSSY_QUALITY);
+        let lzw = CFNumber::new_i32(5);
+        let tiff = CFDictionary::<CFString, CFType>::from_slices(
+            &[unsafe { kCGImagePropertyTIFFCompression }],
+            &[&lzw],
+        );
+        let properties = CFDictionary::<CFString, CFType>::from_slices(
+            &[
+                unsafe { kCGImageDestinationLossyCompressionQuality },
+                unsafe { kCGImagePropertyTIFFDictionary },
+            ],
+            &[&quality, &tiff],
+        );
+        unsafe { destination.add_image(&cg_image, Some(properties.as_opaque())) };
+        ensure!(
+            unsafe { destination.finalize() },
+            "Image I/O could not encode {uti}"
+        );
+        Ok(data.to_vec())
+    })
+}
+
 // Pass owned RGBA pixels directly, avoiding a PNG encode/decode round trip.
-fn vision_image(image: &RgbaImage) -> Result<CFRetained<CGImage>> {
+fn rgba_image(image: &RgbaImage) -> Result<CFRetained<CGImage>> {
     validate_dimensions(image.width(), image.height())?;
     let data = CFData::from_bytes(image.as_raw());
     let provider = CGDataProvider::with_cf_data(Some(&data))
-        .context("Cannot create text detection pixel provider")?;
+        .context("Cannot create the pixel data provider")?;
     let space = CGColorSpace::with_name(Some(unsafe { kCGColorSpaceSRGB }))
         .context("Cannot create sRGB color space")?;
     // SAFETY: CFData copies the validated w*h*4 bytes. The provider and image
@@ -270,7 +364,7 @@ fn vision_image(image: &RgbaImage) -> Result<CFRetained<CGImage>> {
             CGColorRenderingIntent::RenderingIntentDefault,
         )
     }
-    .context("Cannot create text detection image")
+    .context("Cannot create the image")
 }
 
 /// Detect candidate text bounds without transcribing their contents.
@@ -279,7 +373,7 @@ fn vision_image(image: &RgbaImage) -> Result<CFRetained<CGImage>> {
 pub fn detect_text(image: &RgbaImage) -> Result<Vec<PixelRect>> {
     autoreleasepool(|_| {
         let started = std::time::Instant::now();
-        let cg_image = vision_image(image)?;
+        let cg_image = rgba_image(image)?;
         // SAFETY: The CGImage owns its pixel data and outlives the synchronous request.
         let handler = unsafe {
             VNImageRequestHandler::initWithCGImage_options(
@@ -338,7 +432,7 @@ mod tests {
     use super::*;
     use image::Rgba;
     #[test]
-    fn vision_image_owns_straight_rgba_pixels() {
+    fn rgba_image_owns_straight_rgba_pixels() {
         let source = RgbaImage::from_raw(
             2,
             2,
@@ -347,7 +441,7 @@ mod tests {
             ],
         )
         .unwrap();
-        let image = vision_image(&source).unwrap();
+        let image = rgba_image(&source).unwrap();
         drop(source);
         let space = CGColorSpace::with_name(Some(unsafe { kCGColorSpaceSRGB })).unwrap();
         let mut pixels = [0_u8; 16];
@@ -368,7 +462,7 @@ mod tests {
         for (actual, expected) in pixels.into_iter().zip(expected) {
             assert!(actual.abs_diff(expected) <= 1, "{pixels:?}");
         }
-        assert!(vision_image(&RgbaImage::new(0, 1)).is_err());
+        assert!(rgba_image(&RgbaImage::new(0, 1)).is_err());
     }
 
     #[test]

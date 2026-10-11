@@ -22,7 +22,9 @@ swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures
 - `weekend-demo.png`: a 2000 × 1320 rendering for Retina app screenshots. Text is
   drawn at this resolution, not enlarged from the smaller fixture.
 
-Tests create a temporary WebP from the PNG to cover WebP encoding and decoding.
+Tests save the PNG to every export format in a temporary directory and reopen
+each one; PSD, ICO, ICNS, OpenEXR and PBM decoding uses 32 × 32 files that
+Image I/O writes at test time.
 Text-region tests inspect dark glyph pixels on the paper panel, including both
 Korean lines, at native resolution and at 4000 × 2640. The photograph is excluded
 from glyph-coverage assertions: its texture is not a known text region. As with

@@ -148,7 +148,7 @@ fn edit(
     );
     let image = candy_macos::load(&files.path)?;
     let result = candy_core::apply(&image, &operation(&image)?)?;
-    candy_core::save_atomic(&result, &files.output, files.force)?;
+    candy_macos::save(&result, &files.output, files.force)?;
     eprintln!(
         "Saved {} ({} × {})",
         files.output.display(),
