@@ -158,7 +158,7 @@
             <p>
               Preview an image in a Kitty-compatible terminal, directly or
               inside tmux. Check a file’s format, size and colors without
-              opening it. Crop, resize, mosaic and flatten right there, with
+              opening it. Crop, resize, rotate, mosaic and flatten right there, with
               the same engine as the app. Want to see what you’re doing? Open
               a native macOS window sized to the image, with familiar tabs,
               shortcuts and save dialogs.
@@ -172,6 +172,7 @@
 <span class="comment"># Edit in the terminal</span>
 <span class="prompt" aria-hidden="true">$ </span>candy crop photo.png --rect 20,30,300,200 -o crop.png
 <span class="prompt" aria-hidden="true">$ </span>candy resize photo.heic --width 1200 -o small.webp
+<span class="prompt" aria-hidden="true">$ </span>candy rotate photo.heic --cw -o upright.heic
 <span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --text -o safe.png
 <span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --rect 40,80,300,60 -o safe.png
 <span class="prompt" aria-hidden="true">$ </span>candy flatten logo.png --background '#ffffff' -o flat.jpg
@@ -205,8 +206,8 @@
           <article>
             <h3>A better fit.</h3>
             <p>
-              Resize an image while keeping its proportions, or set the exact
-              dimensions you need.
+              Resize an image while keeping its proportions, set the exact
+              dimensions you need, or turn it by 90°.
             </p>
           </article>
           <article>

@@ -161,7 +161,7 @@
             <p>
               Kitty 그래픽을 지원하는 터미널에서는 tmux 안에서도 이미지를 바로
               볼 수 있습니다. candy inspect 명령은 파일을 열지 않고 포맷과 크기,
-              색상 정보를 보여 줍니다. 자르기, 크기 조절, 모자이크, 배경 채우기는
+              색상 정보를 보여 줍니다. 자르기, 크기 조절, 회전, 모자이크, 배경 채우기는
               앱과 같은 엔진으로 터미널에서 바로 처리할 수 있습니다. 화면을 보며
               편집하려면 candy edit 명령으로 이미지 크기에 맞춘 앱 창을 띄우세요.
               탭과 단축키, 저장 창까지 익숙한 Mac 방식으로 사용할 수 있습니다.
@@ -175,6 +175,7 @@
 <span class="comment"># 터미널에서 편집</span>
 <span class="prompt" aria-hidden="true">$ </span>candy crop photo.png --rect 20,30,300,200 -o crop.png
 <span class="prompt" aria-hidden="true">$ </span>candy resize photo.heic --width 1200 -o small.webp
+<span class="prompt" aria-hidden="true">$ </span>candy rotate photo.heic --cw -o upright.heic
 <span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --text -o safe.png
 <span class="prompt" aria-hidden="true">$ </span>candy mosaic shot.png --rect 40,80,300,60 -o safe.png
 <span class="prompt" aria-hidden="true">$ </span>candy flatten logo.png --background '#ffffff' -o flat.jpg
@@ -212,6 +213,7 @@
             <p>
               가로세로 비율을 유지하며 크기를 바꾸거나,
               원하는 너비와 높이를 직접 지정하세요.
+              90도씩 돌릴 수도 있습니다.
             </p>
           </article>
           <article>
