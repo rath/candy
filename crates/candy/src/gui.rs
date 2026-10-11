@@ -789,6 +789,9 @@ impl Editor {
                 self.documents.retain(|d| d.id != id);
                 self.active = self.active.min(self.documents.len().saturating_sub(1));
                 self.sync_dimensions();
+                if self.documents.is_empty() {
+                    self.notice = "Ready".into();
+                }
             }
         }
         self.closing = None;
@@ -1174,8 +1177,10 @@ impl eframe::App for Editor {
         self.tabs(ui, &ctx);
         self.toolbar(ui, &ctx);
         self.status(ui);
+        // The canvas paints its own workspace; the empty state needs the same fill.
+        let workspace = Color32::from_gray(if ui.visuals().dark_mode { 24 } else { 226 });
         egui::CentralPanel::default()
-            .frame(egui::Frame::NONE)
+            .frame(egui::Frame::NONE.fill(workspace))
             .show(ui, |ui| {
                 if let Some(doc) = self.documents.get_mut(self.active) {
                     let enabled = !doc.busy() && self.closing.is_none();
