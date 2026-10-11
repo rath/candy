@@ -91,7 +91,7 @@ The site explicitly uses a light color scheme, independently of the native app's
 
 Use the platform sans-serif stack without downloaded or bundled fonts. Command examples use the platform monospace stack. Headings have tight tracking and balanced wrapping; paragraphs have generous leading. Introductory copy is limited to 38 characters per line, feature copy to 35, and other prose generally to 45–50.
 
-Korean headings and feature/introductory copy keep words together. The Korean display role has its own size and leading; its introductory copy is 18px. At the intermediate breakpoint English display text becomes 52px. At the mobile breakpoint display text is 56px in English and 50px in Korean; on the narrowest screens these become 48px and 44px. Mobile English introductory copy becomes 17px and feature copy 14px.
+Korean headings and paragraphs keep words together, including feature titles and installation notes. The Korean display role has its own size and leading; its introductory copy is 18px. At the intermediate breakpoint English display text becomes 52px. At the mobile breakpoint display text is 56px in English and 50px in Korean; on the narrowest screens these become 48px and 44px. Mobile English introductory copy becomes 17px and feature copy 14px.
 
 ## Layout
 
@@ -125,3 +125,7 @@ Rounded corners identify the primary action, image, coral stage and build block.
 - **Do** show real native application imagery and retain its provenance.
 - **Do** distinguish notarized public downloads from local source builds; state the Apple Silicon and macOS requirements beside installation instructions.
 - **Don't** apply these website tokens to native AppKit controls or replace the native design documents.
+
+## Korean copy
+
+Write natural Korean descriptions of actions rather than translating English slogans literally. The hero reads “이미지 편집, 간단하게.” Use “형광펜” for the highlight tool, “모자이크” for pixelation and “문자 인식” for OCR in visitor-facing explanations. Use consistent polite instructions and keep the Korean search descriptions and social card aligned with the page.

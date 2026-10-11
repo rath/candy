@@ -326,7 +326,9 @@ footer a {
   line-height: 1.16;
   word-break: keep-all;
 }
-:lang(ko) h2 {
+:lang(ko) h2,
+:lang(ko) h3,
+:lang(ko) p {
   word-break: keep-all;
 }
 :lang(ko) .intro {
