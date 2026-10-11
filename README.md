@@ -81,10 +81,13 @@ candy --display gui photo.heic
 candy --display kitty photo.avif
 ```
 
-`--display kitty` skips capability detection. Automatic detection falls back
-to the GUI inside tmux/screen; terminal passthrough and the iTerm image protocol
-are not implemented. Redirected image-display output is rejected rather than
-writing escape sequences into a file. The automatic path has been checked in Ghostty.
+`--display kitty` skips capability detection. Inside tmux it sends the image
+through tmux passthrough, which needs `set -g allow-passthrough on`, and places
+it with Kitty Unicode placeholders so tmux scrolls and redraws it like text.
+Automatic detection still falls back to the GUI inside tmux/screen; GNU screen
+passthrough and the iTerm image protocol are not implemented. Redirected
+image-display output is rejected rather than writing escape sequences into a
+file. The automatic path and tmux passthrough have been checked in Ghostty.
 
 ## Editing
 
