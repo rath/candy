@@ -66,25 +66,28 @@ fn detects_english_and_korean_and_mosaics_reported_regions() {
     assert!(changed > 1000);
 }
 
-// The fixture has eight known text lines, including Korean on the seventh line.
+// The travel card has ten text lines, including Korean in the subtitle and
+// traveler label. Keep the scan on its paper panel, clear of the photograph.
 // Check actual dark glyph pixels, not recognition strings or exact box counts:
 // Vision may split a line, but mosaic candidates must still cover its letters.
 fn assert_text_coverage(image: &image::RgbaImage, boxes: &[PixelRect]) {
     let scale = image.width() / 1000;
     for (top, bottom) in [
-        (60, 90),
-        (110, 165),
-        (170, 205),
-        (260, 305),
-        (315, 360),
-        (370, 410),
-        (430, 480),
-        (555, 600),
+        (40, 65),
+        (90, 170),
+        (170, 245),
+        (270, 310),
+        (315, 345),
+        (395, 422),
+        (425, 467),
+        (473, 508),
+        (514, 550),
+        (610, 638),
     ] {
         let mut ink = 0;
         let mut covered = 0;
         for y in top * scale..bottom * scale {
-            for x in 45 * scale..610 * scale {
+            for x in 40 * scale..485 * scale {
                 let pixel = image.get_pixel(x, y);
                 if pixel[0] < 150 && pixel[1] < 150 && pixel[2] < 150 {
                     ink += 1;
