@@ -478,7 +478,8 @@ pub fn save_atomic(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()
 }
 
 /// Writes `path` through a temporary file in the same directory, so a failed
-/// or interrupted encode never leaves a partial image behind.
+/// or interrupted encode never leaves a partial image behind. Replacing an
+/// existing file keeps its permissions.
 pub fn write_atomic(
     path: &Path,
     overwrite: bool,
@@ -497,6 +498,10 @@ pub fn write_atomic(
     write(temp.as_file_mut())?;
     temp.as_file().sync_all()?;
     if overwrite {
+        if let Ok(existing) = fs::metadata(path) {
+            fs::set_permissions(temp.path(), existing.permissions())
+                .context("Cannot keep the file's permissions")?;
+        }
         temp.persist(path).map_err(|e| e.error)?;
     } else {
         temp.persist_noclobber(path).map_err(|e| e.error)?;
@@ -652,6 +657,20 @@ mod tests {
         assert!(export_format("bmp").is_none(), "BMP belongs to Image I/O");
         let error = save_atomic(&grid(), &dir.path().join("image.xyz"), false).unwrap_err();
         assert!(error.to_string().starts_with("Save as PNG"), "{error}");
+    }
+    #[test]
+    fn overwriting_keeps_the_existing_permissions() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("image.png");
+        save_atomic(&grid(), &path, false).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o644)).unwrap();
+        save_atomic(&grid(), &path, true).unwrap();
+        assert_eq!(
+            fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o644
+        );
+        assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
     }
     #[test]
     fn gif_keeps_binary_transparency_and_the_pixel_colours() {
