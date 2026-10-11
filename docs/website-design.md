@@ -89,7 +89,7 @@ The site explicitly uses a light color scheme, independently of the native app's
 
 ## Typography
 
-Use the platform sans-serif stack without downloaded or bundled fonts. Command examples use the platform monospace stack. Headings have tight tracking and balanced wrapping; paragraphs have generous leading. Introductory copy is limited to 38 characters per line, feature copy to 35, and other prose generally to 45–50.
+Use the platform sans-serif stack without downloaded or bundled fonts. The header wordmark is outlined artwork rather than live text, so it adds no font request. Command examples use the platform monospace stack. Headings have tight tracking and balanced wrapping; paragraphs have generous leading. Introductory copy is limited to 38 characters per line, feature copy to 35, and other prose generally to 45–50.
 
 Korean headings and paragraphs keep words together, including feature titles and installation notes. The Korean display role has its own size and leading; its introductory copy is 18px. At the intermediate breakpoint English display text becomes 52px. At the mobile breakpoint display text is 56px in English and 50px in Korean; on the narrowest screens these become 48px and 44px. Mobile English introductory copy becomes 17px and feature copy 14px.
 
@@ -111,7 +111,7 @@ Rounded corners identify the primary action, image, coral stage and build block.
 
 ## Components
 
-- **Brand mark:** `assets/mark.svg`, a coral spiral disc with a white band and coral rim, sits at 30px beside the 28px wordmark. The favicon `assets/favicon.svg` sets a cream and coral spiral on a deep rust (`#6b2a1e`) rounded square so it stays legible in light and dark tab bars. Both reuse the app icon's lollipop spiral from `scripts/icon/`; social cards rebuild with `scripts/build-og.sh` after the mark changes.
+- **Brand mark:** `assets/mark.svg`, a coral spiral disc with a white band and coral rim, sits at 30px beside `assets/wordmark.svg`: “Candy” in Fredoka SemiBold (OFL) with −0.01em tracking, outlined in ink. The wordmark image is 1.34em tall (Fredoka's 1.21em line box at 31/28 of the brand's 28px size, 26px on mobile) and names the link through `alt="Candy"`. The favicon `assets/favicon.svg` sets a cream and coral spiral on a deep rust (`#6b2a1e`) rounded square so it stays legible in light and dark tab bars. The mark and favicon reuse the app icon's lollipop spiral from `scripts/icon/`; social cards rebuild with `scripts/build-og.sh` after the mark or wordmark changes.
 - **Primary action:** an anchor styled as an ink button, with a minimum height of 48px. Its destination is the installation section. Supporting actions remain underlined text links.
 - **Language navigation:** visible English and Korean links, each declaring its language. The current page is bold and marked with `aria-current="page"`.
 - **Editor figure:** one real Retina Candy capture (1800 × 1400) showing a fictional coastal travel card with an actual headline highlight and email mosaic. A `picture` serves compressed WebP with PNG fallback, intrinsic dimensions, descriptive localized alternative text and a caption identifying the fictional sample. Asset provenance is recorded in `site/assets/credits.txt`.

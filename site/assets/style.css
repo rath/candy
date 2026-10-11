@@ -50,16 +50,19 @@ header {
 }
 .brand {
   font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
   text-decoration: none;
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.brand img {
+.brand .mark {
   width: 30px;
   height: 30px;
+}
+.brand .wordmark {
+  /* Fredoka's 1.21em line box, set at 31/28 of the brand size. */
+  width: auto;
+  height: 1.34em;
 }
 nav {
   display: flex;
