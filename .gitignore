@@ -2,3 +2,5 @@
 /dist/
 .DS_Store
 .impeccable/review/
+
+macos/.build/
