@@ -629,6 +629,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "candy-ffi"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "candy-core",
+ "candy-macos",
+ "image",
+ "tempfile",
+]
+
+[[package]]
 name = "candy-macos"
 version = "0.1.0"
 dependencies = [

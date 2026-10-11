@@ -1,0 +1,18 @@
+[package]
+name = "candy-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+anyhow.workspace = true
+image.workspace = true
+candy-core = { path = "../candy-core" }
+candy-macos = { path = "../candy-macos" }
+
+[dev-dependencies]
+tempfile.workspace = true

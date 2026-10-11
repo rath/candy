@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/candy-core", "crates/candy-macos", "crates/candy"]
+members = ["crates/candy-core", "crates/candy-macos", "crates/candy-ffi", "crates/candy"]
 resolver = "3"
 
 [workspace.package]
