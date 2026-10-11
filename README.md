@@ -97,7 +97,7 @@ detection has been checked in Ghostty, both directly and inside tmux.
 - **Mosaic:** pixelate the selected rectangle with an adjustable block size.
 - **Highlight:** draw translucent strokes with adjustable color, size and opacity.
 - **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic. Korean and English are supported.
-- **Resize:** set dimensions, optionally preserving the aspect ratio.
+- **Resize:** set dimensions, optionally preserving the aspect ratio, or rotate by 90° in either direction.
 - **Flatten alpha:** composite transparency onto a chosen solid color.
 
 File, Edit, View and Tools actions live in the macOS menu bar. Each document
@@ -148,6 +148,7 @@ measured from the top-left after EXIF rotation.
 ```sh
 candy resize photo.heic --width 1200 -o smaller.png
 candy resize scan.tif --width 800 --height 600 -o exact.webp
+candy rotate photo.heic --cw -o upright.heic
 candy crop photo.png --rect 20,30,300,200 -o crop.heic
 candy mosaic photo.png --rect 20,30,300,200 --block-size 16 -o mosaic.png
 candy mosaic screenshot.png --text -o text-mosaic.png
@@ -155,7 +156,8 @@ candy flatten logo.png --background '#ffffff' -o flat.jpg
 ```
 
 One resize dimension preserves the aspect ratio; providing both sets the exact
-size. Use `--force` to replace an existing output; it never permits overwriting
+size. `rotate` turns a quarter turn clockwise (`--cw`) or counterclockwise
+(`--ccw`). Use `--force` to replace an existing output; it never permits overwriting
 the input. Run `candy --help` or `candy <command> --help` for details.
 
 `candy inspect photo.heic` reads the stored format, dimensions, EXIF

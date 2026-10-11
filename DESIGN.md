@@ -10,18 +10,12 @@ colors:
   checker-dark-b: "rgb(16% 16% 16%)"
   handle-fill: "#FFFFFF"
 typography:
-  headline:
-    fontFamily: "macOS system font"
-    fontSize: "22pt"
   label:
     fontFamily: "macOS system font"
     fontSize: "12pt"
   value:
     fontFamily: "macOS monospaced-digit system font"
     fontSize: "12pt"
-  small:
-    fontFamily: "macOS system font"
-    fontSize: "11pt"
 rounded:
   region: "0pt"
 spacing:
@@ -82,13 +76,13 @@ Highlight color defaults to `systemYellow` at 0.4 opacity and the flattening bac
 
 ## Typography
 
-Use AppKit system fonts and its native fallback for Korean and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are the semibold empty-state headline, regular contextual labels, regular monospaced-digit slider values, and the supported-format line, as recorded in the frontmatter. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
+Use AppKit system fonts and its native fallback for Korean and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are regular contextual labels and regular monospaced-digit slider values, as recorded in the frontmatter; the empty-state instruction uses the default label font. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
 
 ## Layout
 
 The initial content rectangle is (1120 × 780 pt), before the native titlebar and toolbar. A window opened for a file stays hidden until the image has loaded, or failed, and then appears already sized around its center so Fit shows the image at Actual Size; an empty window that receives a file resizes in place. An image larger than the screen's visible frame shrinks on both axes together, and the window stays inside that frame. Tabbed, full-screen and user-resized windows keep their size; later edits never resize the window. `NSWindow.contentMinSize` is (560 × 268 pt), a (560 × 320 pt) window with the unified toolbar; `minSize` is avoided because it is converted before the toolbar lays out. The width fits the widest contextual strip and the tool selector. A unified native toolbar centers the tool selector between flexible spaces. AppKit owns titlebar and tab-bar layout.
 
-Below the toolbar, a fixed-height contextual strip uses a horizontal `NSStackView` inside an `NSScrollView`. It scrolls horizontally when needed and autohides its scroller; controls do not wrap. The canvas fills the remaining area above a native separator and fixed-height status strip. The frontmatter records actual strip heights, insets, gaps, and control widths. There are no custom breakpoints. The empty state is a centered vertical stack containing a headline, instruction, Open image action, and supported-format line.
+Below the toolbar, a fixed-height contextual strip uses a horizontal `NSStackView` inside an `NSScrollView`. It scrolls horizontally when needed and autohides its scroller; controls do not wrap. The canvas fills the remaining area above a native separator and fixed-height status strip. The frontmatter records actual strip heights, insets, gaps, and control widths. There are no custom breakpoints. The empty state is a centered vertical stack containing one instruction line and the Open image action, nothing else.
 
 Fit centers the image with (40 pt) total allowance per axis and never scales above one image pixel per backing pixel. Actual Size is exactly one image pixel per backing pixel, including on Retina displays. Manual zoom ranges from (1%–1600%). Scrolling and trackpad magnification zoom around the pointer; Space-drag pans. A preview is capped at 4096 pixels per side, while coordinates, editing, and exports use the full-resolution oriented image.
 
@@ -112,7 +106,7 @@ Each document has its own `NSWindow` and editing session. Windows share a tabbin
 
 ### Contextual controls
 
-Select exposes region instructions and Extract to new image. Mosaic exposes block size and Apply mosaic. Highlight exposes a native color well, width, and opacity. Text mosaic exposes Detect text, block size, Apply to all, and Remove box; region count appears in status. Resize exposes width and height text fields, Keep ratio, and Apply resize. Flatten alpha exposes a background color well and its apply action.
+Select exposes region instructions and Extract to new image. Mosaic exposes block size and Apply mosaic. Highlight exposes a native color well, width, and opacity. Text mosaic exposes Detect text, block size, Apply to all, and Remove box; region count appears in status. Resize exposes width and height text fields, Keep ratio, Apply resize, and icon-only Rotate left and Rotate right buttons (`rotate.left`/`rotate.right`) whose tooltips name the 90° direction; a rotation swaps the field values. Flatten alpha exposes a background color well and its apply action.
 
 Sliders have adjacent right-aligned numeric values; opacity displays as a percentage. Image measurements use pixels. Block size ranges from 2–96, brush width from 2–100, and resize dimensions accept 1–65535 subject to engine allocation limits. During OCR detection, text-region controls and canvas region editing lock, while other tools remain available. An edit or save disables document editing until it completes.
 

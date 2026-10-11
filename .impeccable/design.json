@@ -34,10 +34,6 @@
       }
     },
     "typographyMeta": {
-      "headline": {
-        "displayName": "Empty-state headline",
-        "purpose": "System font with semibold weight."
-      },
       "label": {
         "displayName": "Context label",
         "purpose": "Regular contextual instruction and field labels."
@@ -45,10 +41,6 @@
       "value": {
         "displayName": "Slider value",
         "purpose": "Regular monospaced digits, right aligned."
-      },
-      "small": {
-        "displayName": "Supported-format line",
-        "purpose": "Secondary empty-state text."
       }
     },
     "native": {
@@ -81,8 +73,7 @@
       "semanticColors": {
         "canvas": "NSColor.underPageBackgroundColor",
         "status": "NSColor.secondaryLabelColor",
-        "error": "NSColor.systemRed",
-        "supportedFormats": "NSColor.secondaryLabelColor"
+        "error": "NSColor.systemRed"
       },
       "colorSources": {
         "accent": "NSColor(srgbRed:green:blue:alpha:) component values recorded as CSS rgb percentages",
@@ -91,7 +82,6 @@
       "typography": {
         "default": "AppKit control and label defaults",
         "status": "NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)",
-        "headlineWeight": "semibold",
         "valueWeight": "regular"
       },
       "selection": {
