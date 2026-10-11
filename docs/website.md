@@ -15,19 +15,21 @@ Visit http://localhost:4180 and http://localhost:4180/ko/.
 
 ## Publish
 
-GitHub Pages serves the root of the `gh-pages` branch. Publish only the committed
-contents of `site/` from the repository root:
+Pushing `main` publishes the site. The `Website` workflow
+(`.github/workflows/pages.yml`) runs when a push changes `site/` or the workflow
+itself, uploads the committed `site/` directory as is, and deploys it to GitHub
+Pages. There is no build step, so commit finished HTML, CSS and assets. Pushes
+that change only source code or documentation leave the live site untouched. To
+redeploy without a change, run `gh workflow run pages.yml`; follow runs with
+`gh run list --workflow pages.yml`.
 
-```sh
-git subtree push --prefix site origin gh-pages
-```
+The repository's Pages source is **GitHub Actions**, and the `github-pages`
+environment allows deployments from `main`. The `gh-pages` branch is no longer
+published.
 
-This preserves history and does not force-push. Commit website changes before
-publishing. Source code and documentation remain on `main`; push that branch
-when publishing changes that visitors need to build the current app.
-
-The custom domain is `candy.told.me`, recorded in `site/CNAME` and GitHub Pages
-settings. The domain owner must configure this DNS record:
+The custom domain `candy.told.me` is set in the repository's Pages settings.
+`site/CNAME` also records it, but Actions deployments ignore that file. The
+domain owner must configure this DNS record:
 
 | Type | Name | Target |
 | --- | --- | --- |
@@ -76,8 +78,8 @@ servers and the shared browser session running.
 To reuse a running preview, set `CANDY_PREVIEW_URL` to a server that serves the
 **repository root**, not `site/`. If size validation fails, use a browser session
 with device scale 1. Inspect both language versions after changing copy or the
-app screenshot. Publishing follows the same `gh-pages` subtree process above;
-source-only changes do not update the live site.
+app screenshot. Commit the regenerated cards; pushing `main` publishes them with
+the rest of `site/`.
 
 ### Rebuild the wordmark
 

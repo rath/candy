@@ -74,6 +74,6 @@ Run Cask style/audit and installation checks, commit, and push. Its CI verifies
 the packaged version, architecture, signature, notarization and a CLI edit.
 
 Update both website languages and README installation instructions when needed.
-Publish committed website changes with `git subtree push --prefix site origin
-gh-pages`. Finally verify the public release assets, tap installation, and
-https://candy.told.me/ in both languages.
+Pushing `main` publishes committed website changes (see
+[website maintenance](website.md)). Finally verify the public release assets, tap
+installation, and https://candy.told.me/ in both languages.
