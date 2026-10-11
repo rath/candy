@@ -3,6 +3,9 @@ set -eu
 candy_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$candy_root"
 export MACOSX_DEPLOYMENT_TARGET=14.0
+candy_version=$(cargo pkgid -p candy)
+candy_version=${candy_version##*#}
+candy_version=${candy_version##*@}
 case "${1:-release}" in
     release) candy_profile=release; set -- --release ;;
     --debug) candy_profile=debug; set -- ;;
@@ -37,8 +40,8 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
     <key>CFBundleName</key><string>Candy</string>
     <key>CFBundleDisplayName</key><string>Candy</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>0</string>
+    <key>CFBundleVersion</key><string>0</string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
@@ -54,6 +57,8 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Candy contributors. MIT license.</string>
 </dict></plist>
 PLIST
+plutil -replace CFBundleShortVersionString -string "$candy_version" "$candy_app/Contents/Info.plist"
+plutil -replace CFBundleVersion -string "$candy_version" "$candy_app/Contents/Info.plist"
 plutil -lint "$candy_app/Contents/Info.plist"
 # Sign the complete local bundle, including its final Info.plist. Staging avoids
 # stale resource seals and case-only executable names from older bundles.

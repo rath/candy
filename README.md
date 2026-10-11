@@ -11,8 +11,23 @@ candy edit photo.png
 ```
 
 Candy uses a native Swift/AppKit editor and a shared Rust image engine, with
-macOS Image I/O and Apple Vision. Requires **macOS 14+**; currently tested on
-Apple Silicon.
+macOS Image I/O and Apple Vision. Requires **macOS 14+**. Release binaries
+support **Apple Silicon**.
+
+## Install
+
+Install the app and CLI together with Homebrew:
+
+```sh
+brew install --cask rath/tap/candy
+```
+
+Or download the ZIP from [GitHub Releases](https://github.com/rath/candy/releases/latest),
+unzip it, and drag `Candy.app` to Applications. Release apps are signed with
+Developer ID and notarized by Apple. Rust and Xcode are not needed to run them.
+The Homebrew installation also puts `candy` on your PATH.
+
+To update, quit Candy and run `brew update && brew upgrade --cask candy`.
 
 ## Build and run
 
@@ -201,5 +216,8 @@ image contents. Timings depend on the machine and macOS version.
 
 MIT licensed. See [PRODUCT.md](PRODUCT.md) for scope and [DESIGN.md](DESIGN.md)
 for the editor's visual conventions.
+
+Maintainers: see [releasing](docs/releasing.md) for signing, notarization,
+GitHub Releases, and Homebrew distribution.
 
 The bilingual GitHub Pages landing page is in `site/`. See [website maintenance](docs/website.md) for preview, publishing, and DNS setup.

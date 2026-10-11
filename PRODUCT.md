@@ -18,7 +18,7 @@ People working in a terminal who want to inspect an image immediately and open a
 
 Kitty terminal display; region extraction; region and OCR text mosaic; highlighter; resize; transparency flattening. Open PNG, JPEG, WebP, HEIC and AVIF; export PNG, JPEG and WebP. OCR stays on the Mac. Native document windows support macOS tabs, menus, save sheets, and unsaved-change confirmation. Full-resolution pixels remain authoritative even when the display preview is reduced.
 
-First GUI save creates a new file; subsequent saves can update that output. Originals remain protected, including aliases. The CLI never replaces its input. macOS 14+; initially validated on Apple Silicon. MIT open source; the app bundle is a local build without Developer ID signing or notarization.
+First GUI save creates a new file; subsequent saves can update that output. Originals remain protected, including aliases. The CLI never replaces its input. macOS 14+; release binaries support Apple Silicon. MIT open source; public releases are Developer ID signed and notarized, while ordinary source builds are ad-hoc signed for local use. Homebrew installs the app and CLI together.
 
 ## Brand commitments
 

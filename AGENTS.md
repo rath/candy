@@ -22,7 +22,9 @@ live in the SwiftPM package under `macos`.
   verifying the app, then relaunch it. The GUI executable is
   `Contents/MacOS/Candy`; the CLI is `Contents/Helpers/candy`. Never put both
   in the same directory: the names collide on case-insensitive filesystems.
-- The bundle is a local build, without Developer ID signing or notarization.
+- `scripts/build-app.sh` creates an ad-hoc signed local bundle. Public releases
+  use `scripts/release.sh` for Developer ID signing and notarization; see
+  `docs/releasing.md`. Release binaries currently support Apple Silicon only.
 - Test fixtures are synthetic. Regenerate with
   `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
   Do not add personal screenshots or contact details as fixtures.
