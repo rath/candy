@@ -70,16 +70,19 @@
         </div>
         <figure class="hero-visual">
           <div class="stage">
-            <img
-              src="../assets/candy-editor.png"
-              width="760"
-              height="560"
-              fetchpriority="high"
-              alt="Candy의 하이라이트 도구로 샘플 이미지의 제목을 노란색으로 강조한 화면"
-            />
+            <picture>
+              <source srcset="../assets/candy-editor.webp" type="image/webp" />
+              <img
+                src="../assets/candy-editor.png"
+                width="1800"
+                height="1400"
+                fetchpriority="high"
+                alt="해안 사진이 담긴 가상의 여행 카드에서 제목을 노란색으로 강조하고 예시 이메일을 모자이크한 실제 Candy 화면"
+              />
+            </picture>
           </div>
           <figcaption>
-            합성 샘플 이미지로 살펴본 실제 Candy 편집 화면입니다.
+            가상의 여행 카드에 하이라이트와 모자이크를 적용한 실제 화면입니다.
           </figcaption>
         </figure>
       </section>

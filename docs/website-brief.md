@@ -16,4 +16,4 @@ FORM: Direct code-led implementation of the user's narrow request for a simple i
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
-Asset provenance: site/assets/candy-editor.png is an unmodified Candy AppKit window capture from .impeccable/review/appkit-dark-highlight.png, created during native validation. Image inside the app is scripts/make-fixtures.swift synthetic content; no personal data. See site/assets/credits.txt.
+Asset provenance: site/assets/candy-editor.png is a real Retina Candy AppKit window capture from .impeccable/review/fixture-editor-final.png. The fictional travel card combines committed AI-generated coastal artwork with reproducible English/Korean typography from scripts/make-fixtures.swift. The headline highlight and email mosaic were applied in Candy. candy-editor.webp is the compressed web version; neither capture has fabricated application UI. No personal data. See site/assets/credits.txt and scripts/fixture-assets/README.md.
