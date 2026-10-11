@@ -358,6 +358,16 @@ footer {
 footer p {
   margin: 0;
 }
+footer .maker {
+  margin-left: 12px;
+}
+footer .maker a {
+  margin: 0;
+  color: var(--ink);
+}
+footer .maker a:hover {
+  color: var(--accent);
+}
 footer a {
   margin-left: 20px;
 }
@@ -514,6 +524,13 @@ footer a {
   footer a {
     margin-left: 0;
     margin-right: 20px;
+  }
+  footer .maker {
+    display: block;
+    margin: 4px 0 0;
+  }
+  footer .maker a {
+    margin: 0;
   }
   :lang(ko) h1 {
     font-size: 50px;
