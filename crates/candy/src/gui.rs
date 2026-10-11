@@ -1,6 +1,7 @@
 use crate::canvas::{Brush, Canvas, Tool};
 use anyhow::Result;
 use candy_core::{History, Operation};
+use candy_macos::menu::{Item, Menu, MenuBar, Shortcut};
 use eframe::egui::{self, Color32, RichText, Vec2};
 use image::RgbaImage;
 use std::{
@@ -31,6 +32,108 @@ enum Event {
         path: PathBuf,
         result: JobResult<()>,
     },
+    Menu(Command),
+}
+
+/// Menu bar actions. Cmd shortcuts are native key equivalents, which AppKit
+/// consumes before egui receives the key event.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Command {
+    Open,
+    CloseTab,
+    Save,
+    SaveAs,
+    Quit,
+    Undo,
+    Redo,
+    ActualSize,
+    ZoomToFit,
+    Tool(Tool),
+}
+
+const TOOLS: [(Tool, &str); 6] = [
+    (Tool::Select, "Select"),
+    (Tool::Mosaic, "Mosaic"),
+    (Tool::Highlight, "Highlight"),
+    (Tool::Text, "Text mosaic"),
+    (Tool::Resize, "Resize"),
+    (Tool::Flatten, "Flatten alpha"),
+];
+
+fn menus() -> Vec<Menu<Command>> {
+    vec![
+        Menu {
+            title: "File",
+            items: vec![
+                Item::command("Open…", Command::Open, Some(Shortcut::cmd('o'))),
+                Item::Separator,
+                Item::command("Close Tab", Command::CloseTab, Some(Shortcut::cmd('w'))),
+                Item::command("Save…", Command::Save, Some(Shortcut::cmd('s'))),
+                Item::command("Save As…", Command::SaveAs, Some(Shortcut::shift_cmd('s'))),
+            ],
+        },
+        Menu {
+            title: "Edit",
+            items: vec![
+                Item::command("Undo", Command::Undo, Some(Shortcut::cmd('z'))),
+                Item::command("Redo", Command::Redo, Some(Shortcut::shift_cmd('z'))),
+            ],
+        },
+        Menu {
+            title: "View",
+            items: vec![
+                Item::command("Actual Size", Command::ActualSize, Some(Shortcut::cmd('0'))),
+                Item::command("Zoom to Fit", Command::ZoomToFit, Some(Shortcut::cmd('9'))),
+            ],
+        },
+        Menu {
+            title: "Tools",
+            items: [
+                "Select",
+                "Mosaic",
+                "Highlight",
+                "Text Mosaic",
+                "Resize",
+                "Flatten Alpha",
+            ]
+            .into_iter()
+            .zip(TOOLS)
+            .zip(['1', '2', '3', '4', '5', '6'])
+            .map(|((title, (tool, _)), key)| {
+                Item::command(title, Command::Tool(tool), Some(Shortcut::cmd(key)))
+            })
+            .collect(),
+        },
+    ]
+}
+
+/// Which menu items are available for the current editor state.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct MenuState {
+    open: bool,
+    close_tab: bool,
+    save: bool,
+    undo: bool,
+    redo: bool,
+    zoom: bool,
+    tool: Tool,
+}
+impl MenuState {
+    fn enabled(&self, command: Command) -> bool {
+        match command {
+            Command::Open | Command::Tool(_) => self.open,
+            Command::CloseTab => self.close_tab,
+            Command::Save | Command::SaveAs => self.save,
+            Command::Undo => self.undo,
+            Command::Redo => self.redo,
+            Command::ActualSize | Command::ZoomToFit => self.zoom,
+            // The application menu validates its own items; Quit stays enabled.
+            Command::Quit => true,
+        }
+    }
+    fn checked(&self, command: Command) -> bool {
+        matches!(command, Command::Tool(tool) if tool == self.tool)
+    }
 }
 
 struct Document {
@@ -89,6 +192,8 @@ pub struct Editor {
     closing: Option<ClosePrompt>,
     close_after_save: Option<(u64, Close)>,
     allow_close: bool,
+    menu: Option<MenuBar<Command>>,
+    menu_state: Option<MenuState>,
 }
 
 pub fn run(path: Option<PathBuf>) -> Result<()> {
@@ -105,6 +210,13 @@ pub fn run(path: Option<PathBuf>) -> Result<()> {
         Box::new(move |cc| {
             configure(&cc.egui_ctx);
             let mut editor = Editor::new();
+            let tx = editor.tx.clone();
+            let ctx = cc.egui_ctx.clone();
+            let menu = MenuBar::install("Candy", menus(), Command::Quit, move |command| {
+                let _ = tx.send(Event::Menu(command));
+                ctx.request_repaint();
+            })?;
+            editor.menu = Some(menu);
             if let Some(path) = path {
                 editor.open_path(path, &cc.egui_ctx);
             }
@@ -200,6 +312,8 @@ impl Editor {
             closing: None,
             close_after_save: None,
             allow_close: false,
+            menu: None,
+            menu_state: None,
         }
     }
     fn spawn(&self, ctx: &egui::Context, job: impl FnOnce() -> Event + Send + 'static) {
@@ -375,7 +489,90 @@ impl Editor {
                         }
                     }
                 }
+                Event::Menu(command) => self.command(command, ctx),
             }
+        }
+    }
+    fn command(&mut self, command: Command, ctx: &egui::Context) {
+        // The unsaved-changes prompt owns the interaction until it is answered.
+        if self.closing.is_some() {
+            return;
+        }
+        match command {
+            Command::Open => self.open_dialog(ctx),
+            Command::CloseTab => {
+                if let Some(doc) = self.documents.get(self.active) {
+                    self.request_close(Close::Tab(doc.id), ctx);
+                }
+            }
+            Command::Save => {
+                self.save(false, ctx);
+            }
+            Command::SaveAs => {
+                self.save(true, ctx);
+            }
+            Command::Quit => self.request_close(Close::App, ctx),
+            Command::Undo => self.undo(false, ctx),
+            Command::Redo => self.undo(true, ctx),
+            Command::ActualSize => {
+                if let Some(doc) = self.documents.get_mut(self.active) {
+                    doc.canvas.zoom = Some(1.0);
+                    doc.canvas.pan = Vec2::ZERO;
+                }
+            }
+            Command::ZoomToFit => {
+                if let Some(doc) = self.documents.get_mut(self.active) {
+                    doc.canvas.fit();
+                }
+            }
+            Command::Tool(tool) => self.select_tool(tool),
+        }
+    }
+    fn select_tool(&mut self, tool: Tool) {
+        self.tool = tool;
+        self.sync_dimensions();
+        if let Some(doc) = self.documents.get_mut(self.active) {
+            doc.canvas.cancel_drag();
+        }
+    }
+    fn menu_state(&self) -> MenuState {
+        let doc = self.documents.get(self.active);
+        let interactive = self.closing.is_none();
+        let ready = interactive && doc.is_some_and(|d| !d.busy());
+        MenuState {
+            open: interactive,
+            close_tab: interactive && doc.is_some(),
+            save: ready,
+            undo: ready && doc.is_some_and(|d| d.history.can_undo()),
+            redo: ready && doc.is_some_and(|d| d.history.can_redo()),
+            zoom: interactive && doc.is_some(),
+            tool: self.tool,
+        }
+    }
+    fn sync_menu(&mut self) {
+        let state = self.menu_state();
+        if self.menu_state == Some(state) {
+            return;
+        }
+        self.menu_state = Some(state);
+        let Some(menu) = &self.menu else {
+            return;
+        };
+        let commands = [
+            Command::Open,
+            Command::CloseTab,
+            Command::Save,
+            Command::SaveAs,
+            Command::Undo,
+            Command::Redo,
+            Command::ActualSize,
+            Command::ZoomToFit,
+        ]
+        .into_iter()
+        .chain(TOOLS.iter().map(|(tool, _)| Command::Tool(*tool)));
+        for command in commands {
+            menu.set_enabled(command, state.enabled(command));
+            menu.set_checked(command, state.checked(command));
         }
     }
     fn render_history(&mut self, history: History, ctx: &egui::Context) {
@@ -566,50 +763,19 @@ impl Editor {
         }
         self.closing = None;
     }
+    /// Keys without a menu equivalent. Cmd shortcuts arrive as menu commands.
     fn keyboard(&mut self, ctx: &egui::Context) {
-        let (open, save, save_as, undo, redo, close_tab, quit, escape, delete) =
-            ctx.input_mut(|i| {
-                // egui's logical matching ignores extra Shift; consume modified commands first.
-                let save_as = i.consume_key(
-                    egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
-                    egui::Key::S,
-                );
-                let redo = i.consume_key(
-                    egui::Modifiers::COMMAND | egui::Modifiers::SHIFT,
-                    egui::Key::Z,
-                );
-                (
-                    i.consume_key(egui::Modifiers::COMMAND, egui::Key::O),
-                    i.consume_key(egui::Modifiers::COMMAND, egui::Key::S),
-                    save_as,
-                    i.consume_key(egui::Modifiers::COMMAND, egui::Key::Z),
-                    redo,
-                    i.consume_key(egui::Modifiers::COMMAND, egui::Key::W),
-                    i.consume_key(egui::Modifiers::COMMAND, egui::Key::Q),
-                    i.consume_key(egui::Modifiers::NONE, egui::Key::Escape),
-                    i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace),
-                )
-            });
+        let (escape, delete) = ctx.input_mut(|i| {
+            (
+                i.consume_key(egui::Modifiers::NONE, egui::Key::Escape),
+                i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace),
+            )
+        });
         if self.closing.is_some() {
             if escape {
                 self.closing = None;
             }
             return;
-        }
-        if open {
-            self.open_dialog(ctx);
-        }
-        if save || save_as {
-            self.save(save_as, ctx);
-        }
-        if undo || redo {
-            self.undo(redo, ctx);
-        }
-        if quit {
-            self.request_close(Close::App, ctx);
-        }
-        if close_tab && let Some(doc) = self.documents.get(self.active) {
-            self.request_close(Close::Tab(doc.id), ctx);
         }
         if let Some(doc) = self.documents.get_mut(self.active) {
             if escape {
@@ -620,77 +786,13 @@ impl Editor {
             }
         }
     }
-    fn toolbar(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
+    /// Tool selection strip. File, history and view actions live in the menu bar.
+    fn toolbar(&mut self, ui: &mut egui::Ui) {
         egui::Panel::top("toolbar").show(ui, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new("Candy").strong().size(17.0));
-                ui.separator();
-                if ui
-                    .button("Open…")
-                    .on_hover_text("Open image · Cmd+O")
-                    .clicked()
-                {
-                    self.open_dialog(ctx);
-                }
-                let ready = self.documents.get(self.active).is_some_and(|d| !d.busy());
-                if ui
-                    .add_enabled(ready, egui::Button::new("Save…"))
-                    .on_hover_text("Save a copy · Cmd+S")
-                    .clicked()
-                {
-                    self.save(false, ctx);
-                }
-                if ui
-                    .add_enabled(ready, egui::Button::new("Save as…"))
-                    .on_hover_text("Shift+Cmd+S")
-                    .clicked()
-                {
-                    self.save(true, ctx);
-                }
-                ui.separator();
-                let can_undo = ready && self.documents[self.active].history.can_undo();
-                let can_redo = ready && self.documents[self.active].history.can_redo();
-                if ui
-                    .add_enabled(can_undo, egui::Button::new("Undo"))
-                    .clicked()
-                {
-                    self.undo(false, ctx);
-                }
-                if ui
-                    .add_enabled(can_redo, egui::Button::new("Redo"))
-                    .clicked()
-                {
-                    self.undo(true, ctx);
-                }
-                ui.separator();
-                if ui.button("Fit").clicked()
-                    && let Some(doc) = self.documents.get_mut(self.active)
-                {
-                    doc.canvas.fit();
-                }
-                if ui.button("100%").clicked()
-                    && let Some(doc) = self.documents.get_mut(self.active)
-                {
-                    doc.canvas.zoom = Some(1.0);
-                    doc.canvas.pan = Vec2::ZERO;
-                }
-            });
-            ui.add_space(3.0);
-            ui.horizontal_wrapped(|ui| {
-                for (tool, name) in [
-                    (Tool::Select, "Select"),
-                    (Tool::Mosaic, "Mosaic"),
-                    (Tool::Highlight, "Highlight"),
-                    (Tool::Text, "Text mosaic"),
-                    (Tool::Resize, "Resize"),
-                    (Tool::Flatten, "Flatten alpha"),
-                ] {
+                for (tool, name) in TOOLS {
                     if ui.selectable_label(self.tool == tool, name).clicked() {
-                        self.tool = tool;
-                        self.sync_dimensions();
-                        if let Some(doc) = self.documents.get_mut(self.active) {
-                            doc.canvas.cancel_drag();
-                        }
+                        self.select_tool(tool);
                     }
                 }
             });
@@ -1003,7 +1105,7 @@ impl eframe::App for Editor {
             .map(|d| format!("{}{} — Candy", d.name, if d.dirty() { " *" } else { "" }))
             .unwrap_or_else(|| "Candy".into());
         ctx.send_viewport_cmd(egui::ViewportCommand::Title(title));
-        self.toolbar(ui, &ctx);
+        self.toolbar(ui);
         self.tabs(ui, &ctx);
         self.options(ui, &ctx);
         self.status(ui);
@@ -1045,6 +1147,7 @@ impl eframe::App for Editor {
                 }
             });
         self.close_dialog(&ctx);
+        self.sync_menu();
     }
 }
 
@@ -1127,5 +1230,71 @@ mod tests {
         assert_eq!(editor.documents[0].image.dimensions(), (12, 8));
         assert!(!editor.documents[0].rendering);
         assert!(editor.error.is_some());
+    }
+    #[test]
+    fn menu_items_follow_document_history_and_prompt_state() {
+        let ctx = egui::Context::default();
+        let mut editor = Editor::new();
+        let empty = editor.menu_state();
+        assert!(empty.enabled(Command::Open));
+        assert!(empty.enabled(Command::Quit));
+        assert!(!empty.enabled(Command::Save));
+        assert!(!empty.enabled(Command::CloseTab));
+        assert!(!empty.enabled(Command::ZoomToFit));
+        assert!(empty.checked(Command::Tool(Tool::Select)));
+
+        editor.add_document(RgbaImage::new(4, 4), None, "a.png".into(), &ctx);
+        editor.documents[0].history.push(Operation::Flatten([0; 3]));
+        editor.select_tool(Tool::Mosaic);
+        let open = editor.menu_state();
+        assert!(open.enabled(Command::Save));
+        assert!(open.enabled(Command::CloseTab));
+        assert!(open.enabled(Command::ActualSize));
+        assert!(open.enabled(Command::Undo));
+        assert!(!open.enabled(Command::Redo));
+        assert!(open.checked(Command::Tool(Tool::Mosaic)));
+        assert!(!open.checked(Command::Tool(Tool::Select)));
+
+        editor.documents[0].rendering = true;
+        let busy = editor.menu_state();
+        assert!(!busy.enabled(Command::Save));
+        assert!(!busy.enabled(Command::Undo));
+        assert!(busy.enabled(Command::CloseTab));
+        editor.documents[0].rendering = false;
+
+        editor.request_close(Close::App, &ctx);
+        assert!(editor.closing.is_some());
+        let prompting = editor.menu_state();
+        assert!(!prompting.enabled(Command::Open));
+        assert!(!prompting.enabled(Command::Tool(Tool::Select)));
+        assert!(!prompting.enabled(Command::Save));
+        assert!(prompting.enabled(Command::Quit));
+    }
+    #[test]
+    fn menu_commands_are_ignored_while_the_close_prompt_is_open() {
+        let (mut editor, ctx) = setup();
+        editor.documents[0].history.push(Operation::Flatten([0; 3]));
+        let id = editor.documents[0].id;
+        editor.request_close(Close::Tab(id), &ctx);
+        let prompt = editor.closing.unwrap();
+        editor.tx.send(Event::Menu(Command::Quit)).unwrap();
+        editor
+            .tx
+            .send(Event::Menu(Command::Tool(Tool::Resize)))
+            .unwrap();
+        editor.poll(&ctx);
+        assert_eq!(editor.closing.unwrap().document, prompt.document);
+        assert!(matches!(editor.closing.unwrap().target, Close::Tab(_)));
+        assert_eq!(editor.tool, Tool::Select);
+
+        editor.closing = None;
+        editor
+            .tx
+            .send(Event::Menu(Command::Tool(Tool::Resize)))
+            .unwrap();
+        editor.tx.send(Event::Menu(Command::ActualSize)).unwrap();
+        editor.poll(&ctx);
+        assert_eq!(editor.tool, Tool::Resize);
+        assert_eq!(editor.documents[0].canvas.zoom, Some(1.0));
     }
 }

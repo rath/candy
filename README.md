@@ -35,7 +35,7 @@ open dist/Candy.app
 
 The script builds for the current architecture; `--debug` selects a debug build.
 The bundle is for local use and is not Developer ID signed or notarized.
-Open images with the editor's Open button, drag and drop, or the CLI. Finder
+Open images from the File menu, drag and drop, or the CLI. Finder
 file associations and an application icon are not included in this draft.
 
 ## Terminal workflow
@@ -64,8 +64,9 @@ writing escape sequences into a file. The automatic path has been checked in Gho
 - **Resize:** set dimensions, optionally preserving the aspect ratio.
 - **Flatten alpha:** composite transparency onto a chosen solid color.
 
-Each document has undo/redo. First Save asks for a new file; subsequent saves
-update that copy. Save as creates another copy. Original input paths, including
+File, Edit, View and Tools actions live in the macOS menu bar; the window keeps
+the tool strip, contextual options and the canvas. Each document has undo/redo.
+First Save asks for a new file; subsequent saves update that copy. Save as creates another copy. Original input paths, including
 symlink and hardlink aliases, are protected. Files are encoded before an atomic
 replacement, and closing unsaved documents prompts to save or discard.
 
@@ -75,6 +76,8 @@ replacement, and closing unsaved documents prompts to save or discard.
 | Cmd+S / Shift+Cmd+S | Save / Save as |
 | Cmd+Z / Shift+Cmd+Z | Undo / Redo |
 | Cmd+W / Cmd+Q | Close tab / Quit |
+| Cmd+0 / Cmd+9 | Actual size / Zoom to fit |
+| Cmd+1 … Cmd+6 | Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha |
 | Escape | Cancel a drag or clear selection |
 | Delete / Backspace | Remove the selected OCR box |
 | Space + drag | Pan |
@@ -127,7 +130,7 @@ scripts/build-app.sh
 ```
 
 - `candy-core`: pixel operations, edit history and atomic export.
-- `candy-macos`: Image I/O decoding and Apple Vision OCR.
+- `candy-macos`: Image I/O decoding, Apple Vision OCR and the native menu bar.
 - `candy`: CLI, Kitty graphics protocol and egui editor.
 
 Tests cover edit boundaries, alpha compositing, save protection, undo state,

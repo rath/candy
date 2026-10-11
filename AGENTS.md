@@ -3,7 +3,8 @@
 Candy is a native macOS image utility with a Rust CLI and an egui/eframe editor.
 Read README.md for commands and limits, PRODUCT.md for scope, and DESIGN.md for
 implemented UI conventions. Keep shared pixel operations in `candy-core`, native
-Image I/O and Vision integration in `candy-macos`, and CLI/GUI code in `candy`.
+Image I/O, Vision and menu-bar integration in `candy-macos`, and CLI/GUI code
+in `candy`.
 
 ## Build and verification
 
@@ -30,8 +31,12 @@ The project uses 0.36.2. Older examples often use incompatible APIs:
   panel calls taking a Context.
 - Keyboard focus is queried with `ctx.egui_wants_keyboard_input()`.
 - Dropped-file paths use `file.path().to_path_buf()`.
-- Consume Shift+Cmd shortcuts before their plain Cmd variants. egui's logical
-  matching can accept extra Shift, so the reverse order steals Save as/Redo.
+- Cmd shortcuts are key equivalents of the native menu bar (`candy_macos::menu`).
+  AppKit consumes them before the window receives the key event, so egui never
+  sees them: declare new Cmd shortcuts as menu items, not egui `consume_key`
+  handlers, and keep only plain keys (Escape, Delete) in egui.
+- Menu enabled/checked state is pushed from `Editor::sync_menu` each frame; add
+  new commands to `MenuState` so they are disabled during the unsaved prompt.
 - The Korean fallback font is loaded from macOS at runtime. Do not commit the
   system font file or assume egui's default fonts cover Korean.
 
@@ -73,6 +78,9 @@ The project uses 0.36.2. Older examples often use incompatible APIs:
   window/state before treating it as evidence.
 - If browser work is needed, use the installed `agent-browser` CLI with
   `--headed --session candy` and prefer its `snapshot` output.
+- System Events sees the native menu bar (names, enabled state, check marks and
+  `click menu item`) but not egui widgets; drive in-window controls with native
+  clicks after reading the window bounds.
 
 ## Commits
 

@@ -1,4 +1,6 @@
-//! Small macOS boundary. Native objects stay on the calling worker thread.
+//! Small macOS boundary. Image and Vision objects stay on the calling worker
+//! thread; the menu bar lives on the main thread.
+pub mod menu;
 use anyhow::{Context, Result, ensure};
 use candy_core::{PixelRect, validate_dimensions};
 use image::{DynamicImage, ImageFormat, RgbaImage};

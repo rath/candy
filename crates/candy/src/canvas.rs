@@ -1,7 +1,7 @@
 use candy_core::{Operation, PixelRect};
 use eframe::egui::{self, Color32, Pos2, Rect, Sense, Stroke, StrokeKind, TextureHandle, Vec2};
 
-#[derive(Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum Tool {
     #[default]
     Select,
