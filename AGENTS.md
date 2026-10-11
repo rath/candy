@@ -76,10 +76,14 @@ live in the SwiftPM package under `macos`.
 
 - Verify inline graphics in a real terminal; redirected output cannot establish
   Kitty support. `--display kitty` bypasses detection, so it does not test auto.
-- Auto detection intentionally falls back to GUI when `TMUX` is set or TERM
-  identifies tmux/screen. A standalone terminal launched from an agent or tmux
-  can inherit a stale `TMUX`; clear it only in that isolated test process when
-  verifying direct-terminal detection. Do not change the user's global setup.
+- Inside tmux, auto detection asks tmux instead of probing: a probe reply comes
+  back as keystrokes without ESC bytes, and placeholders need more than Kitty
+  graphics. It requires `#{pane_tty}` to be this process's tty,
+  `allow-passthrough` on or all, and a Ghostty or kitty `#{client_termtype}`;
+  otherwise, and under screen, it falls back to the GUI. A standalone terminal
+  launched from an agent or tmux can inherit a stale `TMUX` that names another
+  pane; clear it only in that isolated test process when verifying
+  direct-terminal detection. Do not change the user's global setup.
 - Inside tmux, Kitty output must be passthrough plus Unicode placeholders; bare
   graphics commands become the pane title. Placeholder image IDs avoid colour
   indices 0–15, which tmux replaces with `pane-colours`. Verify in a real

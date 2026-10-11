@@ -2,6 +2,7 @@ use anyhow::{Context, Result, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use image::{DynamicImage, ImageFormat, RgbaImage, imageops::FilterType};
 use std::{
+    ffi::CStr,
     fs::OpenOptions,
     hash::{BuildHasher, RandomState},
     io::{Cursor, Read, Write},
@@ -29,12 +30,66 @@ impl Drop for TerminalGuard {
 }
 
 pub fn supported() -> bool {
-    if std::env::var_os("TMUX").is_some()
-        || std::env::var("TERM").is_ok_and(|t| t.starts_with("tmux") || t.starts_with("screen"))
-    {
+    if std::env::var_os("TMUX").is_some() {
+        return tmux_supported();
+    }
+    if std::env::var("TERM").is_ok_and(|t| t.starts_with("tmux") || t.starts_with("screen")) {
         return false;
     }
     probe().unwrap_or(false)
+}
+
+/// tmux turns a probe reply into keystrokes and drops its ESC bytes, and a
+/// Kitty reply would not prove Unicode placeholder support anyway, so ask tmux
+/// about the pane and the terminal its client runs in.
+fn tmux_supported() -> bool {
+    match (
+        tmux_format("#{pane_tty}\t#{allow-passthrough}\t#{client_termtype}"),
+        stdout_tty(),
+    ) {
+        (Some(reply), Some(tty)) => pane_shows_images(&reply, &tty),
+        _ => false,
+    }
+}
+
+/// Images need output that goes straight to the pane (a TMUX variable inherited
+/// elsewhere names another pane), passthrough, and a client terminal that draws
+/// placeholders. tmux names clients by their XTVERSION reply, such as
+/// "ghostty 1.3.1" or "kitty(0.42.1)".
+fn pane_shows_images(reply: &str, tty: &str) -> bool {
+    let mut fields = reply.splitn(3, '\t');
+    let (Some(pane_tty), Some(passthrough), Some(terminal)) =
+        (fields.next(), fields.next(), fields.next())
+    else {
+        return false;
+    };
+    let name = terminal.split([' ', '(']).next().unwrap_or_default();
+    pane_tty == tty
+        && matches!(passthrough, "on" | "all")
+        && ["ghostty", "kitty"]
+            .iter()
+            .any(|known| name.eq_ignore_ascii_case(known))
+}
+
+/// Expands a tmux format for the pane this process runs in; None when tmux
+/// cannot answer.
+fn tmux_format(format: &str) -> Option<String> {
+    let output = Command::new("tmux")
+        .args(["display-message", "-p", format])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())?;
+    let text = String::from_utf8(output.stdout).ok()?;
+    Some(text.trim_end_matches('\n').to_owned())
+}
+
+fn stdout_tty() -> Option<String> {
+    let mut name = [0; 128];
+    // SAFETY: On success ttyname_r leaves a NUL-terminated path in the buffer.
+    unsafe {
+        (libc::ttyname_r(libc::STDOUT_FILENO, name.as_mut_ptr(), name.len()) == 0)
+            .then(|| CStr::from_ptr(name.as_ptr()).to_string_lossy().into_owned())
+    }
 }
 
 fn probe() -> Result<bool> {
@@ -168,12 +223,8 @@ pub fn display(image: &RgbaImage) -> Result<()> {
 fn ensure_passthrough() -> Result<()> {
     // A blocked upload would leave only empty placeholder cells. An older tmux
     // without the option always passes through, so only a definite "off" fails.
-    let blocked = Command::new("tmux")
-        .args(["show-options", "-Apv", "allow-passthrough"])
-        .output()
-        .is_ok_and(|output| output.status.success() && output.stdout.trim_ascii() == b"off");
     ensure!(
-        !blocked,
+        tmux_format("#{allow-passthrough}").as_deref() != Some("off"),
         "tmux blocks terminal images; enable them with `tmux set -g allow-passthrough on`"
     );
     Ok(())
@@ -294,6 +345,25 @@ mod tests {
         assert!(query_succeeded(b"\x1b_Gi=73921;OK\x1b\\"));
         assert!(!query_succeeded(b"\x1b_Gi=73921;ENOTSUP\x1b\\"));
         assert!(!query_succeeded(b"\x1b_Gi=42;OK\x1b\\"));
+    }
+    #[test]
+    fn tmux_panes_need_passthrough_and_a_placeholder_terminal() {
+        let tty = "/dev/ttys003";
+        assert!(pane_shows_images("/dev/ttys003\ton\tghostty 1.3.1", tty));
+        assert!(pane_shows_images("/dev/ttys003\tall\tkitty(0.42.1)", tty));
+        // Passthrough off, or an older tmux without the option.
+        assert!(!pane_shows_images("/dev/ttys003\toff\tghostty 1.3.1", tty));
+        assert!(!pane_shows_images("/dev/ttys003\t\tghostty 1.3.1", tty));
+        // No placeholder support, nested tmux, or no attached client.
+        assert!(!pane_shows_images(
+            "/dev/ttys003\ton\tWezTerm 20240203",
+            tty
+        ));
+        assert!(!pane_shows_images("/dev/ttys003\ton\ttmux next-3.9", tty));
+        assert!(!pane_shows_images("/dev/ttys003\ton\t", tty));
+        // A stale TMUX variable resolves to another pane.
+        assert!(!pane_shows_images("/dev/ttys009\ton\tghostty 1.3.1", tty));
+        assert!(!pane_shows_images("", tty));
     }
     #[test]
     fn graphics_chunks_roundtrip_payload() {
