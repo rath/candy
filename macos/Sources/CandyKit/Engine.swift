@@ -60,6 +60,7 @@ struct RenderedDocument: Sendable {
 }
 enum Edit: Sendable {
   case resize(UInt32, UInt32)
+  case rotate(clockwise: Bool)
   case flatten(UInt8, UInt8, UInt8)
   case mosaic([PixelRect], UInt32)
   case highlight([CGPoint], Float, [UInt8])
@@ -99,6 +100,7 @@ final class RustDocument: @unchecked Sendable {
     let _: UInt8 = try checked { error in
       switch edit {
       case .resize(let w, let h): return candy_document_resize(handle, w, h, error)
+      case .rotate(let clockwise): return candy_document_rotate(handle, clockwise ? 1 : 0, error)
       case .flatten(let r, let g, let b): return candy_document_flatten(handle, r, g, b, error)
       case .mosaic(let rects, let block):
         return rects.map(\.cValue).withUnsafeBufferPointer {

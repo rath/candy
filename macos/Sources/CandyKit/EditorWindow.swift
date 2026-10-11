@@ -174,20 +174,12 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     empty.orientation = .vertical
     empty.spacing = 12
     empty.translatesAutoresizingMaskIntoConstraints = false
-    let heading = NSTextField(labelWithString: "A small image. A quick edit.")
-    heading.font = .systemFont(ofSize: 22, weight: .semibold)
-    empty.addArrangedSubview(heading)
-    empty.addArrangedSubview(
-      NSTextField(labelWithString: "Open an image or drop one into this window."))
+    let hint = NSTextField(labelWithString: "Open an image, or drop one here.")
+    empty.addArrangedSubview(hint)
     let open = NSButton(
       title: "Open image…", target: nil, action: #selector(CandyApplication.openDocument(_:)))
     open.bezelStyle = .rounded
     empty.addArrangedSubview(open)
-    let formats = NSTextField(
-      labelWithString: "PNG · JPEG · WebP · HEIC · AVIF · TIFF · GIF · BMP · PSD · RAW and more")
-    formats.textColor = .secondaryLabelColor
-    formats.font = .systemFont(ofSize: 11)
-    empty.addArrangedSubview(formats)
     canvas.addSubview(empty)
     NSLayoutConstraint.activate([
       empty.centerXAnchor.constraint(equalTo: canvas.centerXAnchor),
@@ -297,6 +289,17 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       options.addArrangedSubview(r)
       ratio = r
       button("Apply resize", #selector(applyTool))
+      let left = button("Rotate left", #selector(rotateLeft))
+      let right = button("Rotate right", #selector(rotateRight))
+      for (b, symbol, tip) in [
+        (left, "rotate.left", "Rotate 90° counterclockwise"),
+        (right, "rotate.right", "Rotate 90° clockwise"),
+      ] {
+        b.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip)
+        b.imagePosition = .imageOnly
+        b.toolTip = tip
+        b.setAccessibilityLabel(tip)
+      }
     case .flatten:
       label("Replace transparency with")
       let well = NSColorWell()
@@ -383,6 +386,13 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       }
     default: break
     }
+  }
+  @objc private func rotateLeft() { rotate(clockwise: false) }
+  @objc private func rotateRight() { rotate(clockwise: true) }
+  private func rotate(clockwise: Bool) {
+    guard regionActionsEnabled else { return }
+    window?.makeFirstResponder(canvas)
+    session.apply(.rotate(clockwise: clockwise))
   }
   @objc private func extractSelection() {
     if let r = canvas.regions.selection {
