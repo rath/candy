@@ -12,7 +12,18 @@ cargo build --locked -p candy -p candy-ffi "$@"
 export CANDY_RUST_PROFILE="$candy_profile"
 scripts/swift.sh build -c "$candy_profile"
 candy_swift_bin=$(scripts/swift.sh build -c "$candy_profile" --show-bin-path)
-candy_app="$candy_root/dist/Candy.app"
+mkdir -p "$candy_root/dist"
+candy_stage=$(mktemp -d "$candy_root/dist/.candy-build.XXXXXX")
+candy_destination="$candy_root/dist/Candy.app"
+cleanup() {
+    if [ ! -e "$candy_destination" ] && [ -e "$candy_stage/previous.app" ]; then
+        mv "$candy_stage/previous.app" "$candy_destination" || return 1
+    fi
+    rm -rf "$candy_stage"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+candy_app="$candy_stage/Candy.app"
 mkdir -p "$candy_app/Contents/MacOS" "$candy_app/Contents/Resources" "$candy_app/Contents/Helpers"
 cp "$candy_swift_bin/Candy" "$candy_app/Contents/MacOS/Candy"
 cp "${CARGO_TARGET_DIR:-target}/$candy_profile/candy" "$candy_app/Contents/Helpers/candy"
@@ -44,4 +55,17 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
 </dict></plist>
 PLIST
 plutil -lint "$candy_app/Contents/Info.plist"
-printf 'Built %s\n' "$candy_app"
+# Sign the complete local bundle, including its final Info.plist. Staging avoids
+# stale resource seals and case-only executable names from older bundles.
+codesign --force --sign - "$candy_app"
+codesign --verify --deep --strict "$candy_app"
+if [ -e "$candy_destination" ]; then
+    mv "$candy_destination" "$candy_stage/previous.app"
+fi
+if ! mv "$candy_app" "$candy_destination"; then
+    if [ -e "$candy_stage/previous.app" ]; then
+        mv "$candy_stage/previous.app" "$candy_destination"
+    fi
+    exit 1
+fi
+printf 'Built %s\n' "$candy_destination"

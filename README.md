@@ -48,7 +48,8 @@ CANDY_APP=/path/to/Candy.app candy edit photo.png
 ```
 
 The script builds for the current architecture; `--debug` selects a debug build.
-The bundle is for local use and is not Developer ID signed or notarized.
+The bundle is ad-hoc signed for local use, not Developer ID signed or notarized.
+Each build stages a clean bundle before replacing `dist/Candy.app`.
 Open images from the File menu, drag and drop, Finder Open With, or the CLI.
 The bundle declares supported document types without changing your default
 image application. An application icon is not included in this draft.
