@@ -1,6 +1,5 @@
 //! Small macOS boundary. Image and Vision objects stay on the calling worker
-//! thread; the menu bar lives on the main thread.
-pub mod menu;
+//! thread. Shared by the CLI and the Swift app through candy-ffi.
 use anyhow::{Context, Result, ensure};
 use candy_core::{PixelRect, validate_dimensions};
 use image::{DynamicImage, ImageFormat, RgbaImage};

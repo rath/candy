@@ -1,11 +1,8 @@
-use anyhow::{Context, Result, bail, ensure};
+use crate::launcher::launch;
+use anyhow::{Context, Result, ensure};
 use candy_core::{Operation, PixelRect};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use std::{
-    io::IsTerminal,
-    path::PathBuf,
-    process::{Command, Stdio},
-};
+use std::{io::IsTerminal, path::PathBuf};
 
 #[derive(Parser)]
 #[command(
@@ -66,8 +63,6 @@ pub enum Action {
         #[arg(long, default_value = "#ffffff", value_parser = candy_core::parse_background)]
         background: [u8; 3],
     },
-    #[command(name = "__gui", hide = true)]
-    Gui { path: Option<PathBuf> },
 }
 #[derive(Args)]
 pub struct Files {
@@ -81,7 +76,6 @@ pub struct Files {
 
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
-        Some(Action::Gui { path }) => crate::gui::run(path),
         Some(Action::Edit { path }) => launch(Some(path)),
         Some(Action::Resize {
             files,
@@ -116,7 +110,7 @@ pub fn run(cli: Cli) -> Result<()> {
         }
         None => {
             let Some(path) = cli.path else {
-                return crate::gui::run(None);
+                return launch(None);
             };
             if matches!(cli.display, Display::Gui) {
                 return launch(Some(path));
@@ -153,39 +147,6 @@ fn edit(
         result.width(),
         result.height()
     );
-    Ok(())
-}
-
-fn launch(path: Option<PathBuf>) -> Result<()> {
-    let path = path
-        .map(|p| {
-            p.canonicalize()
-                .with_context(|| format!("Cannot open {}", p.display()))
-        })
-        .transpose()?;
-    if path.as_ref().is_some_and(|p| !p.is_file()) {
-        bail!("Choose an image file");
-    }
-    let mut command = Command::new(std::env::current_exe()?);
-    command.arg("__gui");
-    if let Some(path) = path {
-        command.arg(path);
-    }
-    command
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::inherit());
-    // A new session survives the originating terminal closing.
-    use std::os::unix::process::CommandExt;
-    unsafe {
-        command.pre_exec(|| {
-            if libc::setsid() < 0 {
-                return Err(std::io::Error::last_os_error());
-            }
-            Ok(())
-        });
-    }
-    command.spawn().context("Cannot launch the Candy editor")?;
     Ok(())
 }
 

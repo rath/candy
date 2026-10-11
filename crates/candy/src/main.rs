@@ -1,6 +1,5 @@
-mod canvas;
 mod cli;
-mod gui;
+mod launcher;
 mod terminal;
 use clap::Parser;
 fn main() {

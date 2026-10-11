@@ -10,15 +10,6 @@ anyhow.workspace = true
 image.workspace = true
 candy-core = { path = "../candy-core" }
 objc2 = "0.6.3"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = [
-    "std",
-    "NSApplication",
-    "NSCell",
-    "NSEvent",
-    "NSMenu",
-    "NSMenuItem",
-    "NSResponder",
-] }
 objc2-foundation = "0.3.2"
 objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
