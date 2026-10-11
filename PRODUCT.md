@@ -22,7 +22,7 @@ First GUI save creates a new file; subsequent saves can update that output. Orig
 
 ## Brand commitments
 
-Name: Candy. A small, familiar Preview-like utility in Operate mode. Use English UI and support Korean filenames and Korean/English OCR. Follow system appearance, fonts, and controls; reserve custom coral accents for image regions.
+Name: Candy. A small, familiar Preview-like utility in Operate mode. The interface follows the macOS language, English or Korean; support Korean filenames and Korean/English OCR. Follow system appearance, fonts, and controls; reserve custom coral accents for image regions.
 
 ## Product principles
 

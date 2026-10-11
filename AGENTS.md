@@ -46,6 +46,11 @@ live in the SwiftPM package under `macos`.
 - Keep `NSWindowController`/DocumentSession save semantics explicit. Do not add
   autosave-in-place or NSDocument defaults that overwrite original inputs.
 - Use native controls, system fonts and appearance. No bundled system fonts.
+- Route interface text through `localized(_:)` or `localizedFormat(_:_:)` with the
+  English text as the key, and add each key to
+  `macos/Resources/ko.lproj/Localizable.strings` in macOS's own Korean terms
+  (AppKit, Preview). `LocalizationTests` fails on missing, unused or mismatched
+  entries. Check Korean with `--args -AppleLanguages '(ko)'`, not system settings.
 - `CANDY_TEST_APPEARANCE=dark|light` is a debug-only, process-local visual QA aid.
   It must not change global preferences or become a release setting.
 

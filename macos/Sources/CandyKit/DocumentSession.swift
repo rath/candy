@@ -14,7 +14,7 @@ final class DocumentSession {
   private(set) var alive = true
   private(set) var generation: UInt64 = 0
   var name = "Candy"
-  var message = "Ready"
+  var message = localized("Ready")
   var error: String?
   var onChange: (() -> Void)?
   var onRegions: (([PixelRect]) -> Void)?
@@ -44,7 +44,7 @@ final class DocumentSession {
     busy = true
     source = url
     name = url.lastPathComponent
-    message = "Opening image…"
+    message = localized("Opening image…")
     onChange?()
     worker.async { [self] in
       let result = Result {
@@ -58,7 +58,7 @@ final class DocumentSession {
         case .success((let document, let rendered)):
           engine = document
           receive(rendered)
-          message = "Image opened"
+          message = localized("Image opened")
         case .failure(let failure): error = failure.localizedDescription
         }
         onChange?()
@@ -69,7 +69,7 @@ final class DocumentSession {
     engine = document
     self.name = name
     receive(rendered)
-    message = "Selection opened as a new image"
+    message = localized("Selection opened as a new image")
     onChange?()
   }
   private func perform<T: Sendable>(
@@ -87,7 +87,7 @@ final class DocumentSession {
     busy = true
     generation += 1
     error = nil
-    message = "Applying edit…"
+    message = localized("Applying edit…")
     onChange?()
     perform({ d in
       try d.apply(edit)
@@ -98,7 +98,7 @@ final class DocumentSession {
       switch result {
       case .success(let rendered):
         self.receive(rendered)
-        self.message = "Edit applied"
+        self.message = localized("Edit applied")
       case .failure(let error): self.error = error.localizedDescription
       }
       self.onChange?()
@@ -110,7 +110,7 @@ final class DocumentSession {
   ) {
     guard ready else { return }
     busy = true
-    message = "Extracting selection…"
+    message = localized("Extracting selection…")
     onChange?()
     let name = (self.name as NSString).deletingPathExtension + "-crop.png"
     perform({ d in
@@ -121,7 +121,7 @@ final class DocumentSession {
       self.busy = false
       switch result {
       case .success((let document, let rendered)):
-        self.message = "Selection extracted"
+        self.message = localized("Selection extracted")
         completion(document, rendered, name)
       case .failure(let error): self.error = error.localizedDescription
       }
@@ -132,7 +132,7 @@ final class DocumentSession {
     guard ready, !detecting else { return }
     detecting = true
     error = nil
-    message = "Detecting text…"
+    message = localized("Detecting text…")
     onChange?()
     let token = generation
     perform({ try $0.snapshot() }) { [weak self] result in
@@ -155,14 +155,14 @@ final class DocumentSession {
     guard alive else { return }
     detecting = false
     guard token == generation else {
-      message = "Image changed. Detect text again."
+      message = localized("Image changed. Detect text again.")
       onChange?()
       return
     }
     switch result {
     case .success(let regions):
       onRegions?(regions)
-      message = "\(regions.count) text regions. Review before applying."
+      message = localizedFormat("%ld text regions. Review before applying.", regions.count)
     case .failure(let error): self.error = error.localizedDescription
     }
     onChange?()
@@ -174,7 +174,7 @@ final class DocumentSession {
     }
     busy = true
     error = nil
-    message = "Saving image…"
+    message = localized("Saving image…")
     onChange?()
     perform({ try $0.save(url) }) { [weak self] result in
       guard let self, self.alive else {
@@ -187,7 +187,7 @@ final class DocumentSession {
         self.state = state
         self.output = url
         self.name = url.lastPathComponent
-        self.message = "Saved \(self.name)"
+        self.message = localizedFormat("Saved %@", self.name)
         self.onChange?()
         completion(true)
       case .failure(let error):

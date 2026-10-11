@@ -104,6 +104,8 @@ File, Edit, View and Tools actions live in the macOS menu bar. Each document
 has a native window, toolbar, contextual controls, canvas, and undo/redo. Native
 tabs follow your macOS preference; use Window → Merge All Windows or Move Tab
 to New Window to group or separate documents.
+The interface follows your macOS language: English, or Korean when macOS
+prefers it. Detailed error messages from the image engine stay in English.
 First Save asks for a new file; subsequent saves update that copy. Save As
 creates another copy. The save panel has a Format selector for PNG, JPEG, HEIC,
 lossless WebP, AVIF (where macOS can encode it), TIFF, GIF, BMP, JPEG 2000 and
@@ -217,6 +219,16 @@ Swift tests alone (`cargo build --locked -p candy-ffi`). `scripts/swift.sh` keep
 Swift caches in `macos/.build` and disables the nested package-manifest sandbox
 so it can run inside an existing development sandbox. Native OCR and UI checks
 need normal macOS access to Vision/pixel buffers and the window server.
+
+Interface text uses the English text as its key (`localized(_:)` in CandyKit).
+Korean translations live in `macos/Resources/ko.lproj/Localizable.strings`; a
+Swift test fails when an entry is missing, unused or has different placeholders.
+To see the Korean interface without changing system settings, pass the language
+to that process only:
+
+```sh
+open -n -a dist/Candy.app --args -AppleLanguages '(ko)'
+```
 
 Debug builds support a process-only appearance override for visual checks:
 

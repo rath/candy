@@ -158,37 +158,39 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     }
     let app = submenu("Candy")
     add(
-      app, "About Candy", #selector(NSApplication.orderFrontStandardAboutPanel(_:)), target: NSApp)
+      app, localized("About Candy"), #selector(NSApplication.orderFrontStandardAboutPanel(_:)),
+      target: NSApp)
     app.addItem(.separator())
-    let services = NSMenu(title: "Services")
-    let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
+    let services = NSMenu(title: localized("Services"))
+    let servicesItem = NSMenuItem(title: localized("Services"), action: nil, keyEquivalent: "")
     servicesItem.submenu = services
     app.addItem(servicesItem)
     NSApp.servicesMenu = services
     app.addItem(.separator())
-    add(app, "Hide Candy", #selector(NSApplication.hide(_:)), "h", target: NSApp)
-    add(app, "Show All", #selector(NSApplication.unhideAllApplications(_:)), target: NSApp)
+    add(app, localized("Hide Candy"), #selector(NSApplication.hide(_:)), "h", target: NSApp)
+    add(
+      app, localized("Show All"), #selector(NSApplication.unhideAllApplications(_:)), target: NSApp)
     app.addItem(.separator())
-    add(app, "Quit Candy", #selector(NSApplication.terminate(_:)), "q", target: NSApp)
-    let file = submenu("File")
-    add(file, "Open…", #selector(openDocument(_:)), "o", target: self)
+    add(app, localized("Quit Candy"), #selector(NSApplication.terminate(_:)), "q", target: NSApp)
+    let file = submenu(localized("File"))
+    add(file, localized("Open…"), #selector(openDocument(_:)), "o", target: self)
     file.addItem(.separator())
-    add(file, "Close", #selector(NSWindow.performClose(_:)), "w")
-    add(file, "Save…", #selector(EditorWindow.saveDocument(_:)), "s")
-    add(file, "Save As…", #selector(EditorWindow.saveDocumentAs(_:)), "s", shift: true)
-    let edit = submenu("Edit")
-    add(edit, "Undo", #selector(undoDocument(_:)), "z", target: self)
-    add(edit, "Redo", #selector(redoDocument(_:)), "z", shift: true, target: self)
+    add(file, localized("Close"), #selector(NSWindow.performClose(_:)), "w")
+    add(file, localized("Save…"), #selector(EditorWindow.saveDocument(_:)), "s")
+    add(file, localized("Save As…"), #selector(EditorWindow.saveDocumentAs(_:)), "s", shift: true)
+    let edit = submenu(localized("Edit"))
+    add(edit, localized("Undo"), #selector(undoDocument(_:)), "z", target: self)
+    add(edit, localized("Redo"), #selector(redoDocument(_:)), "z", shift: true, target: self)
     edit.addItem(.separator())
-    add(edit, "Cut", #selector(NSText.cut(_:)), "x")
-    add(edit, "Copy", #selector(NSText.copy(_:)), "c")
-    add(edit, "Paste", #selector(NSText.paste(_:)), "v")
-    add(edit, "Select All", #selector(NSText.selectAll(_:)), "a")
-    let view = submenu("View")
-    add(view, "Actual Size", #selector(EditorWindow.actualSize(_:)), "0")
-    add(view, "Zoom to Fit", #selector(EditorWindow.zoomToFit(_:)), "9")
-    add(view, "Show Tab Bar", #selector(NSWindow.toggleTabBar(_:)))
-    let tools = submenu("Tools")
+    add(edit, localized("Cut"), #selector(NSText.cut(_:)), "x")
+    add(edit, localized("Copy"), #selector(NSText.copy(_:)), "c")
+    add(edit, localized("Paste"), #selector(NSText.paste(_:)), "v")
+    add(edit, localized("Select All"), #selector(NSText.selectAll(_:)), "a")
+    let view = submenu(localized("View"))
+    add(view, localized("Actual Size"), #selector(EditorWindow.actualSize(_:)), "0")
+    add(view, localized("Zoom to Fit"), #selector(EditorWindow.zoomToFit(_:)), "9")
+    add(view, localized("Show Tab Bar"), #selector(NSWindow.toggleTabBar(_:)))
+    let tools = submenu(localized("Tools"))
     for tool in Tool.allCases {
       let item = NSMenuItem(
         title: tool.title, action: #selector(EditorWindow.chooseTool(_:)),
@@ -196,14 +198,16 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
       item.tag = tool.rawValue
       tools.addItem(item)
     }
-    let windows = submenu("Window")
+    let windows = submenu(localized("Window"))
     NSApp.windowsMenu = windows
-    add(windows, "Minimize", #selector(NSWindow.performMiniaturize(_:)), "m")
-    add(windows, "Zoom", #selector(NSWindow.performZoom(_:)))
-    add(windows, "Move Tab to New Window", #selector(NSWindow.moveTabToNewWindow(_:)))
-    add(windows, "Merge All Windows", #selector(NSWindow.mergeAllWindows(_:)))
+    add(windows, localized("Minimize"), #selector(NSWindow.performMiniaturize(_:)), "m")
+    add(windows, localized("Zoom"), #selector(NSWindow.performZoom(_:)))
+    add(windows, localized("Move Tab to New Window"), #selector(NSWindow.moveTabToNewWindow(_:)))
+    add(windows, localized("Merge All Windows"), #selector(NSWindow.mergeAllWindows(_:)))
     windows.addItem(.separator())
-    add(windows, "Bring All to Front", #selector(NSApplication.arrangeInFront(_:)), target: NSApp)
+    add(
+      windows, localized("Bring All to Front"), #selector(NSApplication.arrangeInFront(_:)),
+      target: NSApp)
     NSApp.mainMenu = bar
   }
 }

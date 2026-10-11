@@ -3,7 +3,10 @@ import AppKit
 enum Tool: Int, CaseIterable {
   case select, mosaic, highlight, text, resize, flatten
   var title: String {
-    ["Select", "Mosaic", "Highlight", "Text mosaic", "Resize", "Flatten alpha"][rawValue]
+    [
+      localized("Select"), localized("Mosaic"), localized("Highlight"), localized("Text mosaic"),
+      localized("Resize"), localized("Flatten alpha"),
+    ][rawValue]
   }
   var symbol: String {
     [

@@ -8,7 +8,9 @@ enum ExportFormat: Int, CaseIterable {
   case png, jpeg, heic, webp, avif, tiff, gif, bmp, jpeg2000, tga
   var title: String {
     [
-      "PNG", "JPEG", "HEIC", "WebP (lossless)", "AVIF", "TIFF", "GIF", "BMP", "JPEG 2000", "TGA",
+      "PNG", "JPEG", "HEIC", localized("WebP (lossless)"), "AVIF", "TIFF", "GIF", "BMP",
+      "JPEG 2000",
+      "TGA",
     ][rawValue]
   }
   var identifier: String {
@@ -58,13 +60,13 @@ enum ExportFormat: Int, CaseIterable {
     alignment = .centerY
     spacing = 10
     edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
-    addArrangedSubview(NSTextField(labelWithString: "Format:"))
+    addArrangedSubview(NSTextField(labelWithString: localized("Format:")))
     formats.addItems(withTitles: ExportFormat.available.map(\.title))
     let initial = ExportFormat.forFilename(panel.nameFieldStringValue)
     formats.selectItem(at: ExportFormat.available.firstIndex(of: initial) ?? 0)
     formats.target = self
     formats.action = #selector(changeFormat)
-    formats.setAccessibilityLabel("Export format")
+    formats.setAccessibilityLabel(localized("Export format"))
     addArrangedSubview(formats)
     changeFormat()
   }

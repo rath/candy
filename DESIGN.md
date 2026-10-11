@@ -120,6 +120,10 @@ Status combines image dimensions, zoom, selected-region coordinates and dimensio
 
 Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visible Format popup offering PNG, JPEG, HEIC, WebP (lossless), AVIF where macOS can encode it, TIFF, GIF, BMP, JPEG 2000 and TGA; changing the format updates the filename extension. The first save creates a copy. Closing a modified document presents an `NSAlert` sheet with Save copy… (or Save for an existing output), Cancel, and Discard. Quit confirms stable document identities, blocks editing across all windows, and queues new Open events. Cancel restores window controls and processes queued opens.
 
+### Language
+
+Interface text follows the macOS language: English, or Korean when macOS prefers it. Korean uses macOS's own terms for standard menu and document commands, as AppKit and Preview translate them, and the website's tool names (형광펜, 모자이크, 배경 채우기). Component names in this document are the English titles. Error details passed through from the Rust engine remain English.
+
 ### Application icon
 
 Finder, the Dock, and the About panel show `macos/Resources/AppIcon.icns`: a cream lollipop with a coral Archimedean spiral (2.25 turns), tilted −18° on a deep rust superellipse. The superellipse fills the standard 824 px area of the 1024 px canvas, so current macOS presents it without an added backing plate. The 16 pt slot uses simplified artwork with 1.25 turns and a thicker stick; 32 pt and larger use the full artwork. Colors are `#9C4432`–`#6B2A1E` (background gradient), `#FFF4EC` (cream), and `#F08A72` (coral). They identify the application outside its windows and are not interface tokens.

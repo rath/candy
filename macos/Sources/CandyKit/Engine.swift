@@ -77,7 +77,7 @@ final class RustDocument: @unchecked Sendable {
     let handle = try url.withUnsafeFileSystemRepresentation { path in
       try checked { candy_document_open(path, $0) }
     }
-    guard let handle else { throw EngineError(message: "Cannot open image") }
+    guard let handle else { throw EngineError(message: localized("Cannot open image")) }
     return RustDocument(handle)
   }
   func state() throws -> DocumentState {
@@ -88,7 +88,7 @@ final class RustDocument: @unchecked Sendable {
   }
   func render() throws -> RenderedDocument {
     guard let p = try checked({ candy_document_preview(handle, $0) }) else {
-      throw EngineError(message: "Cannot render image")
+      throw EngineError(message: localized("Cannot render image"))
     }
     defer { candy_preview_free(p) }
     let preview = Preview(
@@ -118,7 +118,7 @@ final class RustDocument: @unchecked Sendable {
   }
   func extract(_ rect: PixelRect) throws -> RustDocument {
     guard let new = try checked({ candy_document_extract(handle, rect.cValue, $0) }) else {
-      throw EngineError(message: "Cannot extract selection")
+      throw EngineError(message: localized("Cannot extract selection"))
     }
     return RustDocument(new)
   }
@@ -130,7 +130,7 @@ final class RustDocument: @unchecked Sendable {
   }
   func snapshot() throws -> RustImage {
     guard let image = try checked({ candy_document_snapshot(handle, $0) }) else {
-      throw EngineError(message: "Cannot copy image")
+      throw EngineError(message: localized("Cannot copy image"))
     }
     return RustImage(image)
   }
@@ -141,7 +141,7 @@ final class RustImage: @unchecked Sendable {
   deinit { candy_image_free(handle) }
   func detect() throws -> [PixelRect] {
     guard let result = try checked({ candy_image_detect(handle, $0) }) else {
-      throw EngineError(message: "Cannot detect text")
+      throw EngineError(message: localized("Cannot detect text"))
     }
     defer { candy_regions_free(result) }
     return UnsafeBufferPointer(start: result.pointee.data, count: result.pointee.count).map {

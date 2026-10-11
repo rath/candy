@@ -1,0 +1,129 @@
+/* Korean interface text. Keys are the English text in macos/Sources/CandyKit. Standard menu
+   and document terms follow the macOS Korean localization (AppKit, Preview). */
+
+/* App menu */
+"About Candy" = "Candy에 관하여";
+"Services" = "서비스";
+"Hide Candy" = "Candy 가리기";
+"Show All" = "모두 보기";
+"Quit Candy" = "Candy 종료";
+
+/* File menu */
+"File" = "파일";
+"Open…" = "열기…";
+"Close" = "닫기";
+"Save…" = "저장…";
+"Save As…" = "별도 저장…";
+
+/* Edit menu */
+"Edit" = "편집";
+"Undo" = "실행 취소";
+"Redo" = "실행 복귀";
+"Cut" = "오려두기";
+"Copy" = "복사하기";
+"Paste" = "붙여넣기";
+"Select All" = "전체 선택";
+
+/* View menu */
+"View" = "보기";
+"Actual Size" = "실제 크기";
+"Zoom to Fit" = "크기에 맞게 확대/축소";
+"Show Tab Bar" = "탭 막대 보기";
+
+/* Tools */
+"Tools" = "도구";
+"Editing tool" = "편집 도구";
+"Select" = "선택";
+"Mosaic" = "모자이크";
+"Highlight" = "형광펜";
+"Text mosaic" = "텍스트 모자이크";
+"Resize" = "크기 조절";
+"Flatten alpha" = "배경 채우기";
+
+/* Window menu */
+"Window" = "윈도우";
+"Minimize" = "최소화";
+"Zoom" = "확대/축소";
+"Move Tab to New Window" = "새로운 윈도우로 탭 이동";
+"Merge All Windows" = "모든 윈도우 통합";
+"Bring All to Front" = "모두 앞으로 가져오기";
+
+/* Empty window */
+"Open an image, or drop one here." = "이미지를 열거나 여기에 끌어다 놓으세요.";
+"Open image…" = "이미지 열기…";
+"Image canvas" = "이미지 캔버스";
+
+/* Select */
+"Drag a region. Move it or adjust its corners." = "영역을 드래그하세요. 옮기거나 모서리를 조절할 수 있습니다.";
+"Extract to new image" = "새 이미지로 추출";
+
+/* Mosaic and text mosaic */
+"Block px" = "블록(px)";
+"Mosaic block size in pixels" = "모자이크 블록 크기(픽셀)";
+"Apply mosaic" = "모자이크 적용";
+"Detect text" = "텍스트 감지";
+"Detecting…" = "감지 중…";
+"Text mosaic block size in pixels" = "텍스트 모자이크 블록 크기(픽셀)";
+"Apply to all" = "모두 적용";
+"Remove box" = "영역 제거";
+
+/* Highlight */
+"Highlight color" = "형광펜 색상";
+"Width px" = "굵기(px)";
+"Highlight width in pixels" = "형광펜 굵기(픽셀)";
+"Opacity" = "불투명도";
+"Highlight opacity" = "형광펜 불투명도";
+
+/* Resize */
+"Width" = "폭";
+"Width in pixels" = "폭(픽셀)";
+"Height" = "높이";
+"Height in pixels" = "높이(픽셀)";
+"Keep ratio" = "비율 유지";
+"Apply resize" = "크기 조절 적용";
+"Rotate left" = "왼쪽으로 회전";
+"Rotate right" = "오른쪽으로 회전";
+"Rotate 90° counterclockwise" = "반시계 방향으로 90° 회전";
+"Rotate 90° clockwise" = "시계 방향으로 90° 회전";
+"Enter dimensions between 1 and 65535 pixels." = "크기는 1에서 65535픽셀 사이여야 합니다.";
+
+/* Flatten */
+"Replace transparency with" = "투명한 부분을 채울 색상";
+"Background color" = "배경 색상";
+
+/* Status */
+"Ready" = "준비됨";
+"Dismiss" = "닫기";
+"%ld regions" = "영역 %ld개";
+"Opening image…" = "이미지 여는 중…";
+"Image opened" = "이미지 열림";
+"Selection opened as a new image" = "선택 영역이 새 이미지로 열림";
+"Applying edit…" = "편집 적용 중…";
+"Edit applied" = "편집 적용됨";
+"Extracting selection…" = "선택 영역 추출 중…";
+"Selection extracted" = "선택 영역 추출됨";
+"Detecting text…" = "텍스트 감지 중…";
+"Image changed. Detect text again." = "이미지가 바뀌었습니다. 텍스트를 다시 감지하세요.";
+"%ld text regions. Review before applying." = "텍스트 영역 %ld개. 적용하기 전에 확인하세요.";
+"Saving image…" = "이미지 저장 중…";
+"Saved %@" = "%@ 저장됨";
+"Wait for the current edit or save to finish." = "진행 중인 편집이나 저장이 끝나야 닫을 수 있습니다.";
+
+/* Saving and closing */
+"Save image copy" = "이미지 사본 저장";
+"Format:" = "포맷:";
+"Export format" = "내보내기 포맷";
+"WebP (lossless)" = "WebP(무손실)";
+"Save changes to “%@”?" = "‘%@’의 변경 사항을 저장하겠습니까?";
+"Your changes will be lost if you don’t save them." = "저장하지 않으면 변경 사항이 유실됩니다.";
+"Save copy…" = "사본 저장…";
+"Save" = "저장";
+"Cancel" = "취소";
+"Discard" = "폐기";
+
+/* Engine failures without a detailed message */
+"Cannot open image" = "이미지를 열 수 없습니다";
+"Cannot render image" = "이미지를 렌더링할 수 없습니다";
+"Cannot extract selection" = "선택 영역을 추출할 수 없습니다";
+"Cannot copy image" = "이미지를 복사할 수 없습니다";
+"Cannot detect text" = "텍스트를 감지할 수 없습니다";

@@ -11,9 +11,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   var onExtract: ((RustDocument, RenderedDocument, String) -> Void)?
   var onOpen: (([URL]) -> Void)?
   private let options = NSStackView()
-  private let status = NSTextField(labelWithString: "Ready")
+  private let status = NSTextField(labelWithString: localized("Ready"))
   private let progress = NSProgressIndicator()
-  private let dismiss = NSButton(title: "Dismiss", target: nil, action: nil)
+  private let dismiss = NSButton(title: localized("Dismiss"), target: nil, action: nil)
   private let empty = NSStackView()
   private let tools = NSSegmentedControl(
     images: Tool.allCases.map {
@@ -76,7 +76,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     tools.target = self
     tools.action = #selector(changeTool)
     tools.selectedSegment = 0
-    tools.setAccessibilityLabel("Editing tool")
+    tools.setAccessibilityLabel(localized("Editing tool"))
     for tool in Tool.allCases { tools.setToolTip(tool.title, forSegment: tool.rawValue) }
     buildContent()
     configureOptions()
@@ -110,7 +110,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   ) -> NSToolbarItem? {
     guard id.rawValue == "tools" else { return nil }
     let item = NSToolbarItem(itemIdentifier: id)
-    item.label = "Tools"
+    item.label = localized("Tools")
     item.view = tools
     return item
   }
@@ -174,10 +174,11 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     empty.orientation = .vertical
     empty.spacing = 12
     empty.translatesAutoresizingMaskIntoConstraints = false
-    let hint = NSTextField(labelWithString: "Open an image, or drop one here.")
+    let hint = NSTextField(labelWithString: localized("Open an image, or drop one here."))
     empty.addArrangedSubview(hint)
     let open = NSButton(
-      title: "Open image…", target: nil, action: #selector(CandyApplication.openDocument(_:)))
+      title: localized("Open image…"), target: nil,
+      action: #selector(CandyApplication.openDocument(_:)))
     open.bezelStyle = .rounded
     empty.addArrangedSubview(open)
     canvas.addSubview(empty)
@@ -187,7 +188,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     ])
     canvas.setAccessibilityElement(true)
     canvas.setAccessibilityRole(.image)
-    canvas.setAccessibilityLabel("Image canvas")
+    canvas.setAccessibilityLabel(localized("Image canvas"))
     window?.registerForDraggedTypes([.fileURL])
   }
   private func label(_ title: String) {
@@ -251,49 +252,50 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     alphaSlider = nil
     switch tool {
     case .select:
-      label("Drag a region. Move it or adjust its corners.")
-      button("Extract to new image", #selector(extractSelection))
+      label(localized("Drag a region. Move it or adjust its corners."))
+      button(localized("Extract to new image"), #selector(extractSelection))
     case .mosaic:
-      label("Block px")
+      label(localized("Block px"))
       slider = addSlider(
-        block, 2, 96, #selector(blockChanged), title: "Mosaic block size in pixels")
-      button("Apply mosaic", #selector(applyTool))
+        block, 2, 96, #selector(blockChanged), title: localized("Mosaic block size in pixels"))
+      button(localized("Apply mosaic"), #selector(applyTool))
     case .highlight:
       let well = NSColorWell()
       well.color = color
       well.target = self
       well.action = #selector(colorChanged)
-      well.setAccessibilityLabel("Highlight color")
+      well.setAccessibilityLabel(localized("Highlight color"))
       options.addArrangedSubview(well)
       colorWell = well
-      label("Width px")
+      label(localized("Width px"))
       slider = addSlider(
-        brushWidth, 2, 100, #selector(brushChanged), title: "Highlight width in pixels")
-      label("Opacity")
+        brushWidth, 2, 100, #selector(brushChanged), title: localized("Highlight width in pixels"))
+      label(localized("Opacity"))
       alphaSlider = addSlider(
-        opacity, 16.0 / 255, 220.0 / 255, #selector(brushChanged), title: "Highlight opacity")
+        opacity, 16.0 / 255, 220.0 / 255, #selector(brushChanged),
+        title: localized("Highlight opacity"))
     case .text:
-      button("Detect text", #selector(detectText))
-      label("Block px")
+      button(localized("Detect text"), #selector(detectText))
+      label(localized("Block px"))
       slider = addSlider(
-        block, 2, 96, #selector(blockChanged), title: "Text mosaic block size in pixels")
-      button("Apply to all", #selector(applyTool))
-      button("Remove box", #selector(removeBox))
+        block, 2, 96, #selector(blockChanged), title: localized("Text mosaic block size in pixels"))
+      button(localized("Apply to all"), #selector(applyTool))
+      button(localized("Remove box"), #selector(removeBox))
     case .resize:
-      label("Width")
-      widthField = field(session.state?.width ?? 1, title: "Width in pixels")
-      label("Height")
-      heightField = field(session.state?.height ?? 1, title: "Height in pixels")
-      let r = NSButton(checkboxWithTitle: "Keep ratio", target: nil, action: nil)
+      label(localized("Width"))
+      widthField = field(session.state?.width ?? 1, title: localized("Width in pixels"))
+      label(localized("Height"))
+      heightField = field(session.state?.height ?? 1, title: localized("Height in pixels"))
+      let r = NSButton(checkboxWithTitle: localized("Keep ratio"), target: nil, action: nil)
       r.state = .on
       options.addArrangedSubview(r)
       ratio = r
-      button("Apply resize", #selector(applyTool))
-      let left = button("Rotate left", #selector(rotateLeft))
-      let right = button("Rotate right", #selector(rotateRight))
+      button(localized("Apply resize"), #selector(applyTool))
+      let left = button(localized("Rotate left"), #selector(rotateLeft))
+      let right = button(localized("Rotate right"), #selector(rotateRight))
       for (b, symbol, tip) in [
-        (left, "rotate.left", "Rotate 90° counterclockwise"),
-        (right, "rotate.right", "Rotate 90° clockwise"),
+        (left, "rotate.left", localized("Rotate 90° counterclockwise")),
+        (right, "rotate.right", localized("Rotate 90° clockwise")),
       ] {
         b.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tip)
         b.imagePosition = .imageOnly
@@ -301,15 +303,15 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         b.setAccessibilityLabel(tip)
       }
     case .flatten:
-      label("Replace transparency with")
+      label(localized("Replace transparency with"))
       let well = NSColorWell()
       well.color = background
       well.target = self
       well.action = #selector(colorChanged)
-      well.setAccessibilityLabel("Background color")
+      well.setAccessibilityLabel(localized("Background color"))
       options.addArrangedSubview(well)
       colorWell = well
-      button("Flatten alpha", #selector(applyTool))
+      button(localized("Flatten alpha"), #selector(applyTool))
     }
     refresh()
   }
@@ -373,7 +375,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       guard let w = UInt32(widthField?.stringValue ?? ""),
         let h = UInt32(heightField?.stringValue ?? ""), w > 0, h > 0, w <= 65535, h <= 65535
       else {
-        session.fail(EngineError(message: "Enter dimensions between 1 and 65535 pixels."))
+        session.fail(
+          EngineError(message: localized("Enter dimensions between 1 and 65535 pixels.")))
         return
       }
       session.apply(.resize(w, h))
@@ -433,7 +436,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     prompting = true
     refresh()
     let panel = NSSavePanel()
-    panel.title = "Save image copy"
+    panel.title = localized("Save image copy")
     panel.canCreateDirectories = true
     panel.directoryURL = (session.output ?? session.source)?.deletingLastPathComponent()
     panel.nameFieldStringValue =
@@ -469,11 +472,11 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     prompting = true
     refresh()
     let alert = NSAlert()
-    alert.messageText = "Save changes to \"\(session.name)\"?"
-    alert.informativeText = "Your changes will be lost if you don’t save them."
-    alert.addButton(withTitle: session.output == nil ? "Save copy…" : "Save")
-    alert.addButton(withTitle: "Cancel")
-    alert.addButton(withTitle: "Discard")
+    alert.messageText = localizedFormat("Save changes to “%@”?", session.name)
+    alert.informativeText = localized("Your changes will be lost if you don’t save them.")
+    alert.addButton(withTitle: session.output == nil ? localized("Save copy…") : localized("Save"))
+    alert.addButton(withTitle: localized("Cancel"))
+    alert.addButton(withTitle: localized("Discard"))
     alert.beginSheetModal(for: window) { [weak self] response in
       guard let self else {
         completion(false)
@@ -492,7 +495,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     if interactionBlocked { return false }
     if allowClose { return true }
     if session.busy {
-      session.message = "Wait for the current edit or save to finish."
+      session.message = localized("Wait for the current edit or save to finish.")
       refreshStatus()
       return false
     }
@@ -611,7 +614,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       }
       if b.action == #selector(detectText) {
         b.isEnabled = ready && !session.detecting
-        b.title = session.detecting ? "Detecting…" : "Detect text"
+        b.title = session.detecting ? localized("Detecting…") : localized("Detect text")
       }
       if b.action == #selector(removeBox) { b.isEnabled = ready && canvas.regions.active != nil }
       if b.action == #selector(applyTool), tool == .text {
@@ -632,7 +635,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       if let r = canvas.regions.selected(tool) {
         parts.append("\(r.x), \(r.y) · \(r.width) × \(r.height) px")
       }
-      if tool == .text { parts.append("\(canvas.regions.boxes.count) regions") }
+      if tool == .text { parts.append(localizedFormat("%ld regions", canvas.regions.boxes.count)) }
       parts.append(session.message)
       status.stringValue = parts.joined(separator: "   ·   ")
     } else {
