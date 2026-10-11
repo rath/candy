@@ -84,11 +84,21 @@ pub enum Action {
 }
 #[derive(Args)]
 pub struct Files {
+    /// Image to edit.
     pub path: PathBuf,
+    /// Write the result here and leave the input untouched.
+    #[arg(
+        short,
+        long,
+        required_unless_present = "in_place",
+        conflicts_with = "in_place"
+    )]
+    pub output: Option<PathBuf>,
+    /// Replace the input file itself, re-encoded in its own format.
     #[arg(short, long)]
-    pub output: PathBuf,
+    pub in_place: bool,
     /// Replace an existing output file (never the input).
-    #[arg(long)]
+    #[arg(long, conflicts_with = "in_place")]
     pub force: bool,
 }
 
@@ -159,17 +169,31 @@ fn edit(
     files: Files,
     operation: impl FnOnce(&image::RgbaImage) -> Result<Operation>,
 ) -> Result<()> {
-    candy_core::protect_original(&files.path, &files.output)?;
-    ensure!(
-        files.force || !files.output.exists(),
-        "Output already exists; use --force to replace it"
-    );
+    let (output, overwrite) = match files.output.clone() {
+        Some(output) => {
+            candy_core::protect_original(&files.path, &output)?;
+            ensure!(
+                files.force || !output.exists(),
+                "Output already exists; use --force to replace it"
+            );
+            (output, files.force)
+        }
+        // Resolve aliases so a symlink keeps pointing at the edited file
+        // instead of being replaced by a regular file.
+        None => (
+            files
+                .path
+                .canonicalize()
+                .context("Cannot resolve the image to edit in place")?,
+            true,
+        ),
+    };
     let image = candy_macos::load(&files.path)?;
     let result = candy_core::apply(&image, &operation(&image)?)?;
-    candy_macos::save(&result, &files.output, files.force)?;
+    candy_macos::save(&result, &output, overwrite)?;
     eprintln!(
         "Saved {} ({} × {})",
-        files.output.display(),
+        files.output.as_deref().unwrap_or(&files.path).display(),
         result.width(),
         result.height()
     );
@@ -203,6 +227,40 @@ mod tests {
             Cli::try_parse_from(["candy", "resize", "a.png", "-o", "b.png", "--width", "10"])
                 .is_ok()
         );
+    }
+    #[test]
+    fn edits_write_to_exactly_one_destination() {
+        let parse =
+            |args: &[&str]| Cli::try_parse_from([&["candy", "crop", "a.png"], args].concat());
+        assert!(parse(&["--rect", "0,0,1,1"]).is_err());
+        assert!(parse(&["--rect", "0,0,1,1", "-o", "b.png", "-i"]).is_err());
+        assert!(parse(&["--rect", "0,0,1,1", "-i", "--force"]).is_err());
+        assert!(matches!(
+            parse(&["--rect", "0,0,1,1", "--in-place"]).unwrap().command,
+            Some(Action::Crop {
+                files: Files {
+                    output: None,
+                    in_place: true,
+                    force: false,
+                    ..
+                },
+                ..
+            })
+        ));
+        assert!(matches!(
+            parse(&["--rect", "0,0,1,1", "-o", "b.png", "--force"])
+                .unwrap()
+                .command,
+            Some(Action::Crop {
+                files: Files {
+                    output: Some(_),
+                    in_place: false,
+                    force: true,
+                    ..
+                },
+                ..
+            })
+        ));
     }
     #[test]
     fn rotate_takes_exactly_one_direction() {

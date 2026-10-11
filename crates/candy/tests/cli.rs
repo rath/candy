@@ -1,4 +1,5 @@
 use std::{
+    os::unix::fs::PermissionsExt,
     path::{Path, PathBuf},
     process::{Command, Output},
 };
@@ -44,6 +45,50 @@ fn commands_produce_expected_images_and_protect_originals() {
         assert!(!run(args, &src, &src).status.success());
         assert_eq!(std::fs::read(&src).unwrap(), original);
     }
+}
+#[test]
+fn in_place_replaces_the_file_behind_a_symlink_atomically() {
+    let temp = tempfile::tempdir().unwrap();
+    let real = temp.path().join("original.png");
+    let link = temp.path().join("link.png");
+    std::fs::copy(source(), &real).unwrap();
+    std::fs::set_permissions(&real, std::fs::Permissions::from_mode(0o644)).unwrap();
+    std::os::unix::fs::symlink(&real, &link).unwrap();
+    let edit = |args: &[&str], path: &Path| {
+        Command::new(env!("CARGO_BIN_EXE_candy"))
+            .args(args)
+            .arg(path)
+            .arg("--in-place")
+            .output()
+            .unwrap()
+    };
+    let result = edit(&["rotate", "--cw"], &link);
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert!(std::fs::symlink_metadata(&link).unwrap().is_symlink());
+    assert_eq!(candy_macos::load(&real).unwrap().dimensions(), (660, 1000));
+    assert_eq!(
+        std::fs::metadata(&real).unwrap().permissions().mode() & 0o777,
+        0o644
+    );
+    assert!(edit(&["rotate", "--ccw"], &real).status.success());
+    assert_eq!(
+        candy_macos::load(&link).unwrap().dimensions(),
+        (1000, 660),
+        "a second in-place edit does not need --force"
+    );
+    let result = edit(
+        &["crop", "--rect", "0,0,10,10"],
+        &temp.path().join("missing.png"),
+    );
+    assert!(!result.status.success());
+    assert!(
+        std::fs::read_dir(temp.path()).unwrap().count() == 2,
+        "no stray temp files"
+    );
 }
 #[test]
 fn redirected_display_has_no_graphics_escape_codes() {
