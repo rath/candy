@@ -111,10 +111,11 @@ Rounded corners identify the primary action, image, coral stage and build block.
 
 ## Components
 
+- **Brand mark:** `assets/mark.svg`, a coral spiral disc with a white band and coral rim, sits at 30px beside the 28px wordmark. The favicon `assets/favicon.svg` sets a cream and coral spiral on a deep rust (`#6b2a1e`) rounded square so it stays legible in light and dark tab bars. Both reuse the app icon's lollipop spiral from `scripts/icon/`; social cards rebuild with `scripts/build-og.sh` after the mark changes.
 - **Primary action:** an anchor styled as an ink button, with a minimum height of 48px. Its destination is the installation section. Supporting actions remain underlined text links.
 - **Language navigation:** visible English and Korean links, each declaring its language. The current page is bold and marked with `aria-current="page"`.
 - **Editor figure:** one real Retina Candy capture (1800 × 1400) showing a fictional coastal travel card with an actual headline highlight and email mosaic. A `picture` serves compressed WebP with PNG fallback, intrinsic dimensions, descriptive localized alternative text and a caption identifying the fictional sample. Asset provenance is recorded in `site/assets/credits.txt`.
-- **Social cards:** separate English and Korean PNGs at 1200 × 630, rendered from `scripts/og/index.html`. Warm paper carries the wordmark, large localized headline, short product description and domain; an angled coral panel carries the same real app capture and platform requirements. The system font stack, ink and accent colors extend the landing page. These static export layouts do not affect the responsive website.
+- **Social cards:** separate English and Korean PNGs at 1200 × 630, rendered from `scripts/og/index.html`. Warm paper carries the mark and wordmark, large localized headline, short product description and domain; an angled coral panel carries the same real app capture and platform requirements. The system font stack, ink and accent colors extend the landing page. These static export layouts do not affect the responsive website.
 - **Terminal example:** selectable command text, with decorative shell prompts excluded from selection and the accessibility tree. The Homebrew install command remains plain text inside a white inset block.
 - **Page structure:** one main heading, labeled sections, native links, header, main and footer landmarks. A localized skip link appears on keyboard focus. Links receive a 3px accent focus outline offset by 5px.
 
