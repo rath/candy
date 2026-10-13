@@ -100,6 +100,9 @@ nav a:not([aria-current]) {
 .github-corner .octo-arm {
   transform-origin: 130px 106px;
 }
+.github-corner:hover {
+  color: var(--paper);
+}
 .github-corner:hover svg {
   fill: var(--accent);
 }
