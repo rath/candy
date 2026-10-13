@@ -1,13 +1,10 @@
 # Website
 
 The landing page lives in `site/`: English at `/`, Korean at `/ko/`, Japanese
-at `/ja/`. All three pages are plain HTML sharing one stylesheet. The English
-and Korean pages each play a recorded app demo in their own language; the
-Japanese page reuses the English recording and stills, because the app itself
-has no Japanese interface yet and Japanese macOS users see it in English. No
-JavaScript, package installation, analytics, or third-party font request is
-required; a few inline lines only add a pause button to the demo. Update all
-three pages when changing product copy.
+at `/ja/`. All three pages are plain HTML sharing one stylesheet, each with a
+recorded app demo in its own language. No JavaScript, package installation,
+analytics, or third-party font request is required; a few inline lines only add
+a pause button to the demo. Update all three pages when changing product copy.
 
 Preview locally:
 
