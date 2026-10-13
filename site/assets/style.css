@@ -441,6 +441,17 @@ footer a {
 :lang(ko) .intro {
   font-size: 18px;
 }
+:lang(ja) h1 {
+  font-size: clamp(42px, 4.5vw, 64px);
+  line-height: 1.2;
+  word-break: keep-all;
+}
+:lang(ja) p {
+  word-break: normal;
+}
+:lang(ja) .intro {
+  font-size: 18px;
+}
 @media (max-width: 1400px) {
   header nav {
     padding-right: 64px;
@@ -580,6 +591,9 @@ footer a {
     font-size: 50px;
     max-width: 11ch;
   }
+  :lang(ja) h1 {
+    font-size: 44px;
+  }
 }
 @media (max-width: 370px) {
   .feature-grid {
@@ -590,6 +604,9 @@ footer a {
   }
   :lang(ko) h1 {
     font-size: 44px;
+  }
+  :lang(ja) h1 {
+    font-size: 38px;
   }
   .actions {
     gap: 18px;

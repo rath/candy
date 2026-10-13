@@ -19,29 +19,36 @@
     .editor { position: absolute; left: 616px; top: 80px; width: 540px; height: auto; border-radius: 12px; box-shadow: 0 24px 42px #57231338; }
     .domain { position: absolute; left: 58px; bottom: 43px; font-size: 20px; font-weight: 650; letter-spacing: -.25px; }
     .platform { position: absolute; right: 40px; bottom: 44px; margin: 0; color: #693627; font-size: 17px; font-weight: 550; }
-    .ko { display: none; }
-    :lang(ko) .en { display: none; }
-    :lang(ko) .ko { display: block; }
+    .ko, .ja { display: none; }
+    :lang(ko) .en, :lang(ja) .en { display: none; }
+    :lang(ko) .ko, :lang(ja) .ja { display: block; }
     :lang(ko) h1 { top: 196px; font-size: 54px; line-height: 1.24; letter-spacing: -2px; white-space: nowrap; }
     :lang(ko) .description { top: 425px; font-size: 23px; line-height: 1.55; }
+    :lang(ja) h1 { top: 198px; font-size: 48px; line-height: 1.3; letter-spacing: -1.5px; white-space: nowrap; }
+    :lang(ja) .description { top: 425px; width: 520px; font-size: 22px; line-height: 1.55; white-space: nowrap; }
   </style>
   <script>
-    document.documentElement.lang = new URLSearchParams(location.search).get('lang') === 'ko' ? 'ko' : 'en';
+    const lang = new URLSearchParams(location.search).get('lang');
+    document.documentElement.lang = ['ko', 'ja'].includes(lang) ? lang : 'en';
   </script>
 </head>
 <body>
   <main id="card" aria-label="Candy social sharing image">
     <div class="coral" aria-hidden="true"></div>
-    <div class="brand"><img class="mark" src="../../site/assets/mark.svg" alt="" /><span class="en">Candy</span><span class="ko">캔디</span></div>
+    <div class="brand"><img class="mark" src="../../site/assets/mark.svg" alt="" /><span class="en">Candy</span><span class="ko">캔디</span><span class="ja">Candy</span></div>
     <h1 class="en">Preview can’t.<br /><span>Photoshop<br />is overkill.</span></h1>
     <h1 class="ko">미리보기론 안 되고<br /><span>포토샵은 과하고</span></h1>
+    <h1 class="ja">プレビューじゃ足りない<br /><span>Photoshopじゃ大げさ</span></h1>
     <p class="description en">Your Mac’s little image editor.<br />Free. Native. Entirely local.</p>
     <p class="description ko">강조할 때는 형광펜, 가릴 때는 모자이크.<br />Mac용 무료 이미지 편집기.</p>
+    <p class="description ja">目立たせるなら蛍光ペン、隠すならモザイク。<br />Mac用の無料画像エディタ。</p>
     <img class="editor en" src="../../site/assets/candy-editor-en.png" width="1280" height="1100" alt="The real Candy editor with an order page’s error highlighted and the customer’s details pixelated" />
     <img class="editor ko" src="../../site/assets/candy-editor-ko.png" width="1280" height="1100" alt="주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면" />
+    <img class="editor ja" src="../../site/assets/candy-editor-en.png" width="1280" height="1100" alt="注文画面のエラーメッセージに蛍光ペンを引き、顧客情報をモザイクで隠したCandyの編集画面" />
     <div class="domain">candy.told.me</div>
     <p class="platform en">macOS 14+ · Apple Silicon · 2 MB download</p>
     <p class="platform ko">macOS 14 이상 · Apple Silicon · 다운로드 2 MB</p>
+    <p class="platform ja">macOS 14以降 · Apple Silicon · ダウンロード 2 MB</p>
   </main>
 </body>
 </html>

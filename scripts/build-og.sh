@@ -44,7 +44,7 @@ PY
     candy_preview_url=$(cat "$candy_tmp/url")
 fi
 
-for candy_language in en ko; do
+for candy_language in en ko ja; do
     agent-browser --headed --session candy open "${candy_preview_url%/}/scripts/og/?lang=$candy_language"
     agent-browser --headed --session candy set viewport 1200 630
     agent-browser --headed --session candy eval \
@@ -52,20 +52,20 @@ for candy_language in en ko; do
     agent-browser --headed --session candy screenshot '#card' "$candy_tmp/og-$candy_language.png"
 done
 
-# Validate both renders before replacing either checked-in asset. A browser
+# Validate every render before replacing any checked-in asset. A browser
 # session with an unexpected device scale must not silently ship wrong sizes.
 python3 - "$candy_tmp" <<'PY'
 from pathlib import Path
 import struct
 import sys
-for language in ("en", "ko"):
+for language in ("en", "ko", "ja"):
     path = Path(sys.argv[1]) / f"og-{language}.png"
     data = path.read_bytes()
     if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (1200, 630):
         raise SystemExit(f"Expected a 1200 x 630 PNG: {path}")
     print(f"Verified {path.name}: 1200 x 630, {len(data):,} bytes")
 PY
-for candy_language in en ko; do
+for candy_language in en ko ja; do
     cp "$candy_tmp/og-$candy_language.png" "$candy_root/site/assets/og-$candy_language.png"
 done
-printf 'Built %s/site/assets/og-{en,ko}.png\n' "$candy_root"
+printf 'Built %s/site/assets/og-{en,ko,ja}.png\n' "$candy_root"
