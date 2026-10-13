@@ -48,9 +48,12 @@ live in the SwiftPM package under `macos`.
 - Use native controls, system fonts and appearance. No bundled system fonts.
 - Route interface text through `localized(_:)` or `localizedFormat(_:_:)` with the
   English text as the key, and add each key to
-  `macos/Resources/ko.lproj/Localizable.strings` in macOS's own Korean terms
-  (AppKit, Preview). `LocalizationTests` fails on missing, unused or mismatched
-  entries. Check Korean with `--args -AppleLanguages '(ko)'`, not system settings.
+  `macos/Resources/ko.lproj/Localizable.strings` and
+  `macos/Resources/ja.lproj/Localizable.strings` in macOS's own Korean and
+  Japanese terms (AppKit, Preview; the system `.loctable` files are the
+  reference). `LocalizationTests` fails on missing, unused or mismatched entries.
+  Check a language with `--args -AppleLanguages '(ko)'` or `'(ja)'`, not system
+  settings.
 - `CANDY_TEST_APPEARANCE=dark|light` is a debug-only, process-local visual QA aid.
   It must not change global preferences or become a release setting.
 

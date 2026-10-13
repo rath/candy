@@ -76,7 +76,7 @@ Highlight color defaults to `systemYellow` at 0.4 opacity and the flattening bac
 
 ## Typography
 
-Use AppKit system fonts and its native fallback for Korean and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are regular contextual labels and regular monospaced-digit slider values, as recorded in the frontmatter; the empty-state instruction uses the default label font. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
+Use AppKit system fonts and its native fallback for Korean, Japanese and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are regular contextual labels and regular monospaced-digit slider values, as recorded in the frontmatter; the empty-state instruction uses the default label font. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
 
 ## Layout
 
@@ -122,7 +122,7 @@ Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visi
 
 ### Language
 
-Interface text follows the macOS language: English, or Korean when macOS prefers it. Korean uses macOS's own terms for standard menu and document commands, as AppKit and Preview translate them, and the website's tool names (형광펜, 모자이크, 배경 채우기). Component names in this document are the English titles. Error details passed through from the Rust engine remain English.
+Interface text follows the macOS language: English, or Korean or Japanese when macOS prefers one of them. Korean and Japanese use macOS's own terms for standard menu and document commands, as AppKit and Preview translate them, and the website's tool names (형광펜, 모자이크, 배경 채우기; 蛍光ペン, モザイク, 背景の塗りつぶし). Component names in this document are the English titles. Error details passed through from the Rust engine remain English.
 
 ### Application icon
 

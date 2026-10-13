@@ -96,7 +96,7 @@ detection has been checked in Ghostty, both directly and inside tmux.
 - **Select:** drag a rectangle, move it or resize its corners, then extract it into a new tab.
 - **Mosaic:** pixelate the selected rectangle with an adjustable block size.
 - **Highlight:** draw translucent strokes with adjustable color, size and opacity.
-- **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic. Korean and English are supported.
+- **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic. Detection is script-independent; English, Korean and Japanese text are checked.
 - **Resize:** set dimensions, optionally preserving the aspect ratio, or rotate by 90° in either direction.
 - **Flatten alpha:** composite transparency onto a chosen solid color.
 
@@ -104,8 +104,9 @@ File, Edit, View and Tools actions live in the macOS menu bar. Each document
 has a native window, toolbar, contextual controls, canvas, and undo/redo. Native
 tabs follow your macOS preference; use Window → Merge All Windows or Move Tab
 to New Window to group or separate documents.
-The interface follows your macOS language: English, or Korean when macOS
-prefers it. Detailed error messages from the image engine stay in English.
+The interface follows your macOS language: English, or Korean or Japanese when
+macOS prefers one of them. Detailed error messages from the image engine stay in
+English.
 First Save asks for a new file; subsequent saves update that copy. Save As
 creates another copy. The save panel has a Format selector for PNG, JPEG, HEIC,
 lossless WebP, AVIF (where macOS can encode it), TIFF, GIF, BMP, JPEG 2000 and
@@ -221,13 +222,15 @@ so it can run inside an existing development sandbox. Native OCR and UI checks
 need normal macOS access to Vision/pixel buffers and the window server.
 
 Interface text uses the English text as its key (`localized(_:)` in CandyKit).
-Korean translations live in `macos/Resources/ko.lproj/Localizable.strings`; a
-Swift test fails when an entry is missing, unused or has different placeholders.
-To see the Korean interface without changing system settings, pass the language
-to that process only:
+Korean and Japanese translations live in `macos/Resources/ko.lproj/` and
+`macos/Resources/ja.lproj/Localizable.strings`; a Swift test fails when an entry
+is missing, unused or has different placeholders, or when `scripts/build-app.sh`
+does not ship a table. To see a translated interface without changing system
+settings, pass the language to that process only:
 
 ```sh
 open -n -a dist/Candy.app --args -AppleLanguages '(ko)'
+open -n -a dist/Candy.app --args -AppleLanguages '(ja)'
 ```
 
 Debug builds support a process-only appearance override for visual checks:

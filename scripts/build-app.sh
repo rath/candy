@@ -32,13 +32,13 @@ cp "$candy_swift_bin/Candy" "$candy_app/Contents/MacOS/Candy"
 cp "${CARGO_TARGET_DIR:-target}/$candy_profile/candy" "$candy_app/Contents/Helpers/candy"
 cp LICENSE "$candy_app/Contents/Resources/LICENSE"
 cp macos/Resources/AppIcon.icns "$candy_app/Contents/Resources/AppIcon.icns"
-cp -R macos/Resources/en.lproj macos/Resources/ko.lproj "$candy_app/Contents/Resources/"
+cp -R macos/Resources/en.lproj macos/Resources/ko.lproj macos/Resources/ja.lproj "$candy_app/Contents/Resources/"
 cat > "$candy_app/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
-    <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string></array>
+    <key>CFBundleLocalizations</key><array><string>en</string><string>ko</string><string>ja</string></array>
     <key>CFBundleExecutable</key><string>Candy</string>
     <key>CFBundleIdentifier</key><string>me.told.candy.app</string>
     <key>CFBundleName</key><string>Candy</string>

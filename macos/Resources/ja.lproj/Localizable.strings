@@ -1,0 +1,129 @@
+/* Japanese interface text. Keys are the English text in macos/Sources/CandyKit. Standard menu
+   and document terms follow the macOS Japanese localization (AppKit, Preview). */
+
+/* App menu */
+"About Candy" = "Candyについて";
+"Services" = "サービス";
+"Hide Candy" = "Candyを隠す";
+"Show All" = "すべてを表示";
+"Quit Candy" = "Candyを終了";
+
+/* File menu */
+"File" = "ファイル";
+"Open…" = "開く…";
+"Close" = "閉じる";
+"Save…" = "保存…";
+"Save As…" = "別名で保存…";
+
+/* Edit menu */
+"Edit" = "編集";
+"Undo" = "取り消す";
+"Redo" = "やり直す";
+"Cut" = "カット";
+"Copy" = "コピー";
+"Paste" = "ペースト";
+"Select All" = "すべてを選択";
+
+/* View menu */
+"View" = "表示";
+"Actual Size" = "実際のサイズ";
+"Zoom to Fit" = "ウインドウに合わせる";
+"Show Tab Bar" = "タブバーを表示";
+
+/* Tools */
+"Tools" = "ツール";
+"Editing tool" = "編集ツール";
+"Select" = "選択";
+"Mosaic" = "モザイク";
+"Highlight" = "蛍光ペン";
+"Text mosaic" = "テキストモザイク";
+"Resize" = "サイズ調整";
+"Flatten alpha" = "背景の塗りつぶし";
+
+/* Window menu */
+"Window" = "ウインドウ";
+"Minimize" = "しまう";
+"Zoom" = "拡大/縮小";
+"Move Tab to New Window" = "タブを新しいウインドウに移動";
+"Merge All Windows" = "すべてのウインドウを結合";
+"Bring All to Front" = "すべてを手前に移動";
+
+/* Empty window */
+"Open an image, or drop one here." = "画像を開くか、ここにドロップしてください。";
+"Open image…" = "画像を開く…";
+"Image canvas" = "画像キャンバス";
+
+/* Select */
+"Drag a region. Move it or adjust its corners." = "範囲をドラッグしてください。移動したり、角を調整したりできます。";
+"Extract to new image" = "新規画像として取り出す";
+
+/* Mosaic and text mosaic */
+"Block px" = "ブロック(px)";
+"Mosaic block size in pixels" = "モザイクのブロックサイズ(ピクセル)";
+"Apply mosaic" = "モザイクを適用";
+"Detect text" = "テキストを検出";
+"Detecting…" = "検出中…";
+"Text mosaic block size in pixels" = "テキストモザイクのブロックサイズ(ピクセル)";
+"Apply to all" = "すべてに適用";
+"Remove box" = "ボックスを削除";
+
+/* Highlight */
+"Highlight color" = "蛍光ペンの色";
+"Width px" = "太さ(px)";
+"Highlight width in pixels" = "蛍光ペンの太さ(ピクセル)";
+"Opacity" = "不透明度";
+"Highlight opacity" = "蛍光ペンの不透明度";
+
+/* Resize */
+"Width" = "幅";
+"Width in pixels" = "幅(ピクセル)";
+"Height" = "高さ";
+"Height in pixels" = "高さ(ピクセル)";
+"Keep ratio" = "縦横比を固定";
+"Apply resize" = "サイズを変更";
+"Rotate left" = "反時計回りに回転";
+"Rotate right" = "時計回りに回転";
+"Rotate 90° counterclockwise" = "反時計回りに90°回転";
+"Rotate 90° clockwise" = "時計回りに90°回転";
+"Enter dimensions between 1 and 65535 pixels." = "サイズは1〜65535ピクセルの範囲で入力してください。";
+
+/* Flatten */
+"Replace transparency with" = "透明部分を塗りつぶす色";
+"Background color" = "背景色";
+
+/* Status */
+"Ready" = "準備完了";
+"Dismiss" = "閉じる";
+"%ld regions" = "%ld個の範囲";
+"Opening image…" = "画像を開いています…";
+"Image opened" = "画像を開きました";
+"Selection opened as a new image" = "選択範囲を新規画像として開きました";
+"Applying edit…" = "編集を適用中…";
+"Edit applied" = "編集を適用しました";
+"Extracting selection…" = "選択範囲を取り出し中…";
+"Selection extracted" = "選択範囲を取り出しました";
+"Detecting text…" = "テキストを検出中…";
+"Image changed. Detect text again." = "画像が変わりました。テキストをもう一度検出してください。";
+"%ld text regions. Review before applying." = "テキスト範囲%ld個。適用する前に確認してください。";
+"Saving image…" = "画像を保存中…";
+"Saved %@" = "%@を保存しました";
+"Wait for the current edit or save to finish." = "進行中の編集または保存が終わるまでお待ちください。";
+
+/* Saving and closing */
+"Save image copy" = "画像のコピーを保存";
+"Format:" = "フォーマット:";
+"Export format" = "書き出しフォーマット";
+"WebP (lossless)" = "WebP(ロスレス)";
+"Save changes to “%@”?" = "“%@”の変更内容を保存しますか？";
+"Your changes will be lost if you don’t save them." = "保存しない場合、変更内容は失われます。";
+"Save copy…" = "コピーを保存…";
+"Save" = "保存";
+"Cancel" = "キャンセル";
+"Discard" = "保存しない";
+
+/* Engine failures without a detailed message */
+"Cannot open image" = "画像を開けません";
+"Cannot render image" = "画像を描画できません";
+"Cannot extract selection" = "選択範囲を取り出せません";
+"Cannot copy image" = "画像をコピーできません";
+"Cannot detect text" = "テキストを検出できません";
