@@ -267,4 +267,4 @@ for the editor's visual conventions.
 Maintainers: see [releasing](docs/releasing.md) for signing, notarization,
 GitHub Releases, and Homebrew distribution.
 
-The bilingual GitHub Pages landing page is in `site/`. See [website maintenance](docs/website.md) for preview, publishing, and DNS setup.
+The GitHub Pages landing page in English, Korean and Japanese is in `site/`. See [website maintenance](docs/website.md) for preview, publishing, and DNS setup.

@@ -56,8 +56,8 @@ xcrun notarytool history --keychain-profile candy-notary
    still be about 2 MB (`ls -l` the ZIP), the app under 4 MB (`du -sh`), and
    an empty window about 30 MB of memory (`footprint -p <pid>`, the
    `phys_footprint` line; Activity Monitor's Memory column shows the same
-   value). Update `site/index.html` and `site/ko/index.html` if a claim no
-   longer holds.
+   value). Update `site/index.html`, `site/ko/index.html` and `site/ja/index.html`
+   if a claim no longer holds.
 
 ## Publish
 
@@ -80,13 +80,13 @@ Run Cask style/audit and installation checks, commit, and push. Its CI verifies
 the packaged version, architecture, signature, notarization and a CLI edit.
 
 Once the release is public, point the website's download links at the new ZIP:
-the hero button, the installation link and the JSON-LD `downloadUrl` in both
-`site/index.html` and `site/ko/index.html` use
+the hero button, the installation link and the JSON-LD `downloadUrl` in
+`site/index.html`, `site/ko/index.html` and `site/ja/index.html` use
 `https://github.com/rath/candy/releases/download/v<version>/Candy-<version>-macos-arm64.zip`
 so the button downloads directly. Change them only after `gh release create`;
 an earlier push would publish a link to a missing asset.
 
-Update both website languages and README installation instructions when needed.
+Update all three website languages and README installation instructions when needed.
 Pushing `main` publishes committed website changes (see
 [website maintenance](website.md)). Finally verify the public release assets, tap
-installation, and https://candy.told.me/ in both languages.
+installation, and https://candy.told.me/ in all three languages.

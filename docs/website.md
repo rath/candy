@@ -1,10 +1,13 @@
 # Website
 
-The landing page lives in `site/`: English at `/`, Korean at `/ko/`. Both pages
-are plain HTML sharing one stylesheet, each with a recorded app demo in its own
-language. No JavaScript, package installation, analytics, or third-party font
-request is required; a few inline lines only add a pause button to the demo.
-Update both pages when changing product copy.
+The landing page lives in `site/`: English at `/`, Korean at `/ko/`, Japanese
+at `/ja/`. All three pages are plain HTML sharing one stylesheet. The English
+and Korean pages each play a recorded app demo in their own language; the
+Japanese page reuses the English recording and stills, because the app itself
+has no Japanese interface yet and Japanese macOS users see it in English. No
+JavaScript, package installation, analytics, or third-party font request is
+required; a few inline lines only add a pause button to the demo. Update all
+three pages when changing product copy.
 
 Preview locally:
 
@@ -12,7 +15,8 @@ Preview locally:
 python3 -m http.server 4180 --directory site
 ```
 
-Visit http://localhost:4180 and http://localhost:4180/ko/.
+Visit http://localhost:4180, http://localhost:4180/ko/ and
+http://localhost:4180/ja/.
 
 ## Publish
 
@@ -47,14 +51,16 @@ is recorded in `site/assets/credits.txt`.
 
 ## Search and sharing
 
-Both pages have localized search titles and descriptions, self-referencing
-canonical URLs, reciprocal `en` / `ko` / `x-default` language alternates, and
-indexable robots metadata allowing large image previews. `robots.txt` advertises
-the bilingual sitemap. Update its `lastmod` dates after meaningful page changes.
+Every page has localized search titles and descriptions, self-referencing
+canonical URLs, reciprocal `en` / `ko` / `ja` / `x-default` language
+alternates, and indexable robots metadata allowing large image previews.
+`robots.txt` advertises the trilingual sitemap. Update its `lastmod` dates after
+meaningful page changes.
 
 Open Graph and Twitter large-image cards use absolute URLs to separate
-`assets/og-en.png` and `assets/og-ko.png` images (1200 × 630), with localized alt
-text, explicit dimensions, and alternate locales. JSON-LD describes the website,
+`assets/og-en.png`, `assets/og-ko.png` and `assets/og-ja.png` images
+(1200 × 630), with localized alt text, explicit dimensions, and alternate
+locales. JSON-LD describes the website,
 each localized page, and the free macOS application. It intentionally contains
 no invented reviews or ratings. Keep platform and pricing facts in sync with
 the visible page when changing them.
@@ -72,12 +78,15 @@ scripts/build-og.sh
 
 The script starts an isolated loopback server on a free port, uses a visible
 browser with the `candy` session, waits for fonts and images, and captures only
-the card. It validates both 1200 × 630 PNGs before replacing either committed
-asset, then cleans up its temporary files and server. It leaves other preview
+the card. It validates all three 1200 × 630 PNGs before replacing any committed
+asset, then cleans up its temporary files and server. Rendering is not
+byte-for-byte deterministic, so restore cards whose language copy did not change
+(`git checkout -- site/assets/og-en.png`) to keep the diff to the intended
+ones. It leaves other preview
 servers and the shared browser session running.
 
 To reuse a running preview, set `CANDY_PREVIEW_URL` to a server that serves the
 **repository root**, not `site/`. If size validation fails, use a browser session
-with device scale 1. Inspect both language versions after changing copy or the
+with device scale 1. Inspect every language version after changing copy or the
 app screenshot. Commit the regenerated cards; pushing `main` publishes them with
 the rest of `site/`.

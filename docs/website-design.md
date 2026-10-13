@@ -1,6 +1,6 @@
 ---
 name: Candy website
-description: A simple bilingual introduction to Candy, using native-inspired typography and a coral image stage.
+description: A simple trilingual introduction to Candy, using native-inspired typography and a coral image stage.
 colors:
   ink: "#242b35"
   muted: "#555c65"
@@ -23,6 +23,12 @@ typography:
     fontSize: "clamp(44px, 4.7vw, 66px)"
     fontWeight: 750
     lineHeight: 1.16
+    letterSpacing: "-.04em"
+  display-ja:
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    fontSize: "clamp(42px, 4.5vw, 64px)"
+    fontWeight: 750
+    lineHeight: 1.2
     letterSpacing: "-.04em"
   headline:
     fontSize: "clamp(28px, 3vw, 40px)"
@@ -77,9 +83,9 @@ components:
 
 ## Overview
 
-This document describes the implemented marketing surface in `site/`, shared by English `/` and Korean `/ko/`. It extends Candy's familiar native presentation with a white page, ink typography and a coral stage around a real editor capture. It does not replace the AppKit conventions in root `DESIGN.md` or the native tokens in `.impeccable/design.json`.
+This document describes the implemented marketing surface in `site/`, shared by English `/`, Korean `/ko/` and Japanese `/ja/`. It extends Candy's familiar native presentation with a white page, ink typography and a coral stage around a real editor capture. It does not replace the AppKit conventions in root `DESIGN.md` or the native tokens in `.impeccable/design.json`.
 
-The authoritative implementation is `site/assets/style.css`; the surface purpose and content contract live in `docs/website-brief.md`. Both languages use the same structure, assets and stylesheet. The site is complete without JavaScript.
+The authoritative implementation is `site/assets/style.css`; the surface purpose and content contract live in `docs/website-brief.md`. All three languages use the same structure, assets and stylesheet. The site is complete without JavaScript.
 
 ## Colors
 
@@ -111,17 +117,17 @@ Rounded corners identify the primary action, image, coral stage and build block.
 
 ## Components
 
-- **Brand mark:** `assets/mark.svg`, a coral spiral disc with a white band and coral rim, sits at 30px beside the product name set as live text in the system font: “Candy” in English and “캔디” in Korean, 25px bold (23px on mobile) with −0.02em tracking, in ink. The text names the link. The favicon `assets/favicon.svg` sets a cream and coral spiral on a deep rust (`#6b2a1e`) rounded square so it stays legible in light and dark tab bars. The mark and favicon reuse the app icon's lollipop spiral from `scripts/icon/`; social cards rebuild with `scripts/build-og.sh` after the mark or name changes.
+- **Brand mark:** `assets/mark.svg`, a coral spiral disc with a white band and coral rim, sits at 30px beside the product name set as live text in the system font: “Candy” in English and Japanese and “캔디” in Korean, 25px bold (23px on mobile) with −0.02em tracking, in ink. The text names the link. The favicon `assets/favicon.svg` sets a cream and coral spiral on a deep rust (`#6b2a1e`) rounded square so it stays legible in light and dark tab bars. The mark and favicon reuse the app icon's lollipop spiral from `scripts/icon/`; social cards rebuild with `scripts/build-og.sh` after the mark or name changes.
 - **Primary action:** an anchor styled as an ink button, with a minimum height of 48px. Its destination is the installation section. Supporting actions remain underlined text links.
-- **Language navigation:** visible English and Korean links, each declaring its language. The current page is bold and marked with `aria-current="page"`.
-- **Editor demo:** a muted, looping, inline H.264 video per language (1280 × 1100, about 24 s, under 0.8 MB) of the real Candy window, in the light appearance and the page's language, editing three made-up screenshots in turn: an order page, a group chat and a spreadsheet. Each scene mosaics personal details and highlights the line that matters. The loop opens and closes on the finished order page, which is also the poster, so the seam is invisible. Corners are clipped at 12 px to match the recorded window. A 24 px pause button beside the caption, added by inline script, satisfies WCAG 2.2.2. With reduced motion, a still of the finished order page replaces the video and the button. Asset provenance is recorded in `site/assets/credits.txt`.
-- **Social cards:** separate English and Korean PNGs at 1200 × 630, rendered from `scripts/og/index.html`. Warm paper carries the mark and localized name, large localized headline, short product description and domain; an angled coral panel carries the language's finished order-page still, platform requirements and the download size, matching the hero. The system font stack, ink and accent colors extend the landing page. These static export layouts do not affect the responsive website.
+- **Language navigation:** visible English, Korean and Japanese links, each declaring its language. The current page is bold and marked with `aria-current="page"`.
+- **Editor demo:** a muted, looping, inline H.264 video per interface language (1280 × 1100, about 24 s, under 0.8 MB) of the real Candy window, in the light appearance and the page's language (the Japanese page plays the English recording, since the app has no Japanese interface), editing three made-up screenshots in turn: an order page, a group chat and a spreadsheet. Each scene mosaics personal details and highlights the line that matters. The loop opens and closes on the finished order page, which is also the poster, so the seam is invisible. Corners are clipped at 12 px to match the recorded window. A 24 px pause button beside the caption, added by inline script, satisfies WCAG 2.2.2. With reduced motion, a still of the finished order page replaces the video and the button. Asset provenance is recorded in `site/assets/credits.txt`.
+- **Social cards:** separate English, Korean and Japanese PNGs at 1200 × 630, rendered from `scripts/og/index.html`. Warm paper carries the mark and localized name, large localized headline, short product description and domain; an angled coral panel carries the language's finished order-page still (the English still on the Japanese card), platform requirements and the download size, matching the hero. The system font stack, ink and accent colors extend the landing page. These static export layouts do not affect the responsive website.
 - **Terminal example:** selectable command text, with decorative shell prompts excluded from selection and the accessibility tree. The Homebrew install command remains plain text inside a white inset block.
 - **Page structure:** one main heading, labeled sections, native links, header, main and footer landmarks. A localized skip link appears on keyboard focus. Links receive a 3px accent focus outline offset by 5px.
 
 ## Do's and Don'ts
 
-- **Do** preserve equivalent content and navigation in both languages, including localized alternative text and document language.
+- **Do** preserve equivalent content and navigation in all three languages, including localized alternative text and document language.
 - **Do** preserve visible keyboard focus, reduced-motion handling and readable code overflow when adjusting layouts.
 - **Do** show real native application imagery and retain its provenance.
 - **Do** distinguish notarized public downloads from local source builds; state the Apple Silicon and macOS requirements beside installation instructions.
@@ -130,3 +136,7 @@ Rounded corners identify the primary action, image, coral stage and build block.
 ## Korean copy
 
 Write natural Korean descriptions of actions rather than translating English slogans literally. The hero names the reader’s dilemma: “미리보기론 안 되고, 포토샵은 과하고.” The Korean social card sets the same two lines without end punctuation. Use “형광펜” for the highlight tool, “모자이크” for pixelation and “문자 인식” for OCR in visitor-facing explanations. Use consistent polite instructions and keep the Korean search descriptions and social card aligned with the page.
+
+## Japanese copy
+
+Write the Japanese page as its own copy, not a gloss of the English. The hero keeps the same dilemma in plain spoken Japanese: “プレビューじゃ足りない。Photoshopじゃ大げさ。” The social card sets the same two lines without end punctuation. Body text is polite です・ます form; headlines may be clipped. Use macOS's own terms where Preview has them (プレビュー, 切り取り, サイズ調整, 回転, ウインドウ, 取り消し), “蛍光ペン” for the highlight tool, “モザイク” for pixelation and “文字認識” for OCR. Keep the product name as “Candy” in Latin letters, as Japanese sites do for app names. Do not insert spaces between Japanese and Latin text (“macOS 14以降”, “Candyなら”), and keep each Japanese paragraph on one source line: Chrome preserves the space a wrapped source line leaves between two Japanese characters. Only the hero headline uses `word-break: keep-all`, with `<wbr>` marking the phrase boundaries; paragraphs keep normal Japanese line breaking because Japanese has no spaces to break at.
