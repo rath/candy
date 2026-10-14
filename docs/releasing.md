@@ -45,6 +45,10 @@ xcrun notarytool history --keychain-profile candy-notary
    the app, signs the CLI and GUI with hardened runtime and secure timestamps,
    submits to Apple, staples the accepted ticket, and verifies Gatekeeper.
    Keychain and native Vision access require a normal macOS session.
+   If a newer Xcode's Swift Build engine stalls while generating its SDK stat
+   cache, prefix the command with `CANDY_SWIFT_BUILD_SYSTEM=native` to select
+   SwiftPM's native build engine for this release process. The same builds and
+   tests still run; this does not change the system's Xcode settings.
 4. Outputs are in `dist/releases/<version>/`: the signed `Candy.app`,
    `Candy-<version>-macos-arm64.zip`, `SHA256SUMS`, and Apple's submission result.
    Only the ZIP and checksum file are published. The ordinary `dist/Candy.app`
@@ -57,7 +61,7 @@ xcrun notarytool history --keychain-profile candy-notary
    on a user's Mac and makes Gatekeeper report the app as unverifiable malware on
    first launch.
 6. Check the size claims on the website against this build: the ZIP should
-   still be about 2 MB (`ls -l` the ZIP), the app under 4 MB (`du -sh`), and
+   still be about 2 MB (`ls -l` the ZIP), the app under 5 MB (`du -sh`), and
    an empty window about 30 MB of memory (`footprint -p <pid>`, the
    `phys_footprint` line; Activity Monitor's Memory column shows the same
    value). Update `site/index.html`, `site/ko/index.html` and `site/ja/index.html`
