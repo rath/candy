@@ -183,8 +183,8 @@ HEIC, AVIF and JPEG 2000. WebP defaults to lossless; select
 to explicitly request lossless output. Quality with lossless WebP, quality on
 other formats, and WebP mode on a different format are errors. A quality of 100
 does not select WebP lossless compression.
-AVIF quality 100 maps to Image I/O quality 0.999 to avoid the macOS encoder's
-failure at exactly 1.0.
+HEIC and AVIF quality 100 map to Image I/O quality 0.999 to avoid native
+encoder failures at exactly 1.0 on some macOS versions and hardware.
 
 `candy inspect photo.heic` reads the stored format, dimensions, EXIF
 orientation, color model, bit depth, alpha, color profile and DPI from the

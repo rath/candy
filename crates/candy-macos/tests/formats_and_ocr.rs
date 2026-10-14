@@ -38,7 +38,7 @@ fn image_io_exports_accept_quality_and_reopen() {
                     webp_mode: None,
                 },
             )
-            .unwrap();
+            .unwrap_or_else(|error| panic!("{ext} quality {quality}: {error:#}"));
             assert_eq!(
                 candy_macos::load(&path).unwrap().dimensions(),
                 image.dimensions()

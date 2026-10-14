@@ -324,10 +324,11 @@ pub fn encode(image: &RgbaImage, uti: &str) -> Result<Vec<u8>> {
 }
 
 fn encode_with_quality(image: &RgbaImage, uti: &str, quality: f64) -> Result<Vec<u8>> {
-    // Image I/O's AVIF encoder on macOS 26 rejects exactly 1.0.
+    // Image I/O can reject exactly 1.0 for HEIC (including macOS 14 VMs)
+    // and AVIF. This endpoint's availability depends on the native encoder.
     // Use the highest lossy setting for quality 100. Keep enough distance
     // from 1.0 to survive the encoder's conversion to single precision.
-    let quality = if uti == "public.avif" {
+    let quality = if matches!(uti, "public.heic" | "public.avif") {
         quality.min(0.999)
     } else {
         quality
