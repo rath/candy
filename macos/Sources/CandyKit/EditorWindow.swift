@@ -445,7 +445,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         ? session.name : (session.name as NSString).deletingPathExtension + "-edited.png")
     panel.isExtensionHidden = false
     panel.canSelectHiddenExtension = false
-    panel.accessoryView = SaveFormatView(panel: panel)
+    let accessory = SaveFormatView(panel: panel, settings: session.saveSettings)
+    panel.accessoryView = accessory
     panel.beginSheetModal(for: window) { [weak self] response in
       guard let self else {
         completion(false)
@@ -457,7 +458,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         completion(false)
         return
       }
-      self.session.save(url, completion: completion)
+      self.session.save(url, settings: accessory.settings, completion: completion)
     }
   }
   func prepareClose(_ completion: @escaping @MainActor @Sendable (Bool) -> Void) {

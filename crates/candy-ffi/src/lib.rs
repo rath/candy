@@ -4,7 +4,7 @@
 #![allow(clippy::missing_safety_doc)]
 
 use anyhow::{Context, Result, ensure};
-use candy_core::{History, Operation, PixelRect, Rotation};
+use candy_core::{History, Operation, PixelRect, Rotation, SaveOptions, WebpMode};
 use image::RgbaImage;
 use std::{
     ffi::{CStr, CString, c_char},
@@ -41,6 +41,32 @@ impl From<CandyRect> for PixelRect {
 pub struct CandyPoint {
     pub x: f32,
     pub y: f32,
+}
+/// Zero selects the format default; webp_mode 1 = lossless, 2 = lossy.
+#[repr(C)]
+#[derive(Clone, Copy, Default)]
+pub struct CandySaveOptions {
+    pub quality: u8,
+    pub webp_mode: u8,
+}
+
+impl CandySaveOptions {
+    fn options(self) -> Result<SaveOptions> {
+        ensure!(
+            self.quality <= 100,
+            "Quality must be between 1 and 100 (0 selects the default)"
+        );
+        let webp_mode = match self.webp_mode {
+            0 => None,
+            1 => Some(WebpMode::Lossless),
+            2 => Some(WebpMode::Lossy),
+            _ => anyhow::bail!("Invalid WebP compression mode"),
+        };
+        Ok(SaveOptions {
+            quality: (self.quality != 0).then_some(self.quality),
+            webp_mode,
+        })
+    }
 }
 #[repr(C)]
 #[derive(Clone, Copy, Default)]
@@ -301,13 +327,24 @@ pub unsafe extern "C" fn candy_document_save(
     file: *const c_char,
     error: *mut *mut c_char,
 ) -> u8 {
+    unsafe { candy_document_save_with_options(document, file, CandySaveOptions::default(), error) }
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn candy_document_save_with_options(
+    document: *mut CandyDocument,
+    file: *const c_char,
+    options: CandySaveOptions,
+    error: *mut *mut c_char,
+) -> u8 {
     guarded(error, || {
+        let options = options.options()?;
         let d = unsafe { doc(document)? };
         let file = unsafe { path(file)? };
         if let Some(source) = &d.source {
             candy_core::protect_original(source, &file)?;
         }
-        candy_macos::save(&d.image, &file, true)?;
+        candy_macos::save_with_options(&d.image, &file, true, options)?;
         d.saved = Some(d.history.state_id());
         Ok(1)
     })
@@ -505,5 +542,62 @@ mod tests {
             assert_eq!(candy_document_save(&mut d, alias_c.as_ptr(), &mut error), 0);
             candy_error_free(error);
         }
+    }
+
+    #[test]
+    fn save_options_validate_at_the_c_boundary_without_committing_failed_saves() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("output.webp");
+        let path_c = CString::new(path.to_str().unwrap()).unwrap();
+        std::fs::write(&path, b"existing output").unwrap();
+        let mut d = document();
+        d.apply(Operation::Rotate(Rotation::Clockwise)).unwrap();
+        let saved = d.saved;
+        let mut error = ptr::null_mut();
+        for options in [
+            CandySaveOptions {
+                quality: 101,
+                webp_mode: 2,
+            },
+            CandySaveOptions {
+                quality: 80,
+                webp_mode: 3,
+            },
+            CandySaveOptions {
+                quality: 80,
+                webp_mode: 1,
+            },
+        ] {
+            unsafe {
+                assert_eq!(
+                    candy_document_save_with_options(&mut d, path_c.as_ptr(), options, &mut error),
+                    0
+                );
+                assert!(!error.is_null());
+                candy_error_free(error);
+            }
+            assert_eq!(d.saved, saved);
+            assert_eq!(std::fs::read(&path).unwrap(), b"existing output");
+        }
+        unsafe {
+            assert_eq!(
+                candy_document_save_with_options(
+                    &mut d,
+                    path_c.as_ptr(),
+                    CandySaveOptions {
+                        quality: 80,
+                        webp_mode: 2,
+                    },
+                    &mut error
+                ),
+                1
+            );
+            assert!(error.is_null());
+        }
+        assert_eq!(d.saved, Some(d.history.state_id()));
+        assert_eq!(
+            candy_macos::load(&path).unwrap().dimensions(),
+            d.image.dimensions()
+        );
     }
 }

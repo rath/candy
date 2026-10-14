@@ -14,6 +14,10 @@ typedef struct CandyDocument CandyDocument;
 typedef struct CandyImage CandyImage;
 typedef struct { uint32_t x, y, width, height; } CandyRect;
 typedef struct { float x, y; } CandyPoint;
+// quality: 0 = format default, 1–100 = lossy quality.
+// webp_mode: 0 = default, 1 = lossless, 2 = lossy. Only WebP accepts a mode.
+// WebP quality requires lossy mode. Invalid options fail without writing.
+typedef struct { uint8_t quality, webp_mode; } CandySaveOptions;
 typedef struct { uint32_t width, height; uint64_t state_id, revision; uint8_t dirty, can_undo, can_redo; } CandyState;
 // Tightly packed, premultiplied RGBA8 sRGB; top-left origin. At most 4096 per side.
 typedef struct { uint32_t width, height; size_t length; uint8_t *data; } CandyPreview;
@@ -31,6 +35,7 @@ uint8_t candy_document_mosaic(CandyDocument *document, const CandyRect *rects, s
 uint8_t candy_document_highlight(CandyDocument *document, const CandyPoint *points, size_t count, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a, char **error);
 CandyDocument *candy_document_extract(CandyDocument *document, CandyRect rect, char **error);
 uint8_t candy_document_save(CandyDocument *document, const char *path, char **error);
+uint8_t candy_document_save_with_options(CandyDocument *document, const char *path, CandySaveOptions options, char **error);
 CandyPreview *candy_document_preview(CandyDocument *document, char **error);
 void candy_preview_free(CandyPreview *preview);
 CandyImage *candy_document_snapshot(CandyDocument *document, char **error);

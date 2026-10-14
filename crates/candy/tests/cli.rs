@@ -115,3 +115,71 @@ fn text_mosaic_changes_pixels_without_changing_dimensions() {
     assert_eq!(original.dimensions(), edited.dimensions());
     assert_ne!(original, edited);
 }
+
+#[test]
+fn quality_options_encode_and_invalid_combinations_never_replace_output() {
+    let temp = tempfile::tempdir().unwrap();
+    for (ext, mode) in [("jpg", vec![]), ("webp", vec!["--webp-mode", "lossy"])] {
+        let mut sizes = Vec::new();
+        for quality in ["1", "100"] {
+            let path = temp.path().join(format!("quality-{quality}.{ext}"));
+            let mut args = vec!["resize", "--width", "128", "--quality", quality];
+            args.extend_from_slice(&mode);
+            let result = run(&args, &source(), &path);
+            assert!(
+                result.status.success(),
+                "{}",
+                String::from_utf8_lossy(&result.stderr)
+            );
+            assert_eq!(candy_macos::load(&path).unwrap().width(), 128);
+            sizes.push(std::fs::metadata(&path).unwrap().len());
+        }
+        assert!(sizes[0] < sizes[1]);
+    }
+    for (ext, flags) in [
+        ("png", vec!["--quality", "80"]),
+        ("jpg", vec!["--quality", "0"]),
+        ("jpg", vec!["--quality", "101"]),
+        ("jpg", vec!["--quality", "80.5"]),
+        ("jpg", vec!["--webp-mode", "lossy"]),
+        ("webp", vec!["--quality", "80"]),
+        ("webp", vec!["--quality", "80", "--webp-mode", "lossless"]),
+        ("webp", vec!["--webp-mode", "invalid"]),
+    ] {
+        let path = temp.path().join(format!("existing.{ext}"));
+        std::fs::write(&path, b"keep me").unwrap();
+        let mut args = vec!["resize", "--width", "128", "--force"];
+        args.extend(flags);
+        assert!(!run(&args, &source(), &path).status.success());
+        assert_eq!(std::fs::read(&path).unwrap(), b"keep me");
+    }
+    let path = temp.path().join("in-place.jpg");
+    assert!(
+        run(&["resize", "--width", "128"], &source(), &path)
+            .status
+            .success()
+    );
+    let before = std::fs::read(&path).unwrap();
+    // --force cannot permit writing the input, including with new options.
+    assert!(
+        !run(
+            &["rotate", "--cw", "--force", "--quality", "20"],
+            &path,
+            &path
+        )
+        .status
+        .success()
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    let result = Command::new(env!("CARGO_BIN_EXE_candy"))
+        .args(["rotate", "--cw", "--in-place", "--quality", "20"])
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(
+        result.status.success(),
+        "{}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    assert_eq!(candy_macos::load(&path).unwrap().height(), 128);
+}

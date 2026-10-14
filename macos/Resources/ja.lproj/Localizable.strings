@@ -113,7 +113,6 @@
 "Save image copy" = "画像のコピーを保存";
 "Format:" = "フォーマット:";
 "Export format" = "書き出しフォーマット";
-"WebP (lossless)" = "WebP(ロスレス)";
 "Save changes to “%@”?" = "“%@”の変更内容を保存しますか？";
 "Your changes will be lost if you don’t save them." = "保存しない場合、変更内容は失われます。";
 "Save copy…" = "コピーを保存…";
@@ -127,3 +126,10 @@
 "Cannot extract selection" = "選択範囲を取り出せません";
 "Cannot copy image" = "画像をコピーできません";
 "Cannot detect text" = "テキストを検出できません";
+"Compression:" = "圧縮:";
+"Lossless" = "ロスレス";
+"Lossy" = "非可逆";
+"WebP compression" = "WebPの圧縮";
+"Quality:" = "品質:";
+"Export quality" = "書き出し品質";
+"Quality must be an integer from 1 to 100." = "品質は1から100までの整数で指定してください。";

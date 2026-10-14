@@ -1,6 +1,6 @@
 use crate::launcher::launch;
 use anyhow::{Context, Result, ensure};
-use candy_core::{Operation, PixelRect, Rotation};
+use candy_core::{Operation, PixelRect, Rotation, SaveOptions, WebpMode};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::{io::IsTerminal, path::PathBuf};
 
@@ -100,6 +100,30 @@ pub struct Files {
     /// Replace an existing output file (never the input).
     #[arg(long, conflicts_with = "in_place")]
     pub force: bool,
+    /// Output quality (JPEG, lossy WebP, HEIC, AVIF or JPEG 2000).
+    #[arg(long, value_parser = clap::value_parser!(u8).range(1..=100))]
+    pub quality: Option<u8>,
+    /// WebP compression (default: lossless); --quality requires lossy.
+    #[arg(long, value_enum)]
+    pub webp_mode: Option<WebpCompression>,
+}
+
+#[derive(Clone, Copy, ValueEnum)]
+pub enum WebpCompression {
+    Lossless,
+    Lossy,
+}
+
+impl Files {
+    fn save_options(&self) -> SaveOptions {
+        SaveOptions {
+            quality: self.quality,
+            webp_mode: self.webp_mode.map(|mode| match mode {
+                WebpCompression::Lossless => WebpMode::Lossless,
+                WebpCompression::Lossy => WebpMode::Lossy,
+            }),
+        }
+    }
 }
 
 pub fn run(cli: Cli) -> Result<()> {
@@ -188,9 +212,11 @@ fn edit(
             true,
         ),
     };
+    let options = files.save_options();
+    options.validate(&candy_core::extension(&output))?;
     let image = candy_macos::load(&files.path)?;
     let result = candy_core::apply(&image, &operation(&image)?)?;
-    candy_macos::save(&result, &output, overwrite)?;
+    candy_macos::save_with_options(&result, &output, overwrite, options)?;
     eprintln!(
         "Saved {} ({} × {})",
         files.output.as_deref().unwrap_or(&files.path).display(),

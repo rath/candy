@@ -109,8 +109,12 @@ macOS prefers one of them. Detailed error messages from the image engine stay in
 English.
 First Save asks for a new file; subsequent saves update that copy. Save As
 creates another copy. The save panel has a Format selector for PNG, JPEG, HEIC,
-lossless WebP, AVIF (where macOS can encode it), TIFF, GIF, BMP, JPEG 2000 and
-TGA. Original input paths, including
+WebP, AVIF (where macOS can encode it), TIFF, GIF, BMP, JPEG 2000 and
+TGA. JPEG, HEIC, AVIF and JPEG 2000 offer a quality slider and numeric input
+from 1–100. WebP offers lossless or lossy compression, with quality controls
+in lossy mode. Each document remembers its settings by format after a successful
+save, including for Save As; new documents start with the defaults.
+Original input paths, including
 symlink and hardlink aliases, are protected. Files are encoded before an atomic
 replacement, and closing unsaved documents prompts to save or discard.
 
@@ -158,6 +162,9 @@ candy crop photo.png --rect 20,30,300,200 -o crop.heic
 candy mosaic photo.png --rect 20,30,300,200 --block-size 16 -o mosaic.png
 candy mosaic screenshot.png --text -o text-mosaic.png
 candy flatten logo.png --background '#ffffff' -o flat.jpg
+candy resize photo.png --width 1200 -o photo.jpg --quality 80
+candy resize photo.png --width 1200 -o photo.webp --webp-mode lossy --quality 80
+candy rotate photo.heic --cw -o rotated.heic --quality 90
 ```
 
 One resize dimension preserves the aspect ratio; providing both sets the exact
@@ -169,6 +176,15 @@ file's permissions and following a symlink to the file it points at. Metadata
 such as EXIF is not carried over, and lossy formats are recompressed, so prefer
 `-o` when the original matters. Run `candy --help` or `candy <command> --help`
 for details.
+
+All CLI editing commands accept `--quality <1–100>` for JPEG, lossy WebP,
+HEIC, AVIF and JPEG 2000. WebP defaults to lossless; select
+`--webp-mode lossy` to use quality (80 when omitted), or `--webp-mode lossless`
+to explicitly request lossless output. Quality with lossless WebP, quality on
+other formats, and WebP mode on a different format are errors. A quality of 100
+does not select WebP lossless compression.
+AVIF quality 100 maps to Image I/O quality 0.999 to avoid the macOS encoder's
+failure at exactly 1.0.
 
 `candy inspect photo.heic` reads the stored format, dimensions, EXIF
 orientation, color model, bit depth, alpha, color profile and DPI from the
@@ -183,7 +199,7 @@ prints the same report as one JSON object; `pixels` is `null` and
 | Operation | Formats |
 | --- | --- |
 | Open | Anything Image I/O on your Mac decodes: PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, camera RAW and DNG, and JPEG XL on macOS 26 or later |
-| Save | PNG, JPEG (quality 92), lossless WebP, HEIC, AVIF and JPEG 2000 (Image I/O quality 0.85), TIFF (LZW), GIF (256 colors), BMP, TGA |
+| Save | PNG, JPEG (default quality 92), WebP (default lossless; lossy default quality 80), HEIC, AVIF and JPEG 2000 (default quality 85), TIFF (LZW), GIF (256 colors), BMP, TGA |
 
 Images are edited as 8-bit sRGB RGBA. EXIF orientation is applied on load;
 source metadata, HDR data and wide-gamut profiles are not retained on export.
@@ -193,6 +209,8 @@ which arrived after macOS 14 (verified on macOS 26); older systems explain this
 when asked. RAW files are developed with Image I/O's defaults. Only the first
 image/frame is loaded. Images are limited to approximately 64 megapixels. The GUI preview is
 limited to 4096 pixels per side; edits and saves use full image resolution.
+Lossy WebP additionally limits each side to 16,383 pixels. Its encoder is
+included in the app and CLI; no external encoder installation is needed.
 
 This version has no layers, animation editing, cloud services or LLM integration.
 Text detection runs locally and sends no image data to a service. Detection quality and

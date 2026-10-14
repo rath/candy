@@ -472,9 +472,79 @@ pub fn export_format(extension: &str) -> Option<ImageFormat> {
     })
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WebpMode {
+    Lossless,
+    Lossy,
+}
+
+/// Unspecified settings preserve the format's existing defaults. Quality is
+/// an integer on a 1–100 scale and applies only to lossy encoding.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct SaveOptions {
+    pub quality: Option<u8>,
+    pub webp_mode: Option<WebpMode>,
+}
+
+impl SaveOptions {
+    /// Validate explicit options against the output, before touching any file.
+    pub fn validate(self, extension: &str) -> Result<()> {
+        ensure!(
+            self.webp_mode.is_none() || extension == "webp",
+            "--webp-mode applies only to WebP output"
+        );
+        if let Some(quality) = self.quality {
+            ensure!(
+                (1..=100).contains(&quality),
+                "Quality must be between 1 and 100"
+            );
+            ensure!(
+                matches!(
+                    extension,
+                    "jpg"
+                        | "jpeg"
+                        | "webp"
+                        | "heic"
+                        | "heif"
+                        | "avif"
+                        | "jp2"
+                        | "j2k"
+                        | "jpf"
+                        | "jpx"
+                ),
+                "Quality applies only to JPEG, lossy WebP, HEIC, AVIF or JPEG 2000"
+            );
+            ensure!(
+                extension != "webp" || self.webp_mode == Some(WebpMode::Lossy),
+                "WebP quality requires --webp-mode lossy"
+            );
+        }
+        Ok(())
+    }
+
+    pub fn quality_for(self, extension: &str) -> u8 {
+        self.quality.unwrap_or(match extension {
+            "jpg" | "jpeg" => 92,
+            "webp" => 80,
+            _ => 85,
+        })
+    }
+}
+
 pub fn save_atomic(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()> {
-    let format = export_format(&extension(path)).context("Save as PNG, JPEG, WebP, GIF or TGA")?;
-    write_atomic(path, overwrite, |file| encode(image, format, file))
+    save_atomic_with_options(image, path, overwrite, SaveOptions::default())
+}
+
+pub fn save_atomic_with_options(
+    image: &RgbaImage,
+    path: &Path,
+    overwrite: bool,
+    options: SaveOptions,
+) -> Result<()> {
+    let extension = extension(path);
+    let format = export_format(&extension).context("Save as PNG, JPEG, WebP, GIF or TGA")?;
+    options.validate(&extension)?;
+    write_atomic(path, overwrite, |file| encode(image, format, file, options))
 }
 
 /// Writes `path` through a temporary file in the same directory, so a failed
@@ -509,12 +579,29 @@ pub fn write_atomic(
     Ok(())
 }
 
-fn encode(image: &RgbaImage, format: ImageFormat, file: &mut fs::File) -> Result<()> {
+fn encode(
+    image: &RgbaImage,
+    format: ImageFormat,
+    file: &mut fs::File,
+    options: SaveOptions,
+) -> Result<()> {
     match format {
         ImageFormat::Jpeg => {
             let flat = apply(image, &Operation::Flatten([255; 3]))?;
             let rgb = DynamicImage::ImageRgba8(flat).to_rgb8();
-            image::codecs::jpeg::JpegEncoder::new_with_quality(file, 92).encode_image(&rgb)?;
+            image::codecs::jpeg::JpegEncoder::new_with_quality(file, options.quality_for("jpg"))
+                .encode_image(&rgb)?;
+        }
+        ImageFormat::WebP if options.webp_mode == Some(WebpMode::Lossy) => {
+            validate_dimensions(image.width(), image.height())?;
+            ensure!(
+                image.width() <= 16_383 && image.height() <= 16_383,
+                "Lossy WebP dimensions must not exceed 16383 pixels per side"
+            );
+            let bytes = webp::Encoder::from_rgba(image.as_raw(), image.width(), image.height())
+                .encode_simple(false, f32::from(options.quality_for("webp")))
+                .map_err(|error| anyhow::anyhow!("WebP encoding failed: {error:?}"))?;
+            std::io::Write::write_all(file, &bytes).context("Cannot write WebP output")?;
         }
         ImageFormat::Gif => {
             // GIF has one transparent index: pixels under 50% alpha drop out,

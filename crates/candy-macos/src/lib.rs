@@ -277,18 +277,32 @@ pub fn vision_rect(
 /// Saves `image` at `path`; the extension selects the format. HEIC, AVIF, TIFF
 /// (LZW), BMP and JPEG 2000 go through Image I/O, the rest through `candy_core`.
 pub fn save(image: &RgbaImage, path: &Path, overwrite: bool) -> Result<()> {
+    save_with_options(image, path, overwrite, candy_core::SaveOptions::default())
+}
+
+pub fn save_with_options(
+    image: &RgbaImage,
+    path: &Path,
+    overwrite: bool,
+    options: candy_core::SaveOptions,
+) -> Result<()> {
     let extension = candy_core::extension(path);
+    options.validate(&extension)?;
     if let Some((uti, name)) = image_io_format(&extension) {
         ensure!(
             can_encode(uti),
             "This version of macOS cannot encode {name}; save as PNG, JPEG, WebP or HEIC"
         );
-        let bytes = encode(image, uti)?;
+        let bytes = encode_with_quality(
+            image,
+            uti,
+            f64::from(options.quality_for(&extension)) / 100.0,
+        )?;
         candy_core::write_atomic(path, overwrite, |file| {
             std::io::Write::write_all(file, &bytes).context("Cannot write the output file")
         })
     } else if candy_core::export_format(&extension).is_some() {
-        candy_core::save_atomic(image, path, overwrite)
+        candy_core::save_atomic_with_options(image, path, overwrite, options)
     } else {
         bail!("Save as PNG, JPEG, WebP, HEIC, AVIF, TIFF, GIF, BMP, JPEG 2000 or TGA")
     }
@@ -306,6 +320,18 @@ pub fn can_encode(uti: &str) -> bool {
 /// Encodes `image` with Image I/O as `uti` and returns the file bytes. Lossy
 /// formats use `LOSSY_QUALITY`; TIFF uses LZW compression.
 pub fn encode(image: &RgbaImage, uti: &str) -> Result<Vec<u8>> {
+    encode_with_quality(image, uti, LOSSY_QUALITY)
+}
+
+fn encode_with_quality(image: &RgbaImage, uti: &str, quality: f64) -> Result<Vec<u8>> {
+    // Image I/O's AVIF encoder on macOS 26 rejects exactly 1.0.
+    // Use the highest lossy setting for quality 100. Keep enough distance
+    // from 1.0 to survive the encoder's conversion to single precision.
+    let quality = if uti == "public.avif" {
+        quality.min(0.999)
+    } else {
+        quality
+    };
     autoreleasepool(|_| {
         let cg_image = rgba_image(image)?;
         let data = CFMutableData::new(None, 0).context("Cannot allocate the output buffer")?;
@@ -314,7 +340,7 @@ pub fn encode(image: &RgbaImage, uti: &str) -> Result<Vec<u8>> {
         // property dictionaries outlive each call.
         let destination = unsafe { CGImageDestination::with_data(&data, &kind, 1, None) }
             .with_context(|| format!("Image I/O cannot encode {uti}"))?;
-        let quality = CFNumber::new_f64(LOSSY_QUALITY);
+        let quality = CFNumber::new_f64(quality);
         let lzw = CFNumber::new_i32(5);
         let tiff = CFDictionary::<CFString, CFType>::from_slices(
             &[unsafe { kCGImagePropertyTIFFCompression }],

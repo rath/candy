@@ -102,6 +102,52 @@ private var fixture: URL {
     }
     #expect(!saved && s.dirty && s.output == nil)
   }
+  @Test func successfulSavesRememberOptionsOnlyInTheirDocument() async throws {
+    let s = try await loaded()
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+    let output = folder.appendingPathComponent("copy.jpg")
+    var settings = SaveSettings()
+    settings.qualities[.jpeg] = 23
+    settings.qualities[.webp] = 67
+    settings.webpMode = .lossy
+    let first = await withCheckedContinuation { continuation in
+      s.save(output, settings: settings) { continuation.resume(returning: $0) }
+    }
+    #expect(first && s.saveSettings == settings)
+    let firstBytes = try Data(contentsOf: output)
+    let again = await withCheckedContinuation { continuation in
+      s.save(output) { continuation.resume(returning: $0) }
+    }
+    #expect(again && s.saveSettings == settings)
+    #expect(try Data(contentsOf: output) == firstBytes)
+    let reference = try RustDocument.open(fixture)
+    let expected = folder.appendingPathComponent("expected.jpg")
+    _ = try reference.save(expected, options: SaveOptions(quality: 23))
+    #expect(try Data(contentsOf: expected) == firstBytes)
+
+    s.apply(.rotate(clockwise: true))
+    try await settled(s)
+    var draft = settings
+    draft.qualities[.jpeg] = 99
+    draft.webpMode = .lossless
+    let failed = await withCheckedContinuation { continuation in
+      s.save(fixture, settings: draft) { continuation.resume(returning: $0) }
+    }
+    #expect(!failed && s.dirty && s.output == output && s.saveSettings == settings)
+    let copy = folder.appendingPathComponent("copy.webp")
+    let savedAs = await withCheckedContinuation { continuation in
+      s.save(copy) { continuation.resume(returning: $0) }
+    }
+    #expect(savedAs && s.output == copy && s.saveSettings == settings)
+    try reference.apply(.rotate(clockwise: true))
+    let expectedWebp = folder.appendingPathComponent("expected.webp")
+    _ = try reference.save(expectedWebp, options: SaveOptions(quality: 67, webpMode: .lossy))
+    #expect(try Data(contentsOf: copy) == Data(contentsOf: expectedWebp))
+    let newSession = try await loaded()
+    #expect(newSession.saveSettings == SaveSettings())
+  }
   @Test func actualSizeUsesBackingPixels() {
     let canvas = CanvasView(frame: NSRect(x: 0, y: 0, width: 800, height: 600))
     canvas.imageSize = CGSize(width: 1000, height: 660)

@@ -8,6 +8,53 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
+fn image_io_exports_accept_quality_and_reopen() {
+    let image = image::RgbaImage::from_fn(128, 96, |x, y| {
+        image::Rgba([
+            (x * 13 + y * 7) as u8,
+            (x * 3 + y * 17) as u8,
+            (x * 11 + y * 5) as u8,
+            255,
+        ])
+    });
+    let dir = tempfile::tempdir().unwrap();
+    for (ext, uti) in [
+        ("heic", "public.heic"),
+        ("avif", "public.avif"),
+        ("jp2", "public.jpeg-2000"),
+    ] {
+        if !candy_macos::can_encode(uti) {
+            continue;
+        }
+        let mut outputs = Vec::new();
+        for quality in [1, 85, 100] {
+            let path = dir.path().join(format!("quality-{quality}.{ext}"));
+            candy_macos::save_with_options(
+                &image,
+                &path,
+                false,
+                candy_core::SaveOptions {
+                    quality: Some(quality),
+                    webp_mode: None,
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                candy_macos::load(&path).unwrap().dimensions(),
+                image.dimensions()
+            );
+            outputs.push(std::fs::read(&path).unwrap());
+        }
+        assert_ne!(outputs[0], outputs[1], "{ext} ignored quality");
+        assert_ne!(outputs[1], outputs[2], "{ext} ignored quality");
+        assert!(
+            outputs[0].len() < outputs[2].len(),
+            "{ext} quality extremes"
+        );
+    }
+}
+
+#[test]
 fn fixtures_decode_and_every_export_format_reopens() {
     for ext in ["png", "jpg", "heic", "avif"] {
         let image = candy_macos::load(&fixture(&format!("sample.{ext}"))).unwrap();

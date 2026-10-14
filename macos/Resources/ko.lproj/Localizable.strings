@@ -113,7 +113,6 @@
 "Save image copy" = "이미지 사본 저장";
 "Format:" = "포맷:";
 "Export format" = "내보내기 포맷";
-"WebP (lossless)" = "WebP(무손실)";
 "Save changes to “%@”?" = "‘%@’의 변경 사항을 저장하겠습니까?";
 "Your changes will be lost if you don’t save them." = "저장하지 않으면 변경 사항이 유실됩니다.";
 "Save copy…" = "사본 저장…";
@@ -127,3 +126,10 @@
 "Cannot extract selection" = "선택 영역을 추출할 수 없습니다";
 "Cannot copy image" = "이미지를 복사할 수 없습니다";
 "Cannot detect text" = "텍스트를 감지할 수 없습니다";
+"Compression:" = "압축:";
+"Lossless" = "무손실";
+"Lossy" = "손실";
+"WebP compression" = "WebP 압축";
+"Quality:" = "품질:";
+"Export quality" = "내보내기 품질";
+"Quality must be an integer from 1 to 100." = "품질은 1~100 사이의 정수여야 합니다.";

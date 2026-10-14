@@ -58,6 +58,22 @@ struct RenderedDocument: Sendable {
   let state: DocumentState
   let preview: Preview
 }
+enum WebpMode: UInt8, Sendable {
+  case lossless = 1
+  case lossy = 2
+}
+
+struct SaveOptions: Equatable, Sendable {
+  var quality: Int?
+  var webpMode: WebpMode?
+
+  func cValue() throws -> CandySaveOptions {
+    if let quality, !(1...100).contains(quality) {
+      throw EngineError(message: localized("Quality must be an integer from 1 to 100."))
+    }
+    return CandySaveOptions(quality: UInt8(quality ?? 0), webp_mode: webpMode?.rawValue ?? 0)
+  }
+}
 enum Edit: Sendable {
   case resize(UInt32, UInt32)
   case rotate(clockwise: Bool)
@@ -122,9 +138,10 @@ final class RustDocument: @unchecked Sendable {
     }
     return RustDocument(new)
   }
-  func save(_ url: URL) throws -> DocumentState {
+  func save(_ url: URL, options: SaveOptions = SaveOptions()) throws -> DocumentState {
+    let options = try options.cValue()
     let _: UInt8 = try url.withUnsafeFileSystemRepresentation { path in
-      try checked { candy_document_save(handle, path, $0) }
+      try checked { candy_document_save_with_options(handle, path, options, $0) }
     }
     return try state()
   }

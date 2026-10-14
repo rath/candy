@@ -9,6 +9,7 @@ final class DocumentSession {
   private(set) var image: CGImage?
   private(set) var source: URL?
   private(set) var output: URL?
+  private(set) var saveSettings = SaveSettings()
   private(set) var busy = false
   private(set) var detecting = false
   private(set) var alive = true
@@ -167,16 +168,21 @@ final class DocumentSession {
     }
     onChange?()
   }
-  func save(_ url: URL, completion: @escaping @MainActor @Sendable (Bool) -> Void) {
+  func save(
+    _ url: URL, settings: SaveSettings? = nil,
+    completion: @escaping @MainActor @Sendable (Bool) -> Void
+  ) {
     guard ready else {
       completion(false)
       return
     }
     busy = true
+    let settings = settings ?? saveSettings
+    let options = settings.options(for: ExportFormat.forFilename(url.lastPathComponent))
     error = nil
     message = localized("Saving image…")
     onChange?()
-    perform({ try $0.save(url) }) { [weak self] result in
+    perform({ try $0.save(url, options: options) }) { [weak self] result in
       guard let self, self.alive else {
         completion(false)
         return
@@ -186,6 +192,7 @@ final class DocumentSession {
       case .success(let state):
         self.state = state
         self.output = url
+        self.saveSettings = settings
         self.name = url.lastPathComponent
         self.message = localizedFormat("Saved %@", self.name)
         self.onChange?()
