@@ -70,6 +70,27 @@ PLIST
 plutil -replace CFBundleShortVersionString -string "$candy_version" "$candy_app/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$candy_version" "$candy_app/Contents/Info.plist"
 plutil -lint "$candy_app/Contents/Info.plist"
+# The Swift and Metal toolchains link rpaths that only exist on the build machine
+# (Xcode.app, the Metal toolchain cryptex). Gatekeeper treats a load command path
+# it cannot resolve as a failed verification — an otherwise notarized app is then
+# reported as malware on first launch — so keep only rpaths that are relocatable
+# or part of the system. See Apple TN3178, "Resolving Gatekeeper Problems Caused
+# by Dangling Load Command Paths".
+for candy_binary in "$candy_app/Contents/MacOS/Candy" "$candy_app/Contents/Helpers/candy"; do
+    candy_rpaths=$(otool -l "$candy_binary" | sed -n 's/^ *path \(.*\) (offset [0-9]*)$/\1/p')
+    candy_stripped=0
+    for candy_rpath in $candy_rpaths; do
+        case "$candy_rpath" in
+            @*|/usr/lib/*|/System/*) continue ;;
+        esac
+        install_name_tool -delete_rpath "$candy_rpath" "$candy_binary"
+        candy_stripped=1
+    done
+    if [ "$candy_stripped" = 1 ]; then
+        # Removing a load command invalidates any signature already on the file.
+        codesign --force --sign - "$candy_binary"
+    fi
+done
 # Sign the complete local bundle, including its final Info.plist. Staging avoids
 # stale resource seals and case-only executable names from older bundles.
 codesign --force --sign - "$candy_app"

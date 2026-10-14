@@ -42,6 +42,8 @@ ditto dist/Candy.app "$app"
 [[ "$("$app/Contents/Helpers/candy" --version)" == "candy $version" ]] || fail "CLI version mismatch."
 for executable in "$app/Contents/Helpers/candy" "$app/Contents/MacOS/Candy"; do
   [[ "$(lipo -archs "$executable")" == arm64 ]] || fail "Unexpected architecture: $executable"
+  rpaths=$(otool -l "$executable" | sed -n 's/^ *path \(.*\) (offset [0-9]*)$/\1/p' | grep -Ev '^(@|/usr/lib/|/System/)' || true)
+  [[ -z "$rpaths" ]] || fail "Build-machine rpath in $executable: $rpaths"
   codesign --force --sign "$identity" --options runtime --timestamp "$executable"
 done
 codesign --force --sign "$identity" --options runtime --timestamp "$app"

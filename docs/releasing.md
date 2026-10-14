@@ -52,6 +52,10 @@ xcrun notarytool history --keychain-profile candy-notary
 5. Unzip the final ZIP into a temporary directory and verify its signature and
    ticket. Test launch, CLI version, an image edit, and text detection. Check
    `otool -L` on both executables for dependencies outside system libraries.
+   `scripts/release.sh` also refuses to ship a binary carrying an rpath outside the
+   system libraries and the bundle itself; such a load command path does not exist
+   on a user's Mac and makes Gatekeeper report the app as unverifiable malware on
+   first launch.
 6. Check the size claims on the website against this build: the ZIP should
    still be about 2 MB (`ls -l` the ZIP), the app under 4 MB (`du -sh`), and
    an empty window about 30 MB of memory (`footprint -p <pid>`, the
