@@ -198,7 +198,7 @@ prints the same report as one JSON object; `pixels` is `null` and
 
 | Operation | Formats |
 | --- | --- |
-| Open | Anything Image I/O on your Mac decodes: PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, camera RAW and DNG, and JPEG XL on macOS 26 or later |
+| Open | Anything Image I/O on your Mac decodes: PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, camera RAW and DNG, and JPEG XL on macOS 26 or later; plus SVG and SVGZ, rasterized by resvg |
 | Save | PNG, JPEG (default quality 92), WebP (default lossless; lossy default quality 80), HEIC, AVIF and JPEG 2000 (default quality 85), TIFF (LZW), GIF (256 colors), BMP, TGA |
 
 Images are edited as 8-bit sRGB RGBA. EXIF orientation is applied on load;
@@ -211,6 +211,13 @@ image/frame is loaded. Images are limited to approximately 64 megapixels. The GU
 limited to 4096 pixels per side; edits and saves use full image resolution.
 Lossy WebP additionally limits each side to 16,383 pixels. Its encoder is
 included in the app and CLI; no external encoder installation is needed.
+
+SVG files are rendered with the bundled resvg at their own size, enlarged so
+the longer side is at least 1024 pixels and reduced to fit the pixel limit, with
+transparency preserved. Text uses the fonts installed on your Mac, and relative
+`<image>` references resolve against the file's directory. `candy inspect`
+reports the rendered size. Edited SVGs save in a raster format; Candy does not
+write SVG.
 
 This version has no layers, animation editing, cloud services or LLM integration.
 Text detection runs locally and sends no image data to a service. Detection quality and
@@ -262,7 +269,8 @@ and is not included in release builds.
 
 Tests cover edit boundaries, alpha compositing, save protection, undo state,
 terminal encoding, FFI ownership, native document/async-state regressions, a save-and-reopen
-round trip through every export format, PSD/ICO/ICNS/OpenEXR/PBM decoding, EXIF
+round trip through every export format, PSD/ICO/ICNS/OpenEXR/PBM decoding, SVG
+rasterization, EXIF
 orientation and Korean/English text-region coverage. Synthetic fixtures can be regenerated with
 `swift scripts/make-fixtures.swift crates/candy-macos/tests/fixtures`.
 GitHub Actions runs the checks and produces a zipped local app bundle on macOS.

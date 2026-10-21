@@ -85,9 +85,11 @@ live in the SwiftPM package under `macos`.
   and TGA use the `image` crate in `candy-core`; HEIC, AVIF, TIFF, BMP and
   JPEG 2000 use Image I/O. Image I/O cannot read the alpha BMP the `image` crate
   writes, and AVIF encoding exists only on newer macOS, so check `can_encode`
-  instead of assuming. Loading accepts whatever Image I/O decodes; when naming
-  a format, update the display names, the open-panel types and the
-  `LSItemContentTypes` list together.
+  instead of assuming. Loading accepts whatever Image I/O decodes, plus SVG and
+  SVGZ, which `candy_core::svg` rasterizes with resvg (longer side at least
+  1024 px, reduced to fit the pixel limit, system fonts loaded once on first
+  text) before Image I/O ever sees the bytes. When naming a format, update the
+  display names, the open-panel types and the `LSItemContentTypes` list together.
 
 ## Terminal and native UI checks
 
