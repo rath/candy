@@ -29,6 +29,12 @@ trap 'exit 1' HUP INT TERM
 candy_app="$candy_stage/Candy.app"
 mkdir -p "$candy_app/Contents/MacOS" "$candy_app/Contents/Resources" "$candy_app/Contents/Helpers"
 cp "$candy_swift_bin/Candy" "$candy_app/Contents/MacOS/Candy"
+# SwiftPM leaves the symbol table in the linked executable, and the Rust
+# static library makes it the largest part of the file. Cargo already strips
+# the CLI; strip the GUI the same way in release builds, before signing.
+if [ "$candy_profile" = release ]; then
+    strip "$candy_app/Contents/MacOS/Candy"
+fi
 cp "${CARGO_TARGET_DIR:-target}/$candy_profile/candy" "$candy_app/Contents/Helpers/candy"
 cp LICENSE "$candy_app/Contents/Resources/LICENSE"
 cp macos/Resources/AppIcon.icns "$candy_app/Contents/Resources/AppIcon.icns"
