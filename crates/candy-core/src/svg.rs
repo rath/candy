@@ -1,6 +1,10 @@
 //! SVG rasterization with resvg. A vector document has no pixel size of its
 //! own, so Candy renders it at its intrinsic CSS-pixel size, enlarged so the
 //! longer side is at least `MIN_SIDE` and reduced to fit `MAX_PIXELS`.
+//!
+//! resvg is built without its `raster-images` feature: bitmaps embedded in or
+//! linked from an SVG are skipped, which keeps the decoders and their weight
+//! out of the binaries. Nested SVG images still render.
 use crate::{MAX_PIXELS, validate_dimensions};
 use anyhow::{Context, Result, anyhow};
 use image::RgbaImage;
@@ -39,7 +43,8 @@ pub fn dimensions(bytes: &[u8], resources_dir: Option<&Path>) -> Result<(u32, u3
 }
 
 /// Rasterizes `bytes` as straight-alpha sRGB pixels. `resources_dir` resolves
-/// relative `<image href>` references, normally the SVG file's directory.
+/// relative `<image href>` references to other SVG files, normally the SVG
+/// file's directory; raster images are skipped.
 pub fn render(bytes: &[u8], resources_dir: Option<&Path>) -> Result<RgbaImage> {
     let tree = parse(bytes, resources_dir)?;
     let (width, height) = raster_size(tree.size())?;
@@ -160,6 +165,29 @@ mod tests {
             "{w}x{h}"
         );
         assert!((f64::from(w) / f64::from(h) - 2.0 / 3.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn nested_svg_images_render_and_raster_images_are_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("inner.svg"),
+            r##"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">
+<rect width="10" height="10" fill="#0000ff"/></svg>"##,
+        )
+        .unwrap();
+        RgbaImage::from_pixel(2, 2, Rgba([0, 255, 0, 255]))
+            .save(dir.path().join("green.png"))
+            .unwrap();
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100">
+<rect width="100" height="100" fill="#ff0000"/>
+<image x="100" width="100" height="100" href="inner.svg"/>
+<image x="200" width="100" height="100" href="green.png"/></svg>"##;
+        let image = render(svg.as_bytes(), Some(dir.path())).unwrap();
+        assert_eq!(image.dimensions(), (1024, 341));
+        assert_eq!(*image.get_pixel(170, 170), Rgba([255, 0, 0, 255]));
+        assert_eq!(*image.get_pixel(512, 170), Rgba([0, 0, 255, 255]));
+        assert_eq!(*image.get_pixel(853, 170), Rgba([0, 0, 0, 0]));
     }
 
     #[test]

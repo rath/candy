@@ -214,10 +214,11 @@ included in the app and CLI; no external encoder installation is needed.
 
 SVG files are rendered with the bundled resvg at their own size, enlarged so
 the longer side is at least 1024 pixels and reduced to fit the pixel limit, with
-transparency preserved. Text uses the fonts installed on your Mac, and relative
-`<image>` references resolve against the file's directory. `candy inspect`
-reports the rendered size. Edited SVGs save in a raster format; Candy does not
-write SVG.
+transparency preserved. Text uses the fonts installed on your Mac. Nested SVG
+`<image>` references resolve against the file's directory; embedded or linked
+raster images (PNG, JPEG, GIF, WebP) inside an SVG are skipped to keep the
+binaries small. `candy inspect` reports the rendered size. Edited SVGs save in a
+raster format; Candy does not write SVG.
 
 This version has no layers, animation editing, cloud services or LLM integration.
 Text detection runs locally and sends no image data to a service. Detection quality and

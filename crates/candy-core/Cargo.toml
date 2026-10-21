@@ -9,7 +9,14 @@ authors.workspace = true
 [dependencies]
 anyhow.workspace = true
 image.workspace = true
-resvg = "0.48.1"
+# Vector-only: the raster-images decoders are left out so bitmaps inside an
+# SVG are skipped; see candy_core::svg.
+resvg = { version = "0.48.1", default-features = false, features = [
+    "svgz",
+    "text",
+    "system-fonts",
+    "memmap-fonts",
+] }
 tempfile.workspace = true
 webp = { version = "0.3.1", default-features = false }
 
