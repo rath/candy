@@ -62,6 +62,7 @@ cat > "$candy_app/Contents/Info.plist" <<'PLIST'
             <string>com.truevision.tga-image</string><string>com.microsoft.ico</string><string>com.apple.icns</string>
             <string>com.ilm.openexr-image</string><string>public.radiance</string><string>public.pbm</string>
             <string>public.camera-raw-image</string><string>com.adobe.raw-image</string>
+            <string>public.svg-image</string>
         </array>
     </dict></array>
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Jang-Ho Hwang. MIT license.</string>

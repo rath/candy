@@ -74,7 +74,7 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
     "public.avif", "com.compuserve.gif", "public.tiff", "com.microsoft.bmp", "public.jpeg-2000",
     "public.jpeg-xl", "com.adobe.photoshop-image", "com.truevision.tga-image",
     "com.microsoft.ico", "com.apple.icns", "com.ilm.openexr-image", "public.radiance",
-    "public.pbm", "public.camera-raw-image", "com.adobe.raw-image",
+    "public.pbm", "public.camera-raw-image", "com.adobe.raw-image", "public.svg-image",
   ].compactMap { UTType($0) }
   private var activeEditor: EditorWindow? {
     (NSApp.keyWindow?.windowController ?? NSApp.mainWindow?.windowController) as? EditorWindow
