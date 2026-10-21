@@ -137,7 +137,7 @@ checksum = "8f1fe948ff07f4bd06c30984e69f5b4899c516a3ef74f34df92a2df2ab535495"
 
 [[package]]
 name = "candy"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -152,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "candy-core"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "flate2",
@@ -164,7 +164,7 @@ dependencies = [
 
 [[package]]
 name = "candy-ffi"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "candy-core",
@@ -175,7 +175,7 @@ dependencies = [
 
 [[package]]
 name = "candy-macos"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "anyhow",
  "candy-core",
