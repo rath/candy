@@ -3,6 +3,8 @@ use anyhow::{Context, Result, bail, ensure};
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage, imageops};
 use std::{fs, path::Path, sync::Arc};
 
+pub mod svg;
+
 pub const MAX_PIXELS: u64 = 64 * 1024 * 1024;
 
 pub fn validate_dimensions(width: u32, height: u32) -> Result<()> {
