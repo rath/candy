@@ -15,5 +15,79 @@ image = { version = "0.25.10", default-features = false, features = ["gif", "jpe
 tempfile = "3"
 
 [profile.release]
-lto = "thin"
+lto = "fat"
+codegen-units = 1
 strip = true
+
+# The SVG stack runs once per document and is cold next to the pixel loops in
+# image, webp and the candy crates, so it is built for size. Measured on the
+# release CLI: 3.60 MB at the default opt-level, 2.93 MB at "z".
+
+[profile.release.package.resvg]
+opt-level = "z"
+
+[profile.release.package.usvg]
+opt-level = "z"
+
+[profile.release.package.tiny-skia]
+opt-level = "z"
+
+[profile.release.package.tiny-skia-path]
+opt-level = "z"
+
+[profile.release.package.harfrust]
+opt-level = "z"
+
+[profile.release.package.skrifa]
+opt-level = "z"
+
+[profile.release.package.read-fonts]
+opt-level = "z"
+
+[profile.release.package.font-types]
+opt-level = "z"
+
+[profile.release.package.fontdb]
+opt-level = "z"
+
+[profile.release.package.roxmltree]
+opt-level = "z"
+
+[profile.release.package.svgtypes]
+opt-level = "z"
+
+[profile.release.package.simplecss]
+opt-level = "z"
+
+[profile.release.package.kurbo]
+opt-level = "z"
+
+[profile.release.package.polycool]
+opt-level = "z"
+
+[profile.release.package.unicode-bidi]
+opt-level = "z"
+
+[profile.release.package.unicode-script]
+opt-level = "z"
+
+[profile.release.package.unicode-vo]
+opt-level = "z"
+
+[profile.release.package.xmlwriter]
+opt-level = "z"
+
+[profile.release.package.data-url]
+opt-level = "z"
+
+[profile.release.package.imagesize]
+opt-level = "z"
+
+[profile.release.package.strict-num]
+opt-level = "z"
+
+[profile.release.package.memmap2]
+opt-level = "z"
+
+[profile.release.package.slotmap]
+opt-level = "z"

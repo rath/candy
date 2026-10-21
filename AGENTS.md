@@ -88,7 +88,9 @@ live in the SwiftPM package under `macos`.
   instead of assuming. Loading accepts whatever Image I/O decodes, plus SVG and
   SVGZ, which `candy_core::svg` rasterizes with resvg (longer side at least
   1024 px, reduced to fit the pixel limit, system fonts loaded once on first
-  text) before Image I/O ever sees the bytes. When naming a format, update the
+  text) before Image I/O ever sees the bytes. resvg is built without
+  `raster-images`, so bitmaps inside an SVG are skipped; the SVG crates are
+  size-optimized in the release profile. When naming a format, update the
   display names, the open-panel types and the `LSItemContentTypes` list together.
 
 ## Terminal and native UI checks
