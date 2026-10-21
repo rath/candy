@@ -60,12 +60,10 @@ xcrun notarytool history --keychain-profile candy-notary
    system libraries and the bundle itself; such a load command path does not exist
    on a user's Mac and makes Gatekeeper report the app as unverifiable malware on
    first launch.
-6. Check the size claims on the website against this build: the ZIP should
-   still be about 2 MB (`ls -l` the ZIP), the app under 5 MB (`du -sh`), and
-   an empty window about 30 MB of memory (`footprint -p <pid>`, the
-   `phys_footprint` line; Activity Monitor's Memory column shows the same
-   value). Update `site/index.html`, `site/ko/index.html` and `site/ja/index.html`
-   if a claim no longer holds.
+6. Note the ZIP size (`ls -l`), the app size (`du -sh`) and an empty window's
+   memory (`footprint -p <pid>`, the `phys_footprint` line) for the release
+   notes if they changed meaningfully. The website and social cards state no
+   figures on purpose, so nothing there needs syncing with a build.
 
 ## Publish
 
