@@ -1,5 +1,6 @@
 //! Small macOS boundary. Image and Vision objects stay on the calling worker
-//! thread. Shared by the CLI and the Swift app through candy-ffi.
+//! thread. Shared by the CLI and the Swift app through candy-ffi. SVG, which
+//! Image I/O does not decode, is rasterized by `candy_core::svg`.
 use anyhow::{Context, Result, bail, ensure};
 use candy_core::{PixelRect, validate_dimensions};
 use image::{DynamicImage, RgbaImage};
@@ -24,9 +25,9 @@ use objc2_image_io::{
 use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::path::Path;
 
-/// Display names for common Image I/O type identifiers. Candy opens anything
-/// Image I/O decodes; this list only names the formats people meet most.
-const FORMATS: [(&str, &str); 19] = [
+/// Display names for common type identifiers. Candy opens anything Image I/O
+/// decodes plus SVG; this list only names the formats people meet most.
+const FORMATS: [(&str, &str); 20] = [
     ("public.png", "PNG"),
     ("public.jpeg", "JPEG"),
     ("org.webmproject.webp", "WebP"),
@@ -46,6 +47,7 @@ const FORMATS: [(&str, &str); 19] = [
     ("public.radiance", "Radiance HDR"),
     ("public.pbm", "PBM"),
     ("com.adobe.raw-image", "DNG"),
+    (candy_core::svg::UTI, "SVG"),
 ];
 
 fn format_name(uti: &str) -> Option<&'static str> {
@@ -75,10 +77,14 @@ fn image_io_format(extension: &str) -> Option<(&'static str, &'static str)> {
 /// Image I/O quality for HEIC, AVIF and JPEG 2000 exports, on its 0–1 scale.
 pub const LOSSY_QUALITY: f64 = 0.85;
 
-/// Opens an image file and reads the first image's header properties.
-fn open(path: &Path) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
-    let bytes = std::fs::read(path).with_context(|| format!("Cannot read {}", path.display()))?;
-    let data = CFData::from_bytes(&bytes);
+fn read(path: &Path) -> Result<Vec<u8>> {
+    std::fs::read(path).with_context(|| format!("Cannot read {}", path.display()))
+}
+
+/// Opens image file bytes with Image I/O and reads the first image's header
+/// properties.
+fn open(bytes: &[u8]) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
+    let data = CFData::from_bytes(bytes);
     // SAFETY: All options are absent, and retained CF objects outlive each native call.
     let source =
         unsafe { CGImageSource::with_data(&data, None) }.context("Cannot decode this image")?;
@@ -90,9 +96,15 @@ fn open(path: &Path) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CF
     Ok((source, kind, props))
 }
 
+/// Decodes the first image of `path` as straight-alpha sRGB pixels with EXIF
+/// orientation applied. SVG is rasterized at the size `candy_core::svg` picks.
 pub fn load(path: &Path) -> Result<RgbaImage> {
+    let bytes = read(path)?;
+    if candy_core::svg::is_svg(path, &bytes) {
+        return candy_core::svg::render(&bytes, path.parent());
+    }
     autoreleasepool(|_| {
-        let (source, _, props) = open(path)?;
+        let (source, _, props) = open(&bytes)?;
         let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
             .context("Missing image width")?;
         let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
@@ -185,7 +197,8 @@ pub struct Metadata {
     /// Display name of common formats; `None` for rarer types Image I/O reads,
     /// which Candy still opens.
     pub format: Option<&'static str>,
-    /// Stored pixel dimensions, before EXIF orientation.
+    /// Stored pixel dimensions, before EXIF orientation. For SVG, the size
+    /// `load` rasterizes to.
     pub width: u32,
     pub height: u32,
     /// EXIF orientation 1–8; 1 when absent or invalid.
@@ -216,8 +229,27 @@ impl Metadata {
 }
 
 pub fn inspect(path: &Path) -> Result<Metadata> {
+    let bytes = read(path)?;
+    if candy_core::svg::is_svg(path, &bytes) {
+        let (width, height) = candy_core::svg::dimensions(&bytes, path.parent())?;
+        return Ok(Metadata {
+            uti: candy_core::svg::UTI.to_owned(),
+            format: Some("SVG"),
+            width,
+            height,
+            orientation: 1,
+            color_model: None,
+            depth: None,
+            has_alpha: true,
+            is_float: false,
+            is_indexed: false,
+            profile: None,
+            dpi: None,
+            images: 1,
+        });
+    }
     autoreleasepool(|_| {
-        let (source, uti, props) = open(path)?;
+        let (source, uti, props) = open(&bytes)?;
         let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
             .context("Missing image width")?;
         let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })

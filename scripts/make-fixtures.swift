@@ -93,4 +93,41 @@ for (ext, type) in [("png", UTType.png), ("jpg", UTType.jpeg),
 }
 write(sample, name: "orientation6.jpg", type: .jpeg, properties: [kCGImagePropertyOrientation: 6])
 write(travelCard(scale: 2), name: "weekend-demo.png", type: .png)
+
+// The same card as a vector document, drawn at 1200 × 792 so Candy rasterizes it
+// at its own size. Text names system fonts, including a Korean line, so the
+// fixture exercises resvg's font lookup rather than only its path renderer.
+let vectorCard = """
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="792" viewBox="0 0 1200 792">
+  <!-- Synthetic weekend travel card for Candy's tests. Every detail is fictional. -->
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8CC5E8"/>
+      <stop offset="1" stop-color="#1F6F9F"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="792" fill="#FAF6ED"/>
+  <rect x="624" width="576" height="792" fill="url(#sea)"/>
+  <circle cx="1010" cy="200" r="70" fill="#FFD36B"/>
+  <path d="M624 560 Q700 520 776 560 T928 560 T1080 560 T1232 560 V792 H624 Z" fill="#2B5F86" opacity="0.8"/>
+  <path d="M624 640 Q700 600 776 640 T928 640 T1080 640 T1232 640 V792 H624 Z" fill="#163C3B" opacity="0.7"/>
+  <g fill="#163C3B" font-family="Helvetica Neue, Apple SD Gothic Neo, sans-serif">
+    <text x="53" y="64" font-size="20" font-weight="600">WEEKEND NOTES / 03</text>
+    <text x="53" y="172" font-size="79" font-weight="700">Take the</text>
+    <text x="53" y="258" font-size="79" font-weight="700">scenic route.</text>
+    <text x="53" y="356" font-size="32">안녕하세요. 지중해의 여름</text>
+    <text x="53" y="406" font-size="24" font-weight="500">JUN 14–17 · 3 NIGHTS</text>
+    <rect x="53" y="448" width="518" height="1" fill="#C8D2C9"/>
+    <text x="53" y="494" font-size="20" font-weight="600">TRAVELER / 예약자</text>
+    <text x="53" y="544" font-size="36" font-weight="600">Alex Morgan</text>
+    <text x="53" y="598" font-size="29">alex@example.com</text>
+    <text x="53" y="648" font-size="29">Booking: DEMO-0826</text>
+    <text x="53" y="754" font-size="19" font-weight="500">A FICTIONAL GETAWAY · CANDY DEMO</text>
+  </g>
+</svg>
+
+"""
+try vectorCard.write(to: destination.appendingPathComponent("sample.svg"),
+                     atomically: true, encoding: .utf8)
 print(destination.path)

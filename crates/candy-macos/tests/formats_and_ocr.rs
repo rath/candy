@@ -109,6 +109,33 @@ fn fixtures_decode_and_every_export_format_reopens() {
 }
 
 #[test]
+fn svg_rasterizes_at_its_own_size_with_system_font_text() {
+    let path = fixture("sample.svg");
+    let meta = candy_macos::inspect(&path).unwrap();
+    assert_eq!(meta.uti, "public.svg-image");
+    assert_eq!(meta.format, Some("SVG"));
+    assert_eq!((meta.width, meta.height, meta.images), (1200, 792, 1));
+    assert!(meta.has_alpha && meta.dpi.is_none() && meta.orientation == 1);
+    let image = candy_macos::load(&path).unwrap();
+    assert_eq!(image.dimensions(), (1200, 792));
+    assert_eq!(*image.get_pixel(20, 20), image::Rgba([250, 246, 237, 255]));
+    let sea = image.get_pixel(1000, 300);
+    assert!(sea[2] > sea[0] + 60 && sea[3] == 255, "sea {sea:?}");
+    // The headline is set in a system font; Vision must see rendered glyphs.
+    let regions = candy_macos::detect_text(&image).unwrap();
+    assert!(!regions.is_empty(), "no text detected in the rendered SVG");
+    // Content sniffing covers files without an extension.
+    let dir = tempfile::tempdir().unwrap();
+    let bare = dir.path().join("card");
+    std::fs::copy(&path, &bare).unwrap();
+    assert_eq!(candy_macos::inspect(&bare).unwrap(), meta);
+    assert_eq!(candy_macos::load(&bare).unwrap(), image);
+    // Edits save as raster formats only; SVG is never written.
+    let error = candy_macos::save(&image, &dir.path().join("card.svg"), false).unwrap_err();
+    assert!(error.to_string().starts_with("Save as PNG"), "{error}");
+}
+
+#[test]
 fn image_io_only_formats_decode_too() {
     let card = candy_macos::load(&fixture("sample.png")).unwrap();
     // ICO and ICNS limit sizes, so every format here uses a small square.
