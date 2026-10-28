@@ -223,9 +223,11 @@ pub fn display(image: &RgbaImage) -> Result<()> {
 fn ensure_passthrough() -> Result<()> {
     // A blocked upload would leave only empty placeholder cells. An older tmux
     // without the option always passes through, so only a definite "off" fails.
+    // Suggest "all": with "on", tmux drops chunks that arrive while a redraw is
+    // pending, so a busy neighbouring pane can still blank the preview.
     ensure!(
         tmux_format("#{allow-passthrough}").as_deref() != Some("off"),
-        "tmux blocks terminal images; enable them with `tmux set -g allow-passthrough on`"
+        "tmux blocks terminal images; enable them with `tmux set -g allow-passthrough all`"
     );
     Ok(())
 }

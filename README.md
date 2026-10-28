@@ -82,14 +82,23 @@ candy --display kitty photo.avif
 ```
 
 Inside tmux, previews travel through tmux passthrough, which needs
-`set -g allow-passthrough on`, and are placed with Kitty Unicode placeholders
-so tmux scrolls and redraws them like text. There, automatic detection asks
-tmux instead of probing the terminal: it displays inline when passthrough is
-enabled and tmux reports a Ghostty or kitty client, and launches the editor
-otherwise. `--display kitty` skips capability detection. GNU screen passthrough
-and the iTerm image protocol are not implemented. Redirected image-display
-output is rejected rather than writing escape sequences into a file. Automatic
-detection has been checked in Ghostty, both directly and inside tmux.
+`set -g allow-passthrough on` or `all`, and are placed with Kitty Unicode
+placeholders so tmux scrolls and redraws them like text. There, automatic
+detection asks tmux instead of probing the terminal: it displays inline when
+passthrough is enabled and tmux reports a Ghostty or kitty client, and launches
+the editor otherwise. `--display kitty` skips capability detection. GNU screen
+passthrough and the iTerm image protocol are not implemented. Redirected
+image-display output is rejected rather than writing escape sequences into a
+file. Automatic detection has been checked in Ghostty, both directly and inside
+tmux.
+
+With `allow-passthrough on`, tmux drops passthrough data that arrives while it
+has a redraw pending. That happens when another pane in the same window
+scrolls by inserting or deleting lines while a preview uploads: the preview
+area stays blank, and running the command again usually shows it. Candy cannot
+detect the loss, because terminal replies reach it through tmux as keystrokes.
+`set -g allow-passthrough all` forwards image data even while a redraw is
+pending, but it also lets panes in hidden windows write to the terminal.
 
 ## Editing
 
