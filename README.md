@@ -113,11 +113,20 @@ image-display output is rejected rather than writing escape sequences into a
 file. Automatic detection has been checked in Ghostty, both directly and inside
 tmux.
 
+In local tmux sessions, Candy hands the preview to the terminal in a private
+temporary PNG file using Kitty's temporary-file transport. This avoids chunked
+image uploads colliding with graphics from another pane, such as a video player.
+The terminal deletes the file after reading it. Candy waits up to two seconds
+for that deletion; failed or timed-out transfers are cleaned up and reported as
+errors. Sessions with `SSH_CONNECTION`, `SSH_CLIENT` or `SSH_TTY` set keep the
+inline data transport, since the terminal cannot read files on the remote host;
+concurrent graphics uploads can still collide there.
+
 With `allow-passthrough on`, tmux drops passthrough data that arrives while it
 has a redraw pending. That happens when another pane in the same window
-scrolls by inserting or deleting lines while a preview uploads: the preview
-area stays blank, and running the command again usually shows it. Candy cannot
-detect the loss, because terminal replies reach it through tmux as keystrokes.
+scrolls by inserting or deleting lines while a preview uploads. Local file
+transfers report a timeout; inline data transfers can leave a blank preview
+without an error, because terminal replies reach Candy through tmux as keystrokes.
 `set -g allow-passthrough all` forwards image data even while a redraw is
 pending, but it also lets panes in hidden windows write to the terminal.
 

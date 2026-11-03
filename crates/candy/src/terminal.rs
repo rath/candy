@@ -3,16 +3,19 @@ use base64::{Engine, engine::general_purpose::STANDARD};
 use image::{DynamicImage, ImageFormat, RgbaImage, imageops::FilterType};
 use std::{
     ffi::CStr,
-    fs::OpenOptions,
+    fs::{self, OpenOptions},
     hash::{BuildHasher, RandomState},
     io::{Cursor, Read, Write},
-    os::fd::AsRawFd,
+    os::{fd::AsRawFd, unix::ffi::OsStrExt},
+    path::Path,
     process::Command,
+    thread,
     time::{Duration, Instant},
 };
 
 const QUERY_ID: u32 = 73921;
 const PLACEHOLDER: char = '\u{10EEEE}';
+const FILE_TRANSFER_TIMEOUT: Duration = Duration::from_secs(2);
 
 struct TerminalGuard {
     fd: libc::c_int,
@@ -208,9 +211,13 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     let mut stdout = std::io::stdout().lock();
     if tmux {
         let id = image_id();
-        let control = format!("a=T,U=1,i={id},c={span_cols},r={span_rows},t=d,f=100,q=2");
-        write_graphics(&mut stdout, png.get_ref(), &control, true)
-            .and_then(|()| write_placeholders(&mut stdout, id, span_cols, span_rows))
+        let control = format!("a=T,U=1,i={id},c={span_cols},r={span_rows},f=100,q=2");
+        if local_tmux() {
+            transmit_file(&mut stdout, png.get_ref(), &control, FILE_TRANSFER_TIMEOUT)?;
+        } else {
+            write_graphics(&mut stdout, png.get_ref(), &format!("{control},t=d"), true)?;
+        }
+        write_placeholders(&mut stdout, id, span_cols, span_rows)
     } else {
         write_graphics(&mut stdout, png.get_ref(), "a=T,t=d,f=100,q=2", false)
             .and_then(|()| writeln!(stdout))
@@ -218,6 +225,60 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     .context("Cannot write image to terminal")?;
     stdout.flush()?;
     Ok(())
+}
+
+fn local_tmux() -> bool {
+    // A remote terminal cannot open files on the SSH host. Keep inline data
+    // there, even if the terminal reports support for Kitty graphics.
+    ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"]
+        .iter()
+        .all(|name| std::env::var_os(name).is_none())
+}
+
+/// A Kitty chunked upload is terminal-wide: another pane's image command can
+/// interrupt it. In local tmux, hand off one temporary PNG instead. The terminal
+/// unlinks t=t files after reading; retain our owner until then so exiting the
+/// CLI cannot delete the image before the terminal opens it. Errors and timeouts
+/// also drop the owner, including when tmux silently discards passthrough data.
+fn transmit_file(
+    mut output: impl Write,
+    png: &[u8],
+    control: &str,
+    timeout: Duration,
+) -> Result<()> {
+    let mut file = tempfile::Builder::new()
+        .prefix("tty-graphics-protocol-candy-")
+        .suffix(".png")
+        .tempfile()
+        .context("Cannot create terminal preview file")?;
+    file.write_all(png)
+        .context("Cannot write terminal preview file")?;
+    let path = file.into_temp_path();
+    let name = STANDARD.encode(path.as_os_str().as_bytes());
+    // One complete passthrough packet: no image chunks can be interleaved.
+    write!(
+        output,
+        "\x1bPtmux;\x1b\x1b_G{control},t=t;{name}\x1b\x1b\\\x1b\\"
+    )
+    .context("Cannot send terminal preview file")?;
+    output.flush().context("Cannot flush terminal preview")?;
+    wait_for_file_consumption(&path, timeout)
+}
+
+fn wait_for_file_consumption(path: &Path, timeout: Duration) -> Result<()> {
+    let deadline = Instant::now() + timeout;
+    loop {
+        match fs::symlink_metadata(path) {
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+            Err(error) => return Err(error).context("Cannot check terminal preview file"),
+            Ok(_) => {}
+        }
+        ensure!(
+            Instant::now() < deadline,
+            "Terminal did not read the preview file; check tmux allow-passthrough (use all), or use --display gui"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
 }
 
 fn ensure_passthrough() -> Result<()> {
@@ -342,6 +403,111 @@ const DIACRITICS: [char; 297] = [
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::os::unix::{ffi::OsStringExt, fs::PermissionsExt};
+
+    #[derive(Default)]
+    struct FileTerminal {
+        output: Vec<u8>,
+        consume: bool,
+        fail_flush: bool,
+        reader: Option<thread::JoinHandle<Vec<u8>>>,
+    }
+
+    impl FileTerminal {
+        fn path(&self) -> std::path::PathBuf {
+            let text = std::str::from_utf8(&self.output).unwrap();
+            let command = text
+                .strip_prefix("\x1bPtmux;\x1b\x1b_G")
+                .unwrap()
+                .strip_suffix("\x1b\x1b\\\x1b\\")
+                .unwrap();
+            let (control, payload) = command.split_once(';').unwrap();
+            assert!(control.contains("t=t"));
+            assert!(!control.contains("m="));
+            assert!(text.len() < 4096, "only one filename should cross the PTY");
+            std::ffi::OsString::from_vec(STANDARD.decode(payload).unwrap()).into()
+        }
+    }
+
+    impl Write for FileTerminal {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.output.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            let path = self.path();
+            assert_eq!(fs::metadata(&path)?.permissions().mode() & 0o777, 0o600);
+            assert!(
+                path.file_name()
+                    .unwrap()
+                    .as_bytes()
+                    .starts_with(b"tty-graphics-protocol-candy-")
+            );
+            if self.fail_flush {
+                return Err(std::io::ErrorKind::BrokenPipe.into());
+            }
+            if self.consume {
+                self.reader = Some(thread::spawn(move || {
+                    // A terminal processes output asynchronously, after flush.
+                    thread::sleep(Duration::from_millis(30));
+                    let bytes = fs::read(&path).unwrap();
+                    fs::remove_file(path).unwrap();
+                    bytes
+                }));
+            }
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn file_transfer_waits_for_terminal_and_preserves_png() {
+        let image = RgbaImage::from_fn(320, 200, |x, y| {
+            image::Rgba([x as u8, y as u8, (x ^ y) as u8, (x + y) as u8])
+        });
+        let mut png = Cursor::new(Vec::new());
+        DynamicImage::ImageRgba8(image.clone())
+            .write_to(&mut png, ImageFormat::Png)
+            .unwrap();
+        let mut terminal = FileTerminal {
+            consume: true,
+            ..Default::default()
+        };
+        transmit_file(
+            &mut terminal,
+            png.get_ref(),
+            "a=T,U=1,i=123,c=40,r=13,f=100,q=2",
+            FILE_TRANSFER_TIMEOUT,
+        )
+        .unwrap();
+        assert!(!terminal.path().exists());
+        let received = terminal.reader.take().unwrap().join().unwrap();
+        assert_eq!(
+            image::load_from_memory(&received).unwrap().into_rgba8(),
+            image
+        );
+        assert!(String::from_utf8_lossy(&terminal.output).contains("i=123,c=40,r=13"));
+    }
+
+    #[test]
+    fn discarded_file_transfer_times_out_and_removes_file() {
+        let mut terminal = FileTerminal::default();
+        let error = transmit_file(&mut terminal, b"png", "a=T", Duration::ZERO).unwrap_err();
+        assert!(error.to_string().contains("Terminal did not read"));
+        assert!(!terminal.path().exists());
+    }
+
+    #[test]
+    fn failed_file_transfer_removes_file() {
+        let mut terminal = FileTerminal {
+            fail_flush: true,
+            ..Default::default()
+        };
+        let error = transmit_file(&mut terminal, b"png", "a=T", FILE_TRANSFER_TIMEOUT).unwrap_err();
+        assert!(error.to_string().contains("Cannot flush"));
+        assert!(!terminal.path().exists());
+    }
+
     #[test]
     fn only_matching_positive_query_is_accepted() {
         assert!(query_succeeded(b"\x1b_Gi=73921;OK\x1b\\"));
