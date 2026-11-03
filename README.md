@@ -74,7 +74,28 @@ image application.
 `candy photo.png` probes Kitty graphics support and displays a fitted preview
 when available. Otherwise it launches the editor. `candy edit photo.png`
 launches a detached editor and returns control to the shell immediately.
-Running `candy` without arguments opens an empty editor.
+Running `candy` without arguments in an interactive terminal opens an empty editor.
+
+Pipe or redirect an image into Candy to display it without naming a file. `-`
+explicitly selects stdin; an explicit file path takes precedence over piped input.
+
+```sh
+cat photo.png | candy
+candy < photo.heic
+cat drawing.svg | candy -
+cat photo.jpg | candy --display gui
+```
+
+Candy reads one image through EOF and detects its format from the contents,
+including SVG and SVGZ. Empty or invalid input is an error. Relative resources
+in a piped SVG resolve against the current directory. Stdin is supported for
+display only; `edit`, `inspect` and CLI editing commands still take file paths.
+Use `./-` to display a file literally named `-`.
+
+The same automatic GUI fallback applies to stdin. The editor opens it as
+`stdin.png`; first Save asks for a destination, and closing before making edits
+does not ask to save. A private cache file carries the full-resolution image to
+the editor and is removed after loading.
 
 ```sh
 candy --display gui photo.heic

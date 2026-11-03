@@ -2,7 +2,10 @@ use crate::launcher::launch;
 use anyhow::{Context, Result, ensure};
 use candy_core::{Operation, PixelRect, Rotation, SaveOptions, WebpMode};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use std::{io::IsTerminal, path::PathBuf};
+use std::{
+    io::{IsTerminal, Read},
+    path::PathBuf,
+};
 
 #[derive(Parser)]
 #[command(
@@ -12,7 +15,7 @@ use std::{io::IsTerminal, path::PathBuf};
     subcommand_negates_reqs = true
 )]
 pub struct Cli {
-    /// Image to display; omit to open the editor.
+    /// Image to display, or - for stdin. Omit to read piped input or open the editor.
     pub path: Option<PathBuf>,
     #[arg(long, value_enum, default_value = "auto")]
     pub display: Display,
@@ -168,25 +171,66 @@ pub fn run(cli: Cli) -> Result<()> {
         Some(Action::Flatten { files, background }) => {
             edit(files, |_| Ok(Operation::Flatten(background)))
         }
-        None => {
-            let Some(path) = cli.path else {
-                return launch(None);
-            };
-            if matches!(cli.display, Display::Gui) {
-                return launch(Some(path));
-            }
-            ensure!(
-                std::io::stdout().is_terminal(),
-                "Image display needs a terminal; use --display gui to open the editor"
-            );
-            let image = candy_macos::load(&path)?;
-            if matches!(cli.display, Display::Kitty) || crate::terminal::supported() {
-                crate::terminal::display(&image)
-            } else {
-                launch(Some(path))
-            }
+        None => view(cli.path, cli.display),
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum Input {
+    Editor,
+    File(PathBuf),
+    Stdin,
+}
+
+impl Input {
+    fn select(path: Option<PathBuf>, stdin_is_terminal: bool) -> Self {
+        match path {
+            Some(path) if path.as_os_str() == "-" => Self::Stdin,
+            Some(path) => Self::File(path),
+            None if stdin_is_terminal => Self::Editor,
+            None => Self::Stdin,
         }
     }
+}
+
+fn view(path: Option<PathBuf>, display: Display) -> Result<()> {
+    let input = Input::select(path, std::io::stdin().is_terminal());
+    if input == Input::Editor {
+        return launch(None);
+    }
+    if matches!(display, Display::Gui) {
+        if let Input::File(path) = input {
+            return launch(Some(path));
+        }
+    } else {
+        ensure!(
+            std::io::stdout().is_terminal(),
+            "Image display needs a terminal; use --display gui to open the editor"
+        );
+    }
+    let image = match &input {
+        Input::File(path) => candy_macos::load(path)?,
+        Input::Stdin => read_stdin(std::io::stdin().lock())?,
+        Input::Editor => unreachable!(),
+    };
+    if matches!(display, Display::Kitty)
+        || (matches!(display, Display::Auto) && crate::terminal::supported())
+    {
+        crate::terminal::display(&image)
+    } else if let Input::File(path) = input {
+        launch(Some(path))
+    } else {
+        crate::launcher::launch_image(&image)
+    }
+}
+
+fn read_stdin(mut input: impl Read) -> Result<image::RgbaImage> {
+    let mut bytes = Vec::new();
+    input
+        .read_to_end(&mut bytes)
+        .context("Cannot read image from stdin")?;
+    ensure!(!bytes.is_empty(), "No image data received on stdin");
+    candy_macos::load_bytes(&bytes).context("Cannot decode image from stdin")
 }
 
 fn edit(
@@ -229,6 +273,53 @@ fn edit(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn display_selects_stdin_only_when_requested_or_redirected() {
+        assert_eq!(Input::select(None, true), Input::Editor);
+        assert_eq!(Input::select(None, false), Input::Stdin);
+        for terminal in [false, true] {
+            assert_eq!(Input::select(Some("-".into()), terminal), Input::Stdin);
+            for path in ["photo.png", "./-"] {
+                assert_eq!(
+                    Input::select(Some(path.into()), terminal),
+                    Input::File(path.into())
+                );
+            }
+        }
+        assert_eq!(
+            Cli::try_parse_from(["candy", "-"]).unwrap().path,
+            Some("-".into())
+        );
+    }
+
+    #[test]
+    fn stdin_errors_identify_empty_invalid_and_failed_reads() {
+        assert!(
+            read_stdin(&b""[..])
+                .unwrap_err()
+                .to_string()
+                .contains("No image data")
+        );
+        assert!(
+            read_stdin(&b"not an image"[..])
+                .unwrap_err()
+                .to_string()
+                .contains("decode image from stdin")
+        );
+        struct Failed;
+        impl Read for Failed {
+            fn read(&mut self, _: &mut [u8]) -> std::io::Result<usize> {
+                Err(std::io::Error::other("read failed"))
+            }
+        }
+        assert!(
+            read_stdin(Failed)
+                .unwrap_err()
+                .to_string()
+                .contains("read image from stdin")
+        );
+    }
+
     #[test]
     fn cli_rejects_missing_outputs_and_conflicting_regions() {
         assert!(Cli::try_parse_from(["candy", "resize", "a.png", "--width", "10"]).is_err());

@@ -103,8 +103,21 @@ pub fn load(path: &Path) -> Result<RgbaImage> {
     if candy_core::svg::is_svg(path, &bytes) {
         return candy_core::svg::render(&bytes, path.parent());
     }
+    decode(&bytes)
+}
+
+/// Decodes an image without a filename, including SVG and gzip-compressed SVGZ.
+/// Relative SVG resources resolve against the caller's current directory.
+pub fn load_bytes(bytes: &[u8]) -> Result<RgbaImage> {
+    if candy_core::svg::is_svg(Path::new(""), bytes) || bytes.starts_with(&[0x1f, 0x8b]) {
+        return candy_core::svg::render(bytes, None);
+    }
+    decode(bytes)
+}
+
+fn decode(bytes: &[u8]) -> Result<RgbaImage> {
     autoreleasepool(|_| {
-        let (source, _, props) = open(&bytes)?;
+        let (source, _, props) = open(bytes)?;
         let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
             .context("Missing image width")?;
         let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })

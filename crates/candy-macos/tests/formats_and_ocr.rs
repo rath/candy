@@ -8,6 +8,49 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 #[test]
+fn bytes_decode_like_files_without_a_format_hint() {
+    for name in [
+        "sample.png",
+        "sample.jpg",
+        "orientation6.jpg",
+        "sample.heic",
+        "sample.avif",
+        "sample.svg",
+    ] {
+        let path = fixture(name);
+        let bytes = std::fs::read(&path).unwrap();
+        assert_eq!(
+            candy_macos::load_bytes(&bytes).unwrap(),
+            candy_macos::load(&path).unwrap(),
+            "{name}"
+        );
+    }
+    let image = image::RgbaImage::from_fn(4, 1, |x, _| image::Rgba([255, 0, 0, (x * 85) as u8]));
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("alpha.png");
+    candy_macos::save(&image, &path, false).unwrap();
+    let decoded = candy_macos::load_bytes(&std::fs::read(&path).unwrap()).unwrap();
+    assert_eq!(decoded, candy_macos::load(&path).unwrap());
+    assert_eq!(
+        decoded.pixels().map(|p| p[3]).collect::<Vec<_>>(),
+        [0, 85, 170, 255]
+    );
+    let compressed = std::process::Command::new("/usr/bin/gzip")
+        .args(["-c"])
+        .arg(fixture("sample.svg"))
+        .output()
+        .unwrap();
+    assert!(compressed.status.success());
+    assert_eq!(
+        candy_macos::load_bytes(&compressed.stdout).unwrap(),
+        candy_macos::load(&fixture("sample.svg")).unwrap()
+    );
+    for invalid in [&b""[..], &b"invalid"[..], &b"\x1f\x8bnot gzip"[..]] {
+        assert!(candy_macos::load_bytes(invalid).is_err());
+    }
+}
+
+#[test]
 fn image_io_exports_accept_quality_and_reopen() {
     let image = image::RgbaImage::from_fn(128, 96, |x, y| {
         image::Rgba([

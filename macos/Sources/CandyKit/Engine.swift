@@ -89,9 +89,11 @@ final class RustDocument: @unchecked Sendable {
   private let handle: OpaquePointer
   private init(_ handle: OpaquePointer) { self.handle = handle }
   deinit { candy_document_free(handle) }
-  static func open(_ url: URL) throws -> RustDocument {
+  static func open(_ url: URL, imported: Bool = false) throws -> RustDocument {
     let handle = try url.withUnsafeFileSystemRepresentation { path in
-      try checked { candy_document_open(path, $0) }
+      try checked {
+        imported ? candy_document_import(path, $0) : candy_document_open(path, $0)
+      }
     }
     guard let handle else { throw EngineError(message: localized("Cannot open image")) }
     return RustDocument(handle)

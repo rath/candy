@@ -41,15 +41,19 @@ final class DocumentSession {
     image = rendered.preview.image()
   }
   func load(_ url: URL) {
+    load(url, transfer: CLIImport.recognize(url))
+  }
+  func load(_ url: URL, transfer: CLIImport?) {
     guard !busy, engine == nil else { return }
     busy = true
-    source = url
+    source = transfer == nil ? url : nil
     name = url.lastPathComponent
     message = localized("Opening image…")
     onChange?()
     worker.async { [self] in
       let result = Result {
-        let engine = try RustDocument.open(url)
+        defer { transfer?.remove() }
+        let engine = try RustDocument.open(url, imported: transfer != nil)
         return try (engine, engine.render())
       }
       DispatchQueue.main.async { [self] in

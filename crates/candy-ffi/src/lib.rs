@@ -184,6 +184,20 @@ pub unsafe extern "C" fn candy_document_open(
     })
 }
 #[unsafe(no_mangle)]
+pub unsafe extern "C" fn candy_document_import(
+    file: *const c_char,
+    error: *mut *mut c_char,
+) -> *mut CandyDocument {
+    guarded(error, || {
+        let image = candy_macos::load(&unsafe { path(file)? })?;
+        // A stdin import starts as a clean viewing document, but has no source
+        // to protect: its transport file can be deleted as soon as this returns.
+        Ok(Box::into_raw(Box::new(CandyDocument::new(
+            image, None, false,
+        ))))
+    })
+}
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn candy_document_free(document: *mut CandyDocument) {
     if !document.is_null() {
         drop(unsafe { Box::from_raw(document) });

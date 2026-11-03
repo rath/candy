@@ -24,6 +24,9 @@ typedef struct { uint32_t width, height; size_t length; uint8_t *data; } CandyPr
 typedef struct { size_t count; CandyRect *data; } CandyRegions;
 void candy_error_free(char *error);
 CandyDocument *candy_document_open(const char *path, char **error);
+// Import a temporary image as a clean document without retaining its source path.
+// The caller owns the file and may delete it after this call, including on failure.
+CandyDocument *candy_document_import(const char *path, char **error);
 void candy_document_free(CandyDocument *document);
 CandyState candy_document_state(CandyDocument *document, char **error);
 uint8_t candy_document_history(CandyDocument *document, uint8_t redo, char **error);

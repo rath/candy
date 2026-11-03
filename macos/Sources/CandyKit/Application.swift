@@ -120,6 +120,9 @@ public final class CandyApplication: NSObject, NSApplicationDelegate, NSMenuItem
   }
   private func confirmTermination(_ documents: [EditorWindow], index: Int) {
     guard index < documents.count else {
+      // Incoming CLI images were retained while the quit decision was pending.
+      for url in queuedURLs { CLIImport.recognize(url)?.remove() }
+      queuedURLs = []
       NSApp.reply(toApplicationShouldTerminate: true)
       return
     }
