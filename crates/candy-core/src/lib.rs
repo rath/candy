@@ -105,6 +105,55 @@ pub enum Rotation {
     CounterClockwise,
 }
 
+/// Convert straight RGBA to the premultiplied layout used by filters and AppKit.
+pub fn premultiply(image: &mut RgbaImage) {
+    for p in image.pixels_mut() {
+        for c in 0..3 {
+            p[c] = ((u16::from(p[c]) * u16::from(p[3]) + 127) / 255) as u8;
+        }
+    }
+}
+
+fn resize_rgba(
+    input: &RgbaImage,
+    width: u32,
+    height: u32,
+    filter: imageops::FilterType,
+) -> Result<RgbaImage> {
+    validate_dimensions(width, height)?;
+    if input.dimensions() == (width, height) {
+        return Ok(input.clone());
+    }
+    let mut premultiplied = input.clone();
+    premultiply(&mut premultiplied);
+    let mut out = imageops::resize(&premultiplied, width, height, filter);
+    for p in out.pixels_mut() {
+        for c in 0..3 {
+            p[c] = if p[3] == 0 {
+                0
+            } else {
+                (u32::from(p[c]) * 255 / u32::from(p[3])).min(255) as u8
+            };
+        }
+    }
+    Ok(out)
+}
+
+/// Fit a straight-alpha preview within both bounds without enlarging the image.
+pub fn preview(input: &RgbaImage, max_width: u32, max_height: u32) -> Result<RgbaImage> {
+    validate_dimensions(input.width(), input.height())?;
+    ensure!(
+        max_width > 0 && max_height > 0,
+        "Preview bounds must be positive"
+    );
+    let scale = (f64::from(max_width) / f64::from(input.width()))
+        .min(f64::from(max_height) / f64::from(input.height()))
+        .min(1.0);
+    let width = (f64::from(input.width()) * scale).round().max(1.0) as u32;
+    let height = (f64::from(input.height()) * scale).round().max(1.0) as u32;
+    resize_rgba(input, width, height, imageops::FilterType::Triangle)
+}
+
 pub fn apply(input: &RgbaImage, op: &Operation) -> Result<RgbaImage> {
     match op {
         Operation::Crop(rect) => {
@@ -112,30 +161,7 @@ pub fn apply(input: &RgbaImage, op: &Operation) -> Result<RgbaImage> {
             Ok(imageops::crop_imm(input, rect.x, rect.y, rect.width, rect.height).to_image())
         }
         Operation::Resize { width, height } => {
-            validate_dimensions(*width, *height)?;
-            // Filter premultiplied values to avoid dark fringes around transparent pixels.
-            let mut premultiplied = input.clone();
-            for p in premultiplied.pixels_mut() {
-                for c in 0..3 {
-                    p[c] = ((u16::from(p[c]) * u16::from(p[3]) + 127) / 255) as u8;
-                }
-            }
-            let mut out = imageops::resize(
-                &premultiplied,
-                *width,
-                *height,
-                imageops::FilterType::Lanczos3,
-            );
-            for p in out.pixels_mut() {
-                for c in 0..3 {
-                    p[c] = if p[3] == 0 {
-                        0
-                    } else {
-                        (u32::from(p[c]) * 255 / u32::from(p[3])).min(255) as u8
-                    };
-                }
-            }
-            Ok(out)
+            resize_rgba(input, *width, *height, imageops::FilterType::Lanczos3)
         }
         Operation::Rotate(Rotation::Clockwise) => Ok(imageops::rotate90(input)),
         Operation::Rotate(Rotation::CounterClockwise) => Ok(imageops::rotate270(input)),
@@ -702,6 +728,38 @@ mod tests {
         assert_eq!(result.get_pixel(2, 1), result.get_pixel(3, 2));
         assert_ne!(result, image);
     }
+    #[test]
+    fn previews_preserve_transparent_edge_colors_and_respect_bounds() {
+        let input = RgbaImage::from_fn(16, 4, |x, _| {
+            if x % 2 == 0 {
+                Rgba([255, 0, 0, 255])
+            } else {
+                Rgba([0, 0, 255, 0])
+            }
+        });
+        let out = preview(&input, 8, 8).unwrap();
+        assert_eq!(out.dimensions(), (8, 2));
+        for p in out.pixels() {
+            assert_eq!(&p.0[..3], &[255, 0, 0]);
+            assert!(p[3] > 0 && p[3] < 255);
+        }
+        assert_eq!(preview(&input, 100, 100).unwrap(), input);
+        assert_eq!(preview(&input, 16, 1).unwrap().dimensions(), (4, 1));
+        assert!(preview(&input, 0, 4).is_err());
+        let low_alpha = RgbaImage::from_pixel(2, 1, Rgba([128, 64, 32, 1]));
+        assert_eq!(
+            apply(
+                &low_alpha,
+                &Operation::Resize {
+                    width: 2,
+                    height: 1
+                }
+            )
+            .unwrap(),
+            low_alpha
+        );
+    }
+
     #[test]
     fn alpha_is_composited_not_just_discarded() {
         let image = RgbaImage::from_pixel(1, 1, Rgba([255, 0, 0, 128]));

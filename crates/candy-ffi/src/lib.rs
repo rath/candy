@@ -371,20 +371,9 @@ pub unsafe extern "C" fn candy_document_preview(
 ) -> *mut CandyPreview {
     guarded(error, || {
         let d = unsafe { doc(document)? };
-        let mut preview = if d.image.width() > 4096 || d.image.height() > 4096 {
-            image::DynamicImage::ImageRgba8((*d.image).clone())
-                .resize(4096, 4096, image::imageops::FilterType::Triangle)
-                .into_rgba8()
-        } else {
-            (*d.image).clone()
-        };
+        let mut preview = candy_core::preview(&d.image, 4096, 4096)?;
         let (width, height) = preview.dimensions();
-        for pixel in preview.pixels_mut() {
-            for channel in 0..3 {
-                pixel[channel] =
-                    ((u16::from(pixel[channel]) * u16::from(pixel[3]) + 127) / 255) as u8;
-            }
-        }
+        candy_core::premultiply(&mut preview);
         let bytes = preview.into_raw().into_boxed_slice();
         let length = bytes.len();
         let data = Box::into_raw(bytes).cast::<u8>();
@@ -504,6 +493,36 @@ mod tests {
             candy_preview_free(ptr::null_mut());
         }
     }
+    #[test]
+    fn reduced_previews_keep_premultiplied_edge_colors() {
+        let mut d = CandyDocument::new(
+            RgbaImage::from_fn(8192, 2, |x, _| {
+                if x % 2 == 0 {
+                    image::Rgba([255, 0, 0, 255])
+                } else {
+                    image::Rgba([0; 4])
+                }
+            }),
+            None,
+            false,
+        );
+        let mut error = ptr::null_mut();
+        unsafe {
+            let p = candy_document_preview(&mut d, &mut error);
+            assert!(!p.is_null() && error.is_null());
+            assert_eq!(((*p).width, (*p).height), (4096, 1));
+            for pixel in std::slice::from_raw_parts((*p).data, (*p).length)
+                .as_chunks::<4>()
+                .0
+            {
+                assert_eq!(pixel[0], pixel[3]);
+                assert!(pixel[3] > 0 && pixel[3] < 255);
+            }
+            candy_preview_free(p);
+        }
+        assert_eq!(d.image.dimensions(), (8192, 2));
+    }
+
     #[test]
     fn snapshots_survive_edits_and_document_destruction() {
         let mut d = document();

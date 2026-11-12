@@ -1,6 +1,6 @@
 use anyhow::{Context, Result, ensure};
 use base64::{Engine, engine::general_purpose::STANDARD};
-use image::{DynamicImage, ImageFormat, RgbaImage, imageops::FilterType};
+use image::{DynamicImage, ImageFormat, RgbaImage};
 use std::{
     ffi::CStr,
     fs::{self, OpenOptions},
@@ -197,13 +197,7 @@ pub fn display(image: &RgbaImage) -> Result<()> {
         16
     };
     let (pixel_width, pixel_height) = (cols * cell_width, rows * cell_height);
-    let preview = if image.width() > pixel_width || image.height() > pixel_height {
-        DynamicImage::ImageRgba8(image.clone())
-            .resize(pixel_width, pixel_height, FilterType::Triangle)
-            .into_rgba8()
-    } else {
-        image.clone()
-    };
+    let preview = candy_core::preview(image, pixel_width, pixel_height)?;
     let span_cols = preview.width().div_ceil(cell_width);
     let span_rows = preview.height().div_ceil(cell_height);
     let mut png = Cursor::new(Vec::new());

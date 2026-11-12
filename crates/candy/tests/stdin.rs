@@ -128,6 +128,31 @@ fn preview(output: &Output) -> image::RgbaImage {
 }
 
 #[test]
+fn terminal_preview_keeps_transparent_edge_colors() {
+    let image = image::RgbaImage::from_fn(1280, 4, |x, _| {
+        if x % 2 == 0 {
+            image::Rgba([255, 0, 0, 255])
+        } else {
+            image::Rgba([0; 4])
+        }
+    });
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgba8(image)
+        .write_to(&mut png, image::ImageFormat::Png)
+        .unwrap();
+    let output = preview(&terminal(
+        &["--display", "kitty"],
+        Some(png.get_ref()),
+        None,
+    ));
+    assert_eq!(output.dimensions(), (640, 2));
+    for pixel in output.pixels() {
+        assert_eq!(&pixel.0[..3], &[255, 0, 0]);
+        assert!(pixel[3] > 0 && pixel[3] < 255);
+    }
+}
+
+#[test]
 fn piped_and_redirected_images_display_with_auto_and_explicit_kitty() {
     let input = std::fs::read(fixture()).unwrap();
     let expected = image::DynamicImage::ImageRgba8(candy_macos::load(&fixture()).unwrap())
