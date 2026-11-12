@@ -7,7 +7,9 @@ use std::{
     sync::Arc,
 };
 
+mod history;
 pub mod svg;
+pub use history::History;
 
 pub const MAX_PIXELS: u64 = 64 * 1024 * 1024;
 
@@ -400,52 +402,6 @@ pub fn pixel_stats(image: &RgbaImage) -> PixelStats {
     stats
 }
 
-#[derive(Clone)]
-pub struct History {
-    pub original: Arc<RgbaImage>,
-    entries: Vec<(u64, Operation)>,
-    cursor: usize,
-    next_id: u64,
-}
-impl History {
-    pub fn new(image: RgbaImage) -> Self {
-        Self {
-            original: Arc::new(image),
-            entries: Vec::new(),
-            cursor: 0,
-            next_id: 1,
-        }
-    }
-    pub fn state_id(&self) -> u64 {
-        self.cursor.checked_sub(1).map_or(0, |i| self.entries[i].0)
-    }
-    pub fn can_undo(&self) -> bool {
-        self.cursor > 0
-    }
-    pub fn can_redo(&self) -> bool {
-        self.cursor < self.entries.len()
-    }
-    pub fn push(&mut self, op: Operation) {
-        self.entries.truncate(self.cursor);
-        self.entries.push((self.next_id, op));
-        self.next_id += 1;
-        self.cursor += 1;
-    }
-    pub fn undo(&mut self) {
-        self.cursor = self.cursor.saturating_sub(1);
-    }
-    pub fn redo(&mut self) {
-        self.cursor = (self.cursor + 1).min(self.entries.len());
-    }
-    pub fn render(&self) -> Result<RgbaImage> {
-        let mut image = (*self.original).clone();
-        for (_, op) in &self.entries[..self.cursor] {
-            image = apply(&image, op)?;
-        }
-        Ok(image)
-    }
-}
-
 pub fn parse_background(s: &str) -> Result<[u8; 3]> {
     let hex = s.strip_prefix('#').unwrap_or(s);
     ensure!(
@@ -789,14 +745,16 @@ mod tests {
     #[test]
     fn history_branches_have_distinct_save_states() {
         let mut history = History::new(grid());
-        history.push(Operation::Flatten([255; 3]));
+        history.apply(Operation::Flatten([255; 3])).unwrap();
         let saved = history.state_id();
-        history.undo();
-        assert_eq!(history.render().unwrap(), grid());
-        history.redo();
+        history.undo().unwrap();
+        assert_eq!(**history.image(), grid());
+        history.redo().unwrap();
         assert_eq!(history.state_id(), saved);
-        history.undo();
-        history.push(Operation::Crop(PixelRect::new(0, 0, 2, 2)));
+        history.undo().unwrap();
+        history
+            .apply(Operation::Crop(PixelRect::new(0, 0, 2, 2)))
+            .unwrap();
         assert_ne!(history.state_id(), saved);
         assert!(!history.can_redo());
     }

@@ -16,7 +16,6 @@ use std::{
 
 pub struct CandyDocument {
     history: History,
-    image: Arc<RgbaImage>,
     source: Option<OriginalFile>,
     saved: Option<u64>,
     revision: u64,
@@ -140,24 +139,18 @@ impl CandyDocument {
     fn new(image: RgbaImage, source: Option<OriginalFile>, dirty: bool) -> Self {
         let history = History::new(image);
         Self {
-            image: history.original.clone(),
             history,
             source,
             saved: if dirty { None } else { Some(0) },
             revision: 0,
         }
     }
-    fn commit(&mut self, history: History) -> Result<()> {
-        let image = history.render()?;
-        self.image = Arc::new(image);
-        self.history = history;
-        self.revision += 1;
-        Ok(())
+    fn image(&self) -> &Arc<RgbaImage> {
+        self.history.image()
     }
     fn apply(&mut self, operation: Operation) -> Result<u8> {
-        let mut history = self.history.clone();
-        history.push(operation);
-        self.commit(history)?;
+        self.history.apply(operation)?;
+        self.revision += 1;
         Ok(1)
     }
 }
@@ -212,8 +205,8 @@ pub unsafe extern "C" fn candy_document_state(
     guarded(error, || {
         let d = unsafe { doc(document)? };
         Ok(CandyState {
-            width: d.image.width(),
-            height: d.image.height(),
+            width: d.image().width(),
+            height: d.image().height(),
             state_id: d.history.state_id(),
             revision: d.revision,
             dirty: u8::from(d.saved != Some(d.history.state_id())),
@@ -230,13 +223,12 @@ pub unsafe extern "C" fn candy_document_history(
 ) -> u8 {
     guarded(error, || {
         let d = unsafe { doc(document)? };
-        let mut history = d.history.clone();
         if redo != 0 {
-            history.redo();
+            d.history.redo()?;
         } else {
-            history.undo();
+            d.history.undo()?;
         }
-        d.commit(history)?;
+        d.revision += 1;
         Ok(1)
     })
 }
@@ -327,7 +319,7 @@ pub unsafe extern "C" fn candy_document_extract(
 ) -> *mut CandyDocument {
     guarded(error, || {
         let d = unsafe { doc(document)? };
-        let image = candy_core::apply(&d.image, &Operation::Crop(rect.into()))?;
+        let image = candy_core::apply(d.image(), &Operation::Crop(rect.into()))?;
         // Derived images retain protection of the input they came from.
         Ok(Box::into_raw(Box::new(CandyDocument::new(
             image,
@@ -359,7 +351,7 @@ pub unsafe extern "C" fn candy_document_save_with_options(
         if let Some(source) = &d.source {
             source.protect(&file)?;
         }
-        candy_macos::save_with_options(&d.image, &file, true, options)?;
+        candy_macos::save_with_options(d.image(), &file, true, options)?;
         d.saved = Some(d.history.state_id());
         Ok(1)
     })
@@ -371,7 +363,7 @@ pub unsafe extern "C" fn candy_document_preview(
 ) -> *mut CandyPreview {
     guarded(error, || {
         let d = unsafe { doc(document)? };
-        let mut preview = candy_core::preview(&d.image, 4096, 4096)?;
+        let mut preview = candy_core::preview(d.image(), 4096, 4096)?;
         let (width, height) = preview.dimensions();
         candy_core::premultiply(&mut preview);
         let bytes = preview.into_raw().into_boxed_slice();
@@ -399,7 +391,7 @@ pub unsafe extern "C" fn candy_document_snapshot(
 ) -> *mut CandyImage {
     guarded(error, || {
         Ok(Box::into_raw(Box::new(CandyImage(
-            unsafe { doc(document)? }.image.clone(),
+            unsafe { doc(document)? }.image().clone(),
         ))))
     })
 }
@@ -451,7 +443,7 @@ mod tests {
     #[test]
     fn failed_edit_does_not_commit_history_or_pixels() {
         let mut d = document();
-        let before = d.image.clone();
+        let before = d.image().clone();
         assert!(
             d.apply(Operation::Resize {
                 width: 0,
@@ -459,7 +451,7 @@ mod tests {
             })
             .is_err()
         );
-        assert_eq!(*d.image, *before);
+        assert_eq!(**d.image(), *before);
         assert!(!d.history.can_undo());
         assert_eq!(d.revision, 0);
     }
@@ -473,9 +465,9 @@ mod tests {
             let mut d = document();
             assert_eq!(candy_document_rotate(&mut d, 1, &mut error), 1);
             assert!(error.is_null());
-            assert_eq!((d.image.width(), d.image.height()), (6, 8));
+            assert_eq!((d.image().width(), d.image().height()), (6, 8));
             assert_eq!(candy_document_rotate(&mut d, 0, &mut error), 1);
-            assert_eq!((d.image.width(), d.image.height()), (8, 6));
+            assert_eq!((d.image().width(), d.image().height()), (8, 6));
             let preview = candy_document_preview(&mut d, &mut error);
             assert!(error.is_null());
             assert_eq!((*preview).length, 8 * 6 * 4);
@@ -520,7 +512,7 @@ mod tests {
             }
             candy_preview_free(p);
         }
-        assert_eq!(d.image.dimensions(), (8192, 2));
+        assert_eq!(d.image().dimensions(), (8192, 2));
     }
 
     #[test]
@@ -545,7 +537,7 @@ mod tests {
         let source = temp.path().join("original.png");
         let copy = temp.path().join("copy.png");
         let mut d = document();
-        candy_core::save_atomic(&d.image, &source, false).unwrap();
+        candy_core::save_atomic(d.image(), &source, false).unwrap();
         d.source = Some(OriginalFile::open(&source).unwrap());
         let source_c = CString::new(source.to_str().unwrap()).unwrap();
         let copy_c = CString::new(copy.to_str().unwrap()).unwrap();
@@ -586,7 +578,7 @@ mod tests {
         let copy = temp.path().join("copy.png");
         let hard = temp.path().join("hard.png");
         let symbolic = temp.path().join("symbolic.png");
-        candy_core::save_atomic(&document().image, &source, false).unwrap();
+        candy_core::save_atomic(document().image(), &source, false).unwrap();
         let original = std::fs::read(&source).unwrap();
         let cpath = |p: &std::path::Path| CString::new(p.to_str().unwrap()).unwrap();
         let mut error = ptr::null_mut();
@@ -695,7 +687,7 @@ mod tests {
         assert_eq!(d.saved, Some(d.history.state_id()));
         assert_eq!(
             candy_macos::load(&path).unwrap().dimensions(),
-            d.image.dimensions()
+            d.image().dimensions()
         );
     }
 }

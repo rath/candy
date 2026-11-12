@@ -280,6 +280,11 @@ scripts/build-app.sh
 - `candy`: Rust CLI, Kitty graphics protocol and native-app launcher.
 - `macos`: SwiftPM AppKit application, document coordination and canvas interaction.
 
+New edits apply to the current pixels. Undo/redo reuse up to 16 rendered
+checkpoints within a 64 MiB budget per document, in addition to the original and
+current image; evicted states are reconstructed from the nearest earlier
+checkpoint. Failed edits preserve both pixels and redo history.
+
 The Swift target links the Rust engine statically. Build `candy-ffi` before running
 Swift tests alone (`cargo build --locked -p candy-ffi`). `scripts/swift.sh` keeps
 Swift caches in `macos/.build` and disables the nested package-manifest sandbox
