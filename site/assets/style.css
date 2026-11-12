@@ -197,6 +197,19 @@ h1 span {
   color: var(--muted);
   margin-top: 18px;
 }
+.release-note {
+  max-width: 42ch;
+  margin: 24px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.release-note a {
+  color: var(--ink);
+  font-weight: 600;
+}
+.release-note a:hover {
+  color: var(--accent);
+}
 .stage {
   background: var(--coral);
   border-radius: 20px;
