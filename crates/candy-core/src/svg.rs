@@ -71,16 +71,22 @@ fn parse(bytes: &[u8], resources_dir: Option<&Path>) -> Result<usvg::Tree> {
         bytes
     };
     let text = std::str::from_utf8(data).context("SVG text must be UTF-8")?;
-    let mut options = usvg::Options {
+    let select_font = usvg::FontResolver::default_font_selector();
+    let options = usvg::Options {
         resources_dir: resources_dir.map(Path::to_path_buf),
+        font_resolver: usvg::FontResolver {
+            // Load on the first real text node, including namespaced text and
+            // text inside nested SVGs. Vector-only documents never scan fonts.
+            select_font: Box::new(move |font, database| {
+                if database.is_empty() {
+                    *database = system_fonts();
+                }
+                select_font(font, database)
+            }),
+            ..usvg::FontResolver::default()
+        },
         ..usvg::Options::default()
     };
-    // usvg converts text to paths while parsing, so fonts must be present
-    // now. Scanning the system font directories costs real time; skip it for
-    // the many documents that draw no text at all.
-    if text.contains("<text") {
-        options.fontdb = system_fonts();
-    }
     usvg::Tree::from_str(text, &options).map_err(|e| anyhow!("Cannot parse this SVG: {e}"))
 }
 
@@ -188,6 +194,30 @@ mod tests {
         assert_eq!(*image.get_pixel(170, 170), Rgba([255, 0, 0, 255]));
         assert_eq!(*image.get_pixel(512, 170), Rgba([0, 0, 255, 255]));
         assert_eq!(*image.get_pixel(853, 170), Rgba([0, 0, 0, 0]));
+    }
+
+    #[test]
+    fn namespaced_and_nested_text_render_like_direct_text() {
+        let direct = r#"<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100"><text x="10" y="70" font-family="sans-serif" font-size="60">Candy</text></svg>"#;
+        let expected = render(direct.as_bytes(), None).unwrap();
+        assert!(expected.pixels().any(|p| p[3] == 255));
+        let prefixed = direct
+            .replace("<svg ", "<s:svg ")
+            .replace("xmlns=", "xmlns:s=")
+            .replace("</svg>", "</s:svg>")
+            .replace("<text ", "<s:text ")
+            .replace("</text>", "</s:text>");
+        assert_eq!(render(prefixed.as_bytes(), None).unwrap(), expected);
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("inner.svg"), direct).unwrap();
+        let nested = r#"<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100"><image width="300" height="100" href="inner.svg"/></svg>"#;
+        assert_eq!(
+            render(nested.as_bytes(), Some(dir.path())).unwrap(),
+            expected
+        );
+        // Comments mentioning text must not populate a vector-only tree's database.
+        let vector = HALF_RED.replace("<rect", "<!-- <text --> <rect");
+        assert!(parse(vector.as_bytes(), None).unwrap().fontdb().is_empty());
     }
 
     #[test]
