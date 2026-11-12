@@ -8,6 +8,7 @@ use std::{
 };
 
 mod history;
+pub mod input;
 pub mod svg;
 pub use history::History;
 

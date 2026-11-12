@@ -47,6 +47,27 @@ fn commands_produce_expected_images_and_protect_originals() {
     }
 }
 #[test]
+fn oversized_inputs_fail_before_replacing_output() {
+    let dir = tempfile::tempdir().unwrap();
+    let output = dir.path().join("copy.png");
+    std::fs::write(&output, b"keep existing output").unwrap();
+    for (extension, limit) in [
+        ("png", candy_core::input::MAX_INPUT_BYTES),
+        ("svg", candy_core::svg::MAX_SVG_BYTES),
+    ] {
+        let input = dir.path().join(format!("large.{extension}"));
+        std::fs::File::create(&input)
+            .unwrap()
+            .set_len(limit as u64 + 1)
+            .unwrap();
+        let result = run(&["rotate", "--cw", "--force"], &input, &output);
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("byte limit"));
+        assert_eq!(std::fs::read(&output).unwrap(), b"keep existing output");
+    }
+}
+
+#[test]
 fn in_place_replaces_the_file_behind_a_symlink_atomically() {
     let temp = tempfile::tempdir().unwrap();
     let real = temp.path().join("original.png");

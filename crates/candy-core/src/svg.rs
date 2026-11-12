@@ -5,18 +5,29 @@
 //! resvg is built without its `raster-images` feature: bitmaps embedded in or
 //! linked from an SVG are skipped, which keeps the decoders and their weight
 //! out of the binaries. Nested SVG images still render.
-use crate::{MAX_PIXELS, validate_dimensions};
+use crate::{
+    MAX_PIXELS,
+    input::{self, InputTooLarge},
+    validate_dimensions,
+};
 use anyhow::{Context, Result, anyhow};
 use image::RgbaImage;
 use resvg::{tiny_skia, usvg};
 use std::{
+    borrow::Cow,
     path::Path,
-    sync::{Arc, OnceLock},
+    sync::{
+        Arc, OnceLock,
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+    },
 };
 
 /// Smallest longer side of a rasterized SVG. An icon drawn in a 24-pixel
 /// viewBox renders crisp at this size instead of becoming a 24-pixel bitmap.
 pub const MIN_SIDE: u32 = 1024;
+
+/// Total decoded XML bytes, including referenced and embedded SVG documents.
+pub const MAX_SVG_BYTES: usize = 32 * 1024 * 1024;
 
 /// Uniform type identifier Candy reports for SVG, matching Launch Services.
 pub const UTI: &str = "public.svg-image";
@@ -62,18 +73,98 @@ pub fn render(bytes: &[u8], resources_dir: Option<&Path>) -> Result<RgbaImage> {
 }
 
 fn parse(bytes: &[u8], resources_dir: Option<&Path>) -> Result<usvg::Tree> {
-    let decompressed;
-    let data = if bytes.starts_with(&[0x1f, 0x8b]) {
-        decompressed =
-            usvg::decompress_svgz(bytes).map_err(|e| anyhow!("Cannot decompress SVGZ: {e}"))?;
-        decompressed.as_slice()
+    parse_with_limit(bytes, resources_dir, MAX_SVG_BYTES)
+}
+
+fn svg_data(bytes: &[u8], limit: usize) -> Result<Cow<'_, [u8]>> {
+    if bytes.starts_with(&[0x1f, 0x8b]) {
+        input::check_size(bytes.len() as u64, MAX_SVG_BYTES)?;
+        input::read_limited(flate2::read::GzDecoder::new(bytes), limit)
+            .map(Cow::Owned)
+            .context("Cannot decompress SVGZ within the decoded-data limit")
     } else {
-        bytes
-    };
-    let text = std::str::from_utf8(data).context("SVG text must be UTF-8")?;
+        input::check_size(bytes.len() as u64, limit)?;
+        Ok(Cow::Borrowed(bytes))
+    }
+}
+
+struct SvgBudget {
+    remaining: AtomicUsize,
+    exceeded: AtomicBool,
+}
+
+impl SvgBudget {
+    fn checked<T>(&self, result: Result<T>) -> Option<T> {
+        match result {
+            Ok(value) => Some(value),
+            Err(error) => {
+                if error.is::<InputTooLarge>() {
+                    self.exceeded.store(true, Ordering::Relaxed);
+                }
+                None
+            }
+        }
+    }
+
+    fn image(&self, bytes: &[u8], options: &usvg::Options<'_>) -> Option<usvg::ImageKind> {
+        let data = self.checked(svg_data(bytes, self.remaining.load(Ordering::Relaxed)))?;
+        let mut remaining = self.remaining.load(Ordering::Relaxed);
+        loop {
+            let Some(next) = remaining.checked_sub(data.len()) else {
+                self.exceeded.store(true, Ordering::Relaxed);
+                return None;
+            };
+            match self.remaining.compare_exchange_weak(
+                remaining,
+                next,
+                Ordering::Relaxed,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => break,
+                Err(current) => remaining = current,
+            }
+        }
+        // Preserve SVG's nested-image rules (external references are disabled),
+        // while decompressing here so usvg cannot bypass the shared byte budget.
+        usvg::Tree::from_data_nested(&data, options)
+            .ok()
+            .map(usvg::ImageKind::SVG)
+    }
+}
+
+fn parse_with_limit(
+    bytes: &[u8],
+    resources_dir: Option<&Path>,
+    limit: usize,
+) -> Result<usvg::Tree> {
+    let data = svg_data(bytes, limit)?;
+    let text = std::str::from_utf8(&data).context("SVG text must be UTF-8")?;
+    let budget = Arc::new(SvgBudget {
+        remaining: AtomicUsize::new(limit - data.len()),
+        exceeded: AtomicBool::new(false),
+    });
+    let data_budget = budget.clone();
+    let file_budget = budget.clone();
     let select_font = usvg::FontResolver::default_font_selector();
     let options = usvg::Options {
         resources_dir: resources_dir.map(Path::to_path_buf),
+        image_href_resolver: usvg::ImageHrefResolver {
+            resolve_data: Box::new(move |mime, bytes, options| {
+                if matches!(mime, "image/svg+xml" | "text/plain") {
+                    data_budget.image(&bytes, options)
+                } else {
+                    None
+                } // Raster images are intentionally skipped.
+            }),
+            resolve_string: Box::new(move |href, options| {
+                let path = options.get_abs_path(Path::new(href));
+                if !matches!(crate::extension(&path).as_str(), "svg" | "svgz") {
+                    return None;
+                }
+                let bytes = file_budget.checked(input::read_file(&path, MAX_SVG_BYTES))?;
+                file_budget.image(&bytes, options)
+            }),
+        },
         font_resolver: usvg::FontResolver {
             // Load on the first real text node, including namespaced text and
             // text inside nested SVGs. Vector-only documents never scan fonts.
@@ -87,7 +178,12 @@ fn parse(bytes: &[u8], resources_dir: Option<&Path>) -> Result<usvg::Tree> {
         },
         ..usvg::Options::default()
     };
-    usvg::Tree::from_str(text, &options).map_err(|e| anyhow!("Cannot parse this SVG: {e}"))
+    let tree =
+        usvg::Tree::from_str(text, &options).map_err(|e| anyhow!("Cannot parse this SVG: {e}"))?;
+    if budget.exceeded.load(Ordering::Relaxed) {
+        return Err(InputTooLarge { limit }.into());
+    }
+    Ok(tree)
 }
 
 /// System fonts, scanned once per process and shared between renders.
@@ -218,6 +314,78 @@ mod tests {
         // Comments mentioning text must not populate a vector-only tree's database.
         let vector = HALF_RED.replace("<rect", "<!-- <text --> <rect");
         assert!(parse(vector.as_bytes(), None).unwrap().fontdb().is_empty());
+    }
+
+    #[test]
+    fn svg_limits_cover_plain_gzip_referenced_and_embedded_documents() {
+        fn gzip(bytes: &[u8]) -> Vec<u8> {
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            std::io::Write::write_all(&mut encoder, bytes).unwrap();
+            encoder.finish().unwrap()
+        }
+        let child = format!(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><!--{}--><rect width="10" height="10"/></svg>"#,
+            "x".repeat(4096)
+        );
+        let compressed = gzip(child.as_bytes());
+        assert!(compressed.len() < 512);
+        for bytes in [child.as_bytes(), compressed.as_slice()] {
+            assert!(parse_with_limit(bytes, None, child.len()).is_ok());
+            assert!(
+                parse_with_limit(bytes, None, child.len() - 1)
+                    .unwrap_err()
+                    .is::<InputTooLarge>()
+            );
+        }
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("inner.svgz"), &compressed).unwrap();
+        let wrapper = |href: &str| {
+            format!(
+                r#"<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><image width="10" height="10" href="{href}"/></svg>"#
+            )
+        };
+        let encoded: String = compressed.iter().map(|b| format!("%{b:02X}")).collect();
+        for outer in [
+            wrapper("inner.svgz"),
+            wrapper(&format!("data:image/svg+xml,{encoded}")),
+        ] {
+            assert!(
+                parse_with_limit(
+                    outer.as_bytes(),
+                    Some(dir.path()),
+                    outer.len() + child.len()
+                )
+                .is_ok()
+            );
+            assert!(
+                parse_with_limit(outer.as_bytes(), Some(dir.path()), outer.len() + 512)
+                    .unwrap_err()
+                    .is::<InputTooLarge>()
+            );
+        }
+        std::fs::write(dir.path().join("another.svgz"), &compressed).unwrap();
+        let repeated = wrapper("inner.svgz").replace(
+            "</svg>",
+            r#"<image width="10" height="10" href="another.svgz"/></svg>"#,
+        );
+        assert!(
+            parse_with_limit(
+                repeated.as_bytes(),
+                Some(dir.path()),
+                repeated.len() + child.len() * 2
+            )
+            .is_ok()
+        );
+        assert!(
+            parse_with_limit(
+                repeated.as_bytes(),
+                Some(dir.path()),
+                repeated.len() + child.len() * 2 - 1
+            )
+            .unwrap_err()
+            .is::<InputTooLarge>()
+        );
     }
 
     #[test]

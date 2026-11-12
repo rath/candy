@@ -78,7 +78,12 @@ fn image_io_format(extension: &str) -> Option<(&'static str, &'static str)> {
 pub const LOSSY_QUALITY: f64 = 0.85;
 
 fn read(path: &Path) -> Result<Vec<u8>> {
-    std::fs::read(path).with_context(|| format!("Cannot read {}", path.display()))
+    let limit = if matches!(candy_core::extension(path).as_str(), "svg" | "svgz") {
+        candy_core::svg::MAX_SVG_BYTES
+    } else {
+        candy_core::input::MAX_INPUT_BYTES
+    };
+    candy_core::input::read_file(path, limit)
 }
 
 /// Opens image file bytes with Image I/O and reads the first image's header
@@ -109,6 +114,7 @@ pub fn load(path: &Path) -> Result<RgbaImage> {
 /// Decodes an image without a filename, including SVG and gzip-compressed SVGZ.
 /// Relative SVG resources resolve against the caller's current directory.
 pub fn load_bytes(bytes: &[u8]) -> Result<RgbaImage> {
+    candy_core::input::check_size(bytes.len() as u64, candy_core::input::MAX_INPUT_BYTES)?;
     if candy_core::svg::is_svg(Path::new(""), bytes) || bytes.starts_with(&[0x1f, 0x8b]) {
         return candy_core::svg::render(bytes, None);
     }

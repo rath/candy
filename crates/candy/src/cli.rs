@@ -224,10 +224,8 @@ fn view(path: Option<PathBuf>, display: Display) -> Result<()> {
     }
 }
 
-fn read_stdin(mut input: impl Read) -> Result<image::RgbaImage> {
-    let mut bytes = Vec::new();
-    input
-        .read_to_end(&mut bytes)
+fn read_stdin(input: impl Read) -> Result<image::RgbaImage> {
+    let bytes = candy_core::input::read_limited(input, candy_core::input::MAX_INPUT_BYTES)
         .context("Cannot read image from stdin")?;
     ensure!(!bytes.is_empty(), "No image data received on stdin");
     candy_macos::load_bytes(&bytes).context("Cannot decode image from stdin")

@@ -248,6 +248,9 @@ which arrived after macOS 14 (verified on macOS 26); older systems explain this
 when asked. RAW files are developed with Image I/O's defaults. Only the first
 image/frame is loaded. Images are limited to approximately 64 megapixels. The GUI preview is
 limited to 4096 pixels per side; edits and saves use full image resolution.
+Encoded files and stdin are limited to 512 MiB. SVG/SVGZ input and the total
+decoded XML of the document and its referenced or embedded SVGs are limited to
+32 MiB; excessive input is rejected before decoding or saving.
 Lossy WebP additionally limits each side to 16,383 pixels. Its encoder is
 included in the app and CLI; no external encoder installation is needed.
 
