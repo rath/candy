@@ -1,7 +1,11 @@
 //! Shared, deterministic image operations. Coordinates are always image pixels.
 use anyhow::{Context, Result, bail, ensure};
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage, imageops};
-use std::{fs, path::Path, sync::Arc};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 pub mod svg;
 
@@ -429,28 +433,63 @@ pub fn parse_background(s: &str) -> Result<[u8; 3]> {
     ])
 }
 
-/// Reject aliases too: a symlink or hard link must not bypass original protection.
-pub fn protect_original(source: &Path, destination: &Path) -> Result<()> {
-    let source = source
-        .canonicalize()
-        .context("Cannot resolve original image")?;
-    if let Ok(destination) = destination.canonicalize() {
+/// Protect the original path and file identity for the lifetime of a document.
+/// Keeping the file open prevents inode reuse after it is moved or unlinked.
+#[derive(Clone)]
+pub struct OriginalFile {
+    path: PathBuf,
+    file: Arc<fs::File>,
+}
+
+impl OriginalFile {
+    pub fn open(source: &Path) -> Result<Self> {
+        let path = source
+            .canonicalize()
+            .context("Cannot resolve original image")?;
+        let file = Arc::new(fs::File::open(&path).context("Cannot open original image")?);
+        Ok(Self { path, file })
+    }
+
+    pub fn protect(&self, destination: &Path) -> Result<()> {
+        let resolved = match destination.canonicalize() {
+            Ok(path) => path,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let parent = destination
+                    .parent()
+                    .filter(|p| !p.as_os_str().is_empty())
+                    .unwrap_or(Path::new("."));
+                parent
+                    .canonicalize()?
+                    .join(destination.file_name().context("Missing output filename")?)
+            }
+            Err(error) => return Err(error).context("Cannot resolve output image"),
+        };
         ensure!(
-            source != destination,
+            self.path != resolved,
             "Choose a different output file to preserve the original"
         );
         #[cfg(unix)]
         {
             use std::os::unix::fs::MetadataExt;
-            let a = fs::metadata(&source)?;
-            let b = fs::metadata(&destination)?;
-            ensure!(
-                a.dev() != b.dev() || a.ino() != b.ino(),
-                "Output is a hard link to the original image"
-            );
+            match fs::metadata(&resolved) {
+                Ok(b) => {
+                    let a = self.file.metadata()?;
+                    ensure!(
+                        a.dev() != b.dev() || a.ino() != b.ino(),
+                        "Output refers to the original image"
+                    );
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                Err(error) => return Err(error).context("Cannot inspect output image"),
+            }
         }
+        Ok(())
     }
-    Ok(())
+}
+
+/// Reject aliases too: a symlink or hard link must not bypass original protection.
+pub fn protect_original(source: &Path, destination: &Path) -> Result<()> {
+    OriginalFile::open(source)?.protect(destination)
 }
 
 /// File extension of `path`, lowercased and without the dot.

@@ -4,7 +4,7 @@
 #![allow(clippy::missing_safety_doc)]
 
 use anyhow::{Context, Result, ensure};
-use candy_core::{History, Operation, PixelRect, Rotation, SaveOptions, WebpMode};
+use candy_core::{History, Operation, OriginalFile, PixelRect, Rotation, SaveOptions, WebpMode};
 use image::RgbaImage;
 use std::{
     ffi::{CStr, CString, c_char},
@@ -17,7 +17,7 @@ use std::{
 pub struct CandyDocument {
     history: History,
     image: Arc<RgbaImage>,
-    source: Option<PathBuf>,
+    source: Option<OriginalFile>,
     saved: Option<u64>,
     revision: u64,
 }
@@ -137,7 +137,7 @@ unsafe fn items<'a, T>(value: *const T, count: usize) -> Result<&'a [T]> {
     Ok(unsafe { std::slice::from_raw_parts(value, count) })
 }
 impl CandyDocument {
-    fn new(image: RgbaImage, source: Option<PathBuf>, dirty: bool) -> Self {
+    fn new(image: RgbaImage, source: Option<OriginalFile>, dirty: bool) -> Self {
         let history = History::new(image);
         Self {
             image: history.original.clone(),
@@ -175,10 +175,11 @@ pub unsafe extern "C" fn candy_document_open(
 ) -> *mut CandyDocument {
     guarded(error, || {
         let file = unsafe { path(file)? }.canonicalize()?;
+        let source = OriginalFile::open(&file)?;
         let image = candy_macos::load(&file)?;
         Ok(Box::into_raw(Box::new(CandyDocument::new(
             image,
-            Some(file),
+            Some(source),
             false,
         ))))
     })
@@ -356,7 +357,7 @@ pub unsafe extern "C" fn candy_document_save_with_options(
         let d = unsafe { doc(document)? };
         let file = unsafe { path(file)? };
         if let Some(source) = &d.source {
-            candy_core::protect_original(source, &file)?;
+            source.protect(&file)?;
         }
         candy_macos::save_with_options(&d.image, &file, true, options)?;
         d.saved = Some(d.history.state_id());
@@ -526,7 +527,7 @@ mod tests {
         let copy = temp.path().join("copy.png");
         let mut d = document();
         candy_core::save_atomic(&d.image, &source, false).unwrap();
-        d.source = Some(source.clone());
+        d.source = Some(OriginalFile::open(&source).unwrap());
         let source_c = CString::new(source.to_str().unwrap()).unwrap();
         let copy_c = CString::new(copy.to_str().unwrap()).unwrap();
         let mut error = ptr::null_mut();
@@ -556,6 +557,70 @@ mod tests {
             assert_eq!(candy_document_save(&mut d, alias_c.as_ptr(), &mut error), 0);
             candy_error_free(error);
         }
+    }
+
+    #[test]
+    fn moved_or_deleted_originals_allow_copies_but_remain_protected() {
+        let temp = tempfile::tempdir().unwrap();
+        let source = temp.path().join("original.png");
+        let moved = temp.path().join("moved.png");
+        let copy = temp.path().join("copy.png");
+        let hard = temp.path().join("hard.png");
+        let symbolic = temp.path().join("symbolic.png");
+        candy_core::save_atomic(&document().image, &source, false).unwrap();
+        let original = std::fs::read(&source).unwrap();
+        let cpath = |p: &std::path::Path| CString::new(p.to_str().unwrap()).unwrap();
+        let mut error = ptr::null_mut();
+        unsafe {
+            let d = candy_document_open(cpath(&source).as_ptr(), &mut error);
+            assert!(!d.is_null() && error.is_null());
+            assert_eq!(candy_document_rotate(d, 1, &mut error), 1);
+            let crop = candy_document_extract(
+                d,
+                CandyRect {
+                    x: 0,
+                    y: 0,
+                    width: 2,
+                    height: 2,
+                },
+                &mut error,
+            );
+            assert!(!crop.is_null() && error.is_null());
+            std::fs::rename(&source, &moved).unwrap();
+            assert_eq!(candy_document_save(d, cpath(&copy).as_ptr(), &mut error), 1);
+            assert!(error.is_null());
+            std::fs::write(&source, b"replacement at old path").unwrap();
+            std::fs::hard_link(&moved, &hard).unwrap();
+            std::os::unix::fs::symlink(&moved, &symbolic).unwrap();
+            for target in [&source, &moved, &hard, &symbolic] {
+                for doc in [d, crop] {
+                    assert_eq!(
+                        candy_document_save(doc, cpath(target).as_ptr(), &mut error),
+                        0
+                    );
+                    assert!(!error.is_null());
+                    candy_error_free(error);
+                }
+            }
+            assert_eq!(std::fs::read(&moved).unwrap(), original);
+            assert_eq!(std::fs::read(&source).unwrap(), b"replacement at old path");
+            for p in [&source, &moved, &hard, &symbolic] {
+                std::fs::remove_file(p).unwrap();
+            }
+            assert_eq!(
+                candy_document_save(crop, cpath(&copy).as_ptr(), &mut error),
+                1
+            );
+            assert!(error.is_null());
+            assert_eq!(
+                candy_document_save(d, cpath(&source).as_ptr(), &mut error),
+                0
+            );
+            candy_error_free(error);
+            candy_document_free(crop);
+            candy_document_free(d);
+        }
+        assert_eq!(candy_macos::load(&copy).unwrap().dimensions(), (2, 2));
     }
 
     #[test]
