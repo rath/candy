@@ -291,8 +291,10 @@ checkpoint. Failed edits preserve both pixels and redo history.
 The Swift target links the Rust engine statically. Build `candy-ffi` before running
 Swift tests alone (`cargo build --locked -p candy-ffi`). `scripts/swift.sh` keeps
 Swift caches in `macos/.build` and disables the nested package-manifest sandbox
-so it can run inside an existing development sandbox. Native OCR and UI checks
-need normal macOS access to Vision/pixel buffers and the window server.
+so it can run inside an existing development sandbox. It fingerprints the Rust
+archive to force relinking after Rust-only changes; use the wrapper for builds
+and tests. Native OCR and UI checks need normal macOS access to Vision/pixel
+buffers and the window server.
 
 Interface text uses the English text as its key (`localized(_:)` in CandyKit).
 Korean and Japanese translations live in `macos/Resources/ko.lproj/` and

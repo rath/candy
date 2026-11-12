@@ -8,12 +8,15 @@ let target =
     URL(fileURLWithPath: $0, relativeTo: root).standardizedFileURL
   } ?? root.appendingPathComponent("target")
 let profile = ProcessInfo.processInfo.environment["CANDY_RUST_PROFILE"] ?? "debug"
+let rustBuildID = ProcessInfo.processInfo.environment["CANDY_RUST_BUILD_ID"] ?? "untracked"
 let package = Package(
   name: "Candy",
   platforms: [.macOS(.v14)],
   products: [.executable(name: "Candy", targets: ["Candy"])],
   targets: [
-    .target(name: "CCandy", publicHeadersPath: "include"),
+    .target(
+      name: "CCandy", publicHeadersPath: "include",
+      cSettings: [.define("CANDY_RUST_BUILD_ID", to: "\"\(rustBuildID)\"")]),
     .target(
       name: "CandyKit", dependencies: ["CCandy"],
       linkerSettings: [
