@@ -193,6 +193,149 @@ private var fixture: URL {
 }
 
 extension SessionTests {
+  private func button(_ title: String, in editor: EditorWindow) throws -> NSButton {
+    func buttons(in view: NSView) -> [NSButton] {
+      (view as? NSButton).map { [$0] } ?? view.subviews.flatMap { buttons(in: $0) }
+    }
+    let controls = buttons(in: try #require(editor.window?.contentView))
+    return try #require(controls.first { $0.title == title })
+  }
+  private func escape(_ canvas: CanvasView) throws {
+    let event = try #require(
+      NSEvent.keyEvent(
+        with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+        windowNumber: canvas.window?.windowNumber ?? 0, context: nil,
+        characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+    canvas.keyDown(with: event)
+  }
+  @Test(arguments: [false, true])
+  func cancellingTextRegionsPreservesPixelsAndHistory(usingEscape: Bool) throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    let document = try RustDocument.open(fixture)
+    try document.apply(.rotate(clockwise: true))
+    try document.apply(.resize(200, 300))
+    try document.apply(.undo)
+    let before = try document.render()
+    editor.session.adopt(document, rendered: before, name: "sample.png")
+    editor.selectTool(.text)
+    editor.session.acceptDetection(
+      .success([
+        PixelRect(x: 20, y: 30, width: 100, height: 40),
+        PixelRect(x: 20, y: 90, width: 100, height: 40),
+      ]), generation: editor.session.generation)
+    let selection = PixelRect(x: 10, y: 10, width: 200, height: 200)
+    editor.canvas.regions.selection = selection
+    editor.canvas.regions.active = 1
+    let cancel = try button(localized("Cancel"), in: editor)
+    let apply = try button(localized("Apply to all"), in: editor)
+    let selected = try button(localized("Apply to selected"), in: editor)
+    let remove = try button(localized("Remove box"), in: editor)
+    #expect(cancel.isEnabled && apply.isEnabled && selected.isEnabled && remove.isEnabled)
+    if usingEscape { try escape(editor.canvas) } else { cancel.performClick(nil) }
+    #expect(editor.canvas.regions == Regions(selection: selection))
+    #expect(cancel.title == localized("Detect text") && cancel.isEnabled)
+    #expect(!apply.isEnabled && !selected.isEnabled && !remove.isEnabled)
+    #expect(editor.session.message == localized("Text regions cleared"))
+    let after = try document.render()
+    #expect(after.preview.bytes == before.preview.bytes)
+    #expect(after.state.revision == before.state.revision)
+    #expect(after.state.stateID == before.state.stateID)
+    #expect(editor.session.dirty && after.state.canUndo && after.state.canRedo)
+    // Returning to Detect text leaves the same control ready for another request.
+    cancel.performClick(nil)
+    #expect(editor.session.detecting && !cancel.isEnabled)
+    #expect(editor.window?.firstResponder === editor.canvas)
+  }
+  @Test func applyingSelectedTextKeepsOtherBoxesForTheNextAction() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    editor.session.load(fixture)
+    try await settled(editor.session)
+    editor.selectTool(.text)
+    let boxes = [
+      PixelRect(x: 40, y: 40, width: 500, height: 140),
+      PixelRect(x: 40, y: 260, width: 400, height: 80),
+    ]
+    editor.session.acceptDetection(.success(boxes), generation: editor.session.generation)
+    let selected = try button(localized("Apply to selected"), in: editor)
+    let all = try button(localized("Apply to all"), in: editor)
+    #expect(!selected.isEnabled && all.isEnabled)
+    editor.canvas.regions.active = 1
+    #expect(selected.isEnabled)
+    selected.performClick(nil)
+    #expect(editor.session.busy && !selected.isEnabled && !all.isEnabled)
+    try await settled(editor.session)
+    let expected = try RustDocument.open(fixture)
+    try expected.apply(.mosaic([boxes[1]], 12))
+    let afterSelected = try expected.render().preview.bytes
+    #expect(editor.session.image?.dataProvider?.data as Data? == afterSelected)
+    #expect(editor.canvas.regions == Regions(boxes: [boxes[0]]))
+    #expect(!selected.isEnabled && all.isEnabled)
+    #expect(editor.session.dirty && editor.session.state?.canUndo == true)
+    all.performClick(nil)
+    try await settled(editor.session)
+    try expected.apply(.mosaic([boxes[0]], 12))
+    let afterAll = try expected.render().preview.bytes
+    #expect(editor.session.image?.dataProvider?.data as Data? == afterAll)
+    #expect(editor.canvas.regions.boxes.isEmpty)
+    #expect(!selected.isEnabled && !all.isEnabled)
+    #expect(try button(localized("Detect text"), in: editor).isEnabled)
+    editor.undo(nil)
+    try await settled(editor.session)
+    #expect(editor.session.image?.dataProvider?.data as Data? == afterSelected)
+  }
+  @Test func escapeRestoresTheDraggedTextBoxBeforeClearingAllBoxes() throws {
+    _ = NSApplication.shared
+    let canvas = CanvasView(frame: CGRect(x: 0, y: 0, width: 600, height: 400))
+    let preview = try RustDocument.open(fixture).render()
+    canvas.image = preview.preview.image()
+    canvas.imageSize = preview.state.size
+    canvas.tool = .text
+    let original = Regions(
+      boxes: [PixelRect(x: 20, y: 30, width: 100, height: 40)], active: 0)
+    canvas.regions = original
+    let point = canvas.transform.screen(CGPoint(x: 800, y: 500))
+    let event = try #require(
+      NSEvent.mouseEvent(
+        with: .leftMouseDown, location: point, modifierFlags: [], timestamp: 0,
+        windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1))
+    canvas.mouseDown(with: event)
+    #expect(canvas.regions.boxes.count == 2 && canvas.regions.active == 1)
+    try escape(canvas)
+    #expect(canvas.regions == original)
+    canvas.mouseUp(with: event)
+    try escape(canvas)
+    #expect(canvas.regions == Regions())
+  }
+  @Test func textRegionCancellationRespectsInteractionLocks() async throws {
+    _ = NSApplication.shared
+    let editor = EditorWindow()
+    defer { editor.session.invalidate() }
+    editor.session.load(fixture)
+    try await settled(editor.session)
+    editor.selectTool(.text)
+    let original = Regions(
+      selection: PixelRect(x: 5, y: 5, width: 200, height: 200),
+      boxes: [PixelRect(x: 20, y: 30, width: 100, height: 40)], active: 0)
+    editor.canvas.regions = original
+    editor.interactionBlocked = true
+    try escape(editor.canvas)
+    editor.canvas.clearTextRegions()
+    #expect(editor.canvas.regions == original)
+    editor.interactionBlocked = false
+    editor.session.detect()
+    try escape(editor.canvas)
+    editor.canvas.clearTextRegions()
+    #expect(editor.canvas.regions == original)
+    editor.session.acceptDetection(.success(original.boxes), generation: editor.session.generation)
+    // The window responder also handles Escape when a contextual control has focus.
+    editor.cancelOperation(nil)
+    #expect(editor.canvas.regions.boxes.isEmpty && editor.canvas.regions.active == nil)
+    #expect(!editor.session.dirty && editor.session.state?.canUndo == false)
+  }
   @Test func quittingFreezesEditingAndRestoresItOnCancellation() async throws {
     _ = NSApplication.shared
     let editor = EditorWindow()

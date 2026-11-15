@@ -63,7 +63,9 @@
 "Apply mosaic" = "모자이크 적용";
 "Detect text" = "텍스트 감지";
 "Detecting…" = "감지 중…";
+"Clear all text regions (Esc)" = "모든 텍스트 영역 지우기(Esc)";
 "Text mosaic block size in pixels" = "텍스트 모자이크 블록 크기(픽셀)";
+"Apply to selected" = "선택 영역에 적용";
 "Apply to all" = "모두 적용";
 "Remove box" = "영역 제거";
 
@@ -105,6 +107,7 @@
 "Detecting text…" = "텍스트 감지 중…";
 "Image changed. Detect text again." = "이미지가 바뀌었습니다. 텍스트를 다시 감지하세요.";
 "%ld text regions. Review before applying." = "텍스트 영역 %ld개. 적용하기 전에 확인하세요.";
+"Text regions cleared" = "텍스트 영역 지움";
 "Saving image…" = "이미지 저장 중…";
 "Saved %@" = "%@ 저장됨";
 "Wait for the current edit or save to finish." = "진행 중인 편집이나 저장이 끝나야 닫을 수 있습니다.";

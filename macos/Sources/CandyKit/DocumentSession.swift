@@ -87,7 +87,7 @@ final class DocumentSession {
       DispatchQueue.main.async { completion(result) }
     }
   }
-  func apply(_ edit: Edit) {
+  func apply(_ edit: Edit, onSuccess: (@MainActor @Sendable () -> Void)? = nil) {
     guard ready else { return }
     busy = true
     generation += 1
@@ -107,6 +107,7 @@ final class DocumentSession {
       case .failure(let error): self.error = error.localizedDescription
       }
       self.onChange?()
+      if case .success = result { onSuccess?() }
     }
   }
   func extract(

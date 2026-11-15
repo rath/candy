@@ -63,7 +63,9 @@
 "Apply mosaic" = "モザイクを適用";
 "Detect text" = "テキストを検出";
 "Detecting…" = "検出中…";
+"Clear all text regions (Esc)" = "すべてのテキスト範囲を消去(Esc)";
 "Text mosaic block size in pixels" = "テキストモザイクのブロックサイズ(ピクセル)";
+"Apply to selected" = "選択範囲に適用";
 "Apply to all" = "すべてに適用";
 "Remove box" = "ボックスを削除";
 
@@ -105,6 +107,7 @@
 "Detecting text…" = "テキストを検出中…";
 "Image changed. Detect text again." = "画像が変わりました。テキストをもう一度検出してください。";
 "%ld text regions. Review before applying." = "テキスト範囲%ld個。適用する前に確認してください。";
+"Text regions cleared" = "テキスト範囲を消去しました";
 "Saving image…" = "画像を保存中…";
 "Saved %@" = "%@を保存しました";
 "Wait for the current edit or save to finish." = "進行中の編集または保存が終わるまでお待ちください。";

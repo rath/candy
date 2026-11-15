@@ -70,8 +70,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     window.toolbar = toolbar
     window.toolbarStyle = .unified
     // A content minimum: `minSize` would be converted with the titlebar height before the
-    // toolbar lays out, which later adds 24 pt. 560 pt fits the widest contextual strip
-    // (Text mosaic) and the tool selector beside a truncated title.
+    // toolbar lays out, which later adds 24 pt. 560 pt keeps the tool selector and
+    // primary Text mosaic actions visible; the contextual strip scrolls if needed.
     window.contentMinSize = NSSize(width: 560, height: 268)
     tools.target = self
     tools.action = #selector(changeTool)
@@ -83,6 +83,11 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     session.onChange = { [weak self] in self?.refresh() }
     session.onRegions = { [weak self] regions in self?.canvas.regions = Regions(boxes: regions) }
     canvas.onChange = { [weak self] in self?.refreshStatus() }
+    canvas.onClearTextRegions = { [weak self] in
+      guard let self else { return }
+      self.session.message = localized("Text regions cleared")
+      self.refreshStatus()
+    }
     canvas.onStroke = { [weak self] points in
       guard let self, self.documentActionsEnabled, let c = self.color.usingColorSpace(.sRGB) else {
         return
@@ -275,11 +280,14 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         opacity, 16.0 / 255, 220.0 / 255, #selector(brushChanged),
         title: localized("Highlight opacity"))
     case .text:
-      button(localized("Detect text"), #selector(detectText))
+      let detect = button(localized("Detect text"), #selector(toggleTextDetection))
+      detect.widthAnchor.constraint(greaterThanOrEqualToConstant: detect.intrinsicContentSize.width)
+        .isActive = true
+      button(localized("Apply to selected"), #selector(applySelectedTextRegion))
+      button(localized("Apply to all"), #selector(applyTool))
       label(localized("Block px"))
       slider = addSlider(
         block, 2, 96, #selector(blockChanged), title: localized("Text mosaic block size in pixels"))
-      button(localized("Apply to all"), #selector(applyTool))
       button(localized("Remove box"), #selector(removeBox))
     case .resize:
       label(localized("Width"))
@@ -390,6 +398,20 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     default: break
     }
   }
+  @objc private func applySelectedTextRegion() {
+    guard regionActionsEnabled, tool == .text else { return }
+    window?.makeFirstResponder(canvas)
+    canvas.cancel()
+    guard let active = canvas.regions.active, let rect = canvas.regions.selected(.text) else {
+      return
+    }
+    var remaining = canvas.regions.boxes
+    remaining.remove(at: active)
+    let remainingBoxes = remaining
+    session.apply(.mosaic([rect], UInt32(block))) { [weak self] in
+      self?.canvas.regions = Regions(boxes: remainingBoxes)
+    }
+  }
   @objc private func rotateLeft() { rotate(clockwise: false) }
   @objc private func rotateRight() { rotate(clockwise: true) }
   private func rotate(clockwise: Bool) {
@@ -402,12 +424,17 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       session.extract(r) { [weak self] d, p, n in self?.onExtract?(d, p, n) }
     }
   }
-  @objc private func detectText() {
-    if documentActionsEnabled {
-      canvas.cancel()
+  @objc private func toggleTextDetection() {
+    guard regionActionsEnabled else { return }
+    window?.makeFirstResponder(canvas)
+    canvas.cancel()
+    if canvas.regions.boxes.isEmpty {
       session.detect()
+    } else {
+      canvas.clearTextRegions()
     }
   }
+  override func cancelOperation(_ sender: Any?) { canvas.cancelOperation(sender) }
   @objc private func removeBox() { if regionActionsEnabled { canvas.regions.removeActive() } }
   @objc private func dismissError() { session.clearError() }
   @objc func undo(_ sender: Any?) {
@@ -613,11 +640,19 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       {
         b.isEnabled = ready && canvas.regions.selection != nil
       }
-      if b.action == #selector(detectText) {
+      if b.action == #selector(toggleTextDetection) {
+        let hasRegions = !canvas.regions.boxes.isEmpty
         b.isEnabled = ready && !session.detecting
-        b.title = session.detecting ? localized("Detecting…") : localized("Detect text")
+        b.title =
+          session.detecting
+          ? localized("Detecting…") : (hasRegions ? localized("Cancel") : localized("Detect text"))
+        b.toolTip =
+          hasRegions && !session.detecting ? localized("Clear all text regions (Esc)") : nil
       }
       if b.action == #selector(removeBox) { b.isEnabled = ready && canvas.regions.active != nil }
+      if b.action == #selector(applySelectedTextRegion) {
+        b.isEnabled = ready && canvas.regions.selected(.text) != nil
+      }
       if b.action == #selector(applyTool), tool == .text {
         b.isEnabled = ready && !canvas.regions.boxes.isEmpty
       }

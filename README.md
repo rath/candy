@@ -135,7 +135,7 @@ pending, but it also lets panes in hidden windows write to the terminal.
 - **Select:** drag a rectangle, move it or resize its corners, then extract it into a new tab.
 - **Mosaic:** pixelate the selected rectangle with an adjustable block size.
 - **Highlight:** draw translucent strokes with adjustable color, size and opacity.
-- **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic. Detection is script-independent; English, Korean and Japanese text are checked.
+- **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic to the selected box or to all boxes. Applying to one box keeps the others available for review. Cancel or press Escape to clear the remaining boxes without changing the image. Detection is script-independent; English, Korean and Japanese text are checked.
 - **Resize:** set dimensions, optionally preserving the aspect ratio, or rotate by 90° in either direction.
 - **Flatten alpha:** composite transparency onto a chosen solid color.
 
@@ -165,7 +165,7 @@ replacement, and closing unsaved documents prompts to save or discard.
 | Cmd+W / Cmd+Q | Close document / Quit |
 | Cmd+0 / Cmd+9 | Actual size / Zoom to fit |
 | Cmd+1 … Cmd+6 | Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha |
-| Escape | Cancel a drag or clear selection |
+| Escape | Cancel a drag, clear text boxes, or clear selection |
 | Delete / Backspace | Remove the selected OCR box |
 | Space + drag | Pan |
 | Scroll / pinch | Zoom |

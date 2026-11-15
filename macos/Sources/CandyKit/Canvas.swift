@@ -84,6 +84,7 @@ final class CanvasView: NSView {
   var pan = CGPoint.zero
   var onChange: (() -> Void)?
   var onStroke: (([CGPoint]) -> Void)?
+  var onClearTextRegions: (() -> Void)?
   private var prior = Regions()
   private var space = false
   private var tracking: NSTrackingArea?
@@ -137,6 +138,23 @@ final class CanvasView: NSView {
     if drag != nil { regions = prior }
     drag = nil
     needsDisplay = true
+  }
+  func clearTextRegions() {
+    guard enabled, tool == .text, !regions.boxes.isEmpty else { return }
+    cancel()
+    regions = Regions(selection: regions.selection)
+    onClearTextRegions?()
+  }
+  override func cancelOperation(_ sender: Any?) {
+    guard enabled else { return }
+    if drag != nil {
+      cancel()
+    } else if tool == .text, !regions.boxes.isEmpty {
+      clearTextRegions()
+    } else {
+      regions.selection = nil
+      regions.active = nil
+    }
   }
   override func resetCursorRects() { addCursorRect(bounds, cursor: space ? .openHand : .crosshair) }
   override func updateTrackingAreas() {
@@ -302,12 +320,7 @@ final class CanvasView: NSView {
   }
   override func keyDown(with event: NSEvent) {
     if event.keyCode == 53 {
-      if drag != nil {
-        cancel()
-      } else {
-        regions.selection = nil
-        regions.active = nil
-      }
+      cancelOperation(nil)
       return
     }
     if event.keyCode == 49 {
