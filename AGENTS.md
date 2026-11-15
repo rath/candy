@@ -121,8 +121,13 @@ live in the SwiftPM package under `macos`.
   window/state before treating it as evidence.
 - If browser work is needed, use the installed `agent-browser` CLI with
   `--headed --session candy` and prefer its `snapshot` output.
-- System Events can inspect native menus, toolbars, controls, and sheets. Use
-  accessible controls where possible; read current bounds before canvas clicks.
+- Use the installed `open-computer-use` CLI for native app inspection and
+  automation (`open-computer-use --help`, `open-computer-use help call`). Do not
+  use `osascript`. Preserve the user's foreground app and keyboard/mouse focus;
+  do not activate test windows or send global input while the user is working.
+  Prefer app-scoped accessibility operations that work in the background. If a
+  check would require taking focus, use automated tests or existing captures.
+  Use accessible controls where possible; read current bounds before canvas clicks.
   Native sheets may have their own window IDs: capturing only the parent can
   omit the sheet. Verify every image shows the intended state.
 
