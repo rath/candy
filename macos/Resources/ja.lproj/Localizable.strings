@@ -93,6 +93,15 @@
 "Replace transparency with" = "透明部分を塗りつぶす色";
 "Background color" = "背景色";
 
+/* Eyedropper */
+"Eyedropper" = "スポイト";
+"Hex" = "16進";
+"RGB" = "RGB";
+"Copy hex" = "16進をコピー";
+"Copy RGB" = "RGBをコピー";
+"Click to pin a pixel. Arrow keys move it one pixel." = "クリックするとピクセルが固定されます。矢印キーで1ピクセルずつ移動できます。";
+"Copied %@" = "%@をコピーしました";
+
 /* Status */
 "Ready" = "準備完了";
 "Dismiss" = "閉じる";

@@ -74,6 +74,10 @@ live in the SwiftPM package under `macos`.
 - Canceling an OCR-box drag must restore both boxes and the active-box index.
   Bounds-check selection mutation/removal; restoring only boxes caused a crash.
 - Clip live brush previews to the image/canvas intersection.
+- The eyedropper reads straight-alpha, full-resolution pixels from the immutable
+  `RustImage` snapshot each render returns with its preview, on the main thread.
+  Never read colors from the preview: it is premultiplied and may be reduced.
+  A new revision clears the pin.
 - First GUI save creates a copy. Preserve original protection, including
   symlink/hardlink aliases, and atomic output writes. CLI `--force` permits
   replacing a separate output, never the input; only an explicit `--in-place`

@@ -138,6 +138,13 @@ pending, but it also lets panes in hidden windows write to the terminal.
 - **Text mosaic:** detect text locally with Apple Vision, review or adjust boxes, then apply mosaic to the selected box or to all boxes. Applying to one box keeps the others available for review. Cancel or press Escape to clear the remaining boxes without changing the image. Detection is script-independent; English, Korean and Japanese text are checked.
 - **Resize:** set dimensions, optionally preserving the aspect ratio, or rotate by 90° in either direction.
 - **Flatten alpha:** composite transparency onto a chosen solid color.
+- **Eyedropper:** read a pixel's color. A loupe beside the pointer magnifies the
+  surrounding 11 × 11 pixels and shows the center pixel as hex (`#faac30`) and
+  decimal (`250, 172, 48`). Click to pin a pixel, then use the arrow keys to move
+  the pin one pixel at a time, or ten with Shift. Click the hex or RGB value
+  above the canvas to copy it; Cmd+C copies the hex value. Values are the 8-bit
+  sRGB pixels Candy edits and exports, read at full resolution; a pixel that is
+  not opaque adds its alpha (`#faac3080`, `250, 172, 48, 128`).
 
 File, Edit, View and Tools actions live in the macOS menu bar. Each document
 has a native window, toolbar, contextual controls, canvas, and undo/redo. Native
@@ -164,8 +171,10 @@ replacement, and closing unsaved documents prompts to save or discard.
 | Cmd+Z / Shift+Cmd+Z | Undo / Redo |
 | Cmd+W / Cmd+Q | Close document / Quit |
 | Cmd+0 / Cmd+9 | Actual size / Zoom to fit |
-| Cmd+1 … Cmd+6 | Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha |
-| Escape | Cancel a drag, clear text boxes, or clear selection |
+| Cmd+1 … Cmd+7 | Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha, Eyedropper |
+| Cmd+C | Copy the eyedropper color as hex |
+| Arrow keys / Shift+arrow keys | Move the eyedropper pin by 1 / 10 pixels |
+| Escape | Cancel a drag, clear text boxes, clear the eyedropper pin, or clear selection |
 | Delete / Backspace | Remove the selected OCR box |
 | Space + drag | Pan |
 | Scroll / pinch | Zoom |

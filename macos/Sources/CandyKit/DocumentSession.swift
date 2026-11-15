@@ -7,6 +7,7 @@ final class DocumentSession {
   private var engine: RustDocument?
   private(set) var state: DocumentState?
   private(set) var image: CGImage?
+  private(set) var pixels: RustImage?
   private(set) var source: URL?
   private(set) var output: URL?
   private(set) var saveSettings = SaveSettings()
@@ -39,6 +40,7 @@ final class DocumentSession {
   private func receive(_ rendered: RenderedDocument) {
     state = rendered.state
     image = rendered.preview.image()
+    pixels = rendered.pixels
   }
   func load(_ url: URL) {
     load(url, transfer: CLIImport.recognize(url))

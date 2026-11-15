@@ -1,17 +1,17 @@
 import AppKit
 
 enum Tool: Int, CaseIterable {
-  case select, mosaic, highlight, text, resize, flatten
+  case select, mosaic, highlight, text, resize, flatten, eyedropper
   var title: String {
     [
       localized("Select"), localized("Mosaic"), localized("Highlight"), localized("Text mosaic"),
-      localized("Resize"), localized("Flatten alpha"),
+      localized("Resize"), localized("Flatten alpha"), localized("Eyedropper"),
     ][rawValue]
   }
   var symbol: String {
     [
       "selection.pin.in.out", "square.grid.3x3", "highlighter", "text.viewfinder",
-      "arrow.up.left.and.arrow.down.right", "square.on.circle",
+      "arrow.up.left.and.arrow.down.right", "square.on.circle", "eyedropper",
     ][rawValue]
   }
 }
@@ -54,28 +54,40 @@ struct Regions: Equatable {
 final class CanvasView: NSView {
   override var isFlipped: Bool { true }
   override var acceptsFirstResponder: Bool { true }
+  override init(frame: NSRect) {
+    super.init(frame: frame)
+    loupe.setFrameSize(LoupeView.size)
+    loupe.isHidden = true
+    addSubview(loupe)
+  }
+  required init?(coder: NSCoder) { fatalError("Programmatic view") }
   override func setFrameSize(_ newSize: NSSize) {
     super.setFrameSize(newSize)
     needsDisplay = true
-    onChange?()
+    changed()
   }
   override func viewDidMoveToWindow() {
     super.viewDidMoveToWindow()
-    onChange?()
+    changed()
   }
   var image: CGImage? { didSet { needsDisplay = true } }
   var imageSize = CGSize.zero
+  /// Full-resolution pixels of `image`, which may be a reduced preview. The eyedropper reads
+  /// colors from these.
+  var pixels: RustImage? { didSet { refreshProbe() } }
   var tool: Tool = .select {
     didSet {
       cancel()
+      followsPin = false
+      refreshProbe()
       window?.invalidateCursorRects(for: self)
     }
   }
-  var enabled = true
+  var enabled = true { didSet { if enabled != oldValue { refreshProbe() } } }
   var regions = Regions() {
     didSet {
       needsDisplay = true
-      onChange?()
+      changed()
     }
   }
   var brushColor = NSColor.systemYellow.withAlphaComponent(0.4)
@@ -85,6 +97,15 @@ final class CanvasView: NSView {
   var onChange: (() -> Void)?
   var onStroke: (([CGPoint]) -> Void)?
   var onClearTextRegions: (() -> Void)?
+  /// The eyedropper's color: the pinned pixel's, or else the one under the pointer.
+  private(set) var sample: ColorSample?
+  private(set) var pin: PixelPoint? { didSet { needsDisplay = true } }
+  private var priorPin: PixelPoint?
+  /// Pointer position in view coordinates while it is over the canvas of the key window.
+  private var pointer: CGPoint?
+  /// The loupe shows the pin after an arrow key moved it, until the pointer moves again.
+  private var followsPin = false
+  private let loupe = LoupeView()
   private var prior = Regions()
   private var space = false
   private var tracking: NSTrackingArea?
@@ -94,6 +115,7 @@ final class CanvasView: NSView {
     case resize(CGPoint)
     case pan(CGPoint, CGPoint)
     case brush([CGPoint])
+    case pick
   }
   private var drag: Drag?
   private var accent: NSColor {
@@ -122,22 +144,82 @@ final class CanvasView: NSView {
     zoom = nil
     pan = .zero
     needsDisplay = true
-    onChange?()
+    changed()
   }
   func actualSize() {
     zoom = 1
     pan = .zero
     needsDisplay = true
-    onChange?()
+    changed()
   }
   func clear() {
     drag = nil
+    pin = nil
+    followsPin = false
     regions = Regions()
   }
   func cancel() {
-    if drag != nil { regions = prior }
+    if drag != nil {
+      pin = priorPin
+      regions = prior
+    }
     drag = nil
     needsDisplay = true
+  }
+  private func changed() {
+    refreshProbe()
+    onChange?()
+  }
+  private var hover: PixelPoint? {
+    guard let pointer else { return nil }
+    let p = transform.image(pointer)
+    guard CGRect(origin: .zero, size: imageSize).contains(p) else { return nil }
+    return PixelPoint(x: Int(p.x), y: Int(p.y))
+  }
+  /// Brings the loupe and `sample` up to date with the pointer, pin, view and pixels.
+  private func refreshProbe() {
+    let probing = tool == .eyedropper && enabled
+    let target = probing ? (followsPin ? pin : hover) : nil
+    let colors = target.flatMap { pixels?.neighborhood(of: $0, radius: LoupeView.radius) }
+    if let target, let colors, colors[colors.count / 2] != nil {
+      let anchor =
+        followsPin
+        ? transform.screen(CGPoint(x: CGFloat(target.x) + 0.5, y: CGFloat(target.y) + 0.5))
+        : pointer ?? .zero
+      loupe.pixels = colors
+      loupe.accent = accent
+      loupe.setFrameOrigin(LoupeView.origin(near: anchor, in: bounds))
+      loupe.isHidden = false
+    } else {
+      loupe.isHidden = true
+    }
+    let point = pin ?? (probing ? hover : nil)
+    sample = point.flatMap { point in
+      pixels?.color(at: point).map { ColorSample(point: point, color: $0) }
+    }
+  }
+  /// The pointer left the canvas, or its window stopped being key.
+  func forgetPointer() {
+    guard pointer != nil else { return }
+    pointer = nil
+    if tool == .eyedropper { changed() }
+  }
+  private func track(_ event: NSEvent) {
+    pointer = convert(event.locationInWindow, from: nil)
+    followsPin = false
+    if tool == .eyedropper { changed() }
+  }
+  override func mouseEntered(with event: NSEvent) { track(event) }
+  override func mouseMoved(with event: NSEvent) { track(event) }
+  override func mouseExited(with event: NSEvent) { forgetPointer() }
+  /// Moves the pinned pixel, pinning the hovered one first, and points the loupe at it.
+  private func nudge(x: Int, y: Int) {
+    guard let start = pin ?? hover, imageSize.width >= 1, imageSize.height >= 1 else { return }
+    pin = PixelPoint(
+      x: min(max(0, start.x + x), Int(imageSize.width) - 1),
+      y: min(max(0, start.y + y), Int(imageSize.height) - 1))
+    followsPin = true
+    changed()
   }
   func clearTextRegions() {
     guard enabled, tool == .text, !regions.boxes.isEmpty else { return }
@@ -151,6 +233,10 @@ final class CanvasView: NSView {
       cancel()
     } else if tool == .text, !regions.boxes.isEmpty {
       clearTextRegions()
+    } else if tool == .eyedropper, pin != nil {
+      pin = nil
+      followsPin = false
+      changed()
     } else {
       regions.selection = nil
       regions.active = nil
@@ -160,13 +246,16 @@ final class CanvasView: NSView {
   override func updateTrackingAreas() {
     if let tracking { removeTrackingArea(tracking) }
     tracking = NSTrackingArea(
-      rect: .zero, options: [.activeInKeyWindow, .inVisibleRect, .mouseMoved], owner: self)
+      rect: .zero,
+      options: [.activeInKeyWindow, .inVisibleRect, .mouseMoved, .mouseEnteredAndExited],
+      owner: self)
     addTrackingArea(tracking!)
     super.updateTrackingAreas()
   }
   override func viewDidChangeEffectiveAppearance() {
     super.viewDidChangeEffectiveAppearance()
     needsDisplay = true
+    refreshProbe()
   }
   override func draw(_ dirtyRect: NSRect) {
     NSColor.underPageBackgroundColor.setFill()
@@ -216,6 +305,14 @@ final class CanvasView: NSView {
       drawRegion(t.rect(selection), active: true, fill: false)
     }
     NSGraphicsContext.restoreGraphicsState()
+    if tool == .eyedropper, let pin {
+      // At least handle-sized, so the pin stays visible when a pixel is smaller than that.
+      let side = max(9, t.scale)
+      let center = t.screen(CGPoint(x: CGFloat(pin.x) + 0.5, y: CGFloat(pin.y) + 0.5))
+      PixelMarker.draw(
+        around: CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side),
+        accent: accent)
+    }
   }
   private func drawRegion(_ rect: CGRect, active: Bool, fill: Bool) {
     if fill {
@@ -248,8 +345,19 @@ final class CanvasView: NSView {
     let screen = convert(event.locationInWindow, from: nil)
     let p = transform.image(screen)
     prior = regions
+    priorPin = pin
+    pointer = screen
+    followsPin = false
     if space {
       drag = .pan(screen, pan)
+      return
+    }
+    if tool == .eyedropper {
+      if let hover {
+        pin = hover
+        drag = .pick
+        changed()
+      }
       return
     }
     if tool == .highlight, CGRect(origin: .zero, size: imageSize).contains(p) {
@@ -291,6 +399,7 @@ final class CanvasView: NSView {
   override func mouseDragged(with event: NSEvent) {
     let screen = convert(event.locationInWindow, from: nil)
     let p = transform.image(screen)
+    pointer = screen
     switch drag {
     case .new(let start), .resize(let start):
       if let rect = PixelRect.between(start, p, size: imageSize) { regions.set(rect, tool: tool) }
@@ -308,10 +417,11 @@ final class CanvasView: NSView {
     case .brush(var points):
       points.append(p)
       drag = .brush(points)
+    case .pick: if let hover { pin = hover }
     case nil: break
     }
     needsDisplay = true
-    onChange?()
+    changed()
   }
   override func mouseUp(with event: NSEvent) {
     if case .brush(let points) = drag { onStroke?(points) }
@@ -330,6 +440,16 @@ final class CanvasView: NSView {
     }
     if enabled, tool == .text, [51, 117].contains(event.keyCode) {
       regions.removeActive()
+      return
+    }
+    if enabled, tool == .eyedropper, (123...126).contains(event.keyCode) {
+      let step = event.modifierFlags.contains(.shift) ? 10 : 1
+      switch event.keyCode {
+      case 123: nudge(x: -step, y: 0)
+      case 124: nudge(x: step, y: 0)
+      case 125: nudge(x: 0, y: step)
+      default: nudge(x: 0, y: -step)
+      }
       return
     }
     super.keyDown(with: event)
@@ -355,7 +475,7 @@ final class CanvasView: NSView {
     pan.x += screen.x - after.x
     pan.y += screen.y - after.y
     needsDisplay = true
-    onChange?()
+    changed()
   }
   override func scrollWheel(with event: NSEvent) {
     magnify(exp(event.scrollingDeltaY * 0.01), at: convert(event.locationInWindow, from: nil))

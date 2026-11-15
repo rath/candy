@@ -43,6 +43,15 @@ components:
     backgroundColor: "{colors.handle-fill}"
     rounded: "{rounded.region}"
     size: "7pt"
+  loupe:
+    rounded: "{rounded.region}"
+    width: "136pt"
+    height: "176pt"
+  loupe-cell:
+    size: "12pt"
+  swatch:
+    rounded: "{rounded.region}"
+    size: "22pt"
 ---
 
 # Design System: Candy editor
@@ -76,7 +85,7 @@ Highlight color defaults to `systemYellow` at 0.4 opacity and the flattening bac
 
 ## Typography
 
-Use AppKit system fonts and its native fallback for Korean, Japanese and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are regular contextual labels and regular monospaced-digit slider values, as recorded in the frontmatter; the empty-state instruction uses the default label font. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
+Use AppKit system fonts and its native fallback for Korean, Japanese and other scripts. Do not bundle font files. Most controls and ordinary labels inherit AppKit's typography. The explicit overrides are regular contextual labels and regular monospaced-digit slider and color values, as recorded in the frontmatter; the loupe caption uses the same monospaced-digit font at `NSFont.smallSystemFontSize`; the empty-state instruction uses the default label font. Status uses `NSFont.smallSystemFontSize`; its numeric size is intentionally not redefined here. Line heights, letter spacing, and native control weights are not overridden.
 
 ## Layout
 
@@ -98,7 +107,7 @@ Image rectangles, checker cells, region outlines, and handles have square corner
 
 ### Menus and tool selector
 
-The macOS menu bar provides file, text-editing, history, view, tool, and window commands with native key equivalents. A centered `NSSegmentedControl` selects Select, Mosaic, Highlight, Text mosaic, Resize, or Flatten alpha. It uses SF Symbol icons with tooltips and accessibility descriptions naming each tool, and single selection. Menu check marks mirror the active tool. Commands and controls disable when their document state makes them unavailable.
+The macOS menu bar provides file, text-editing, history, view, tool, and window commands with native key equivalents. A centered `NSSegmentedControl` selects Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha, or Eyedropper. It uses SF Symbol icons with tooltips and accessibility descriptions naming each tool, and single selection. Menu check marks mirror the active tool. Commands and controls disable when their document state makes them unavailable.
 
 ### Document windows and tabs
 
@@ -106,7 +115,7 @@ Each document has its own `NSWindow` and editing session. Windows share a tabbin
 
 ### Contextual controls
 
-Select exposes region instructions and Extract to new image. Mosaic exposes block size and Apply mosaic. Highlight exposes a native color well, width, and opacity. Text mosaic places Detect text, Apply to selected, and Apply to all first, followed by block size and Remove box; region count appears in status. Apply to selected requires an active box, mosaics only that box, and leaves the other boxes available for review. Apply to all processes every remaining box. When text boxes are present, Detect text becomes Cancel, which clears the remaining boxes without changing pixels or undo history; its tooltip names the Escape shortcut. Resize exposes width and height text fields, Keep ratio, Apply resize, and icon-only Rotate left and Rotate right buttons (`rotate.left`/`rotate.right`) whose tooltips name the 90° direction; a rotation swaps the field values. Flatten alpha exposes a background color well and its apply action.
+Select exposes region instructions and Extract to new image. Mosaic exposes block size and Apply mosaic. Highlight exposes a native color well, width, and opacity. Text mosaic places Detect text, Apply to selected, and Apply to all first, followed by block size and Remove box; region count appears in status. Apply to selected requires an active box, mosaics only that box, and leaves the other boxes available for review. Apply to all processes every remaining box. When text boxes are present, Detect text becomes Cancel, which clears the remaining boxes without changing pixels or undo history; its tooltip names the Escape shortcut. Resize exposes width and height text fields, Keep ratio, Apply resize, and icon-only Rotate left and Rotate right buttons (`rotate.left`/`rotate.right`) whose tooltips name the 90° direction; a rotation swaps the field values. Flatten alpha exposes a background color well and its apply action. Eyedropper exposes a read-only square swatch, then a Hex label and an RGB label, each followed by one button whose title is the color in that format with a trailing `doc.on.doc` icon; clicking it copies that value, and its tooltip and accessibility label are Copy hex and Copy RGB. A value and its copy action are one control so neither can be read as belonging to its neighbor, and an (18 pt) gap follows each button. A secondary-color instruction line comes last, so it is what scrolls away in a narrow window. Each button is at least as wide as its widest opaque value, widens for a value with alpha, and shows an en dash, disabled, until there is a sample. The values are the pinned pixel's, or those of the pixel under the pointer while nothing is pinned. Edit ▸ Copy copies the hex value.
 
 Sliders have adjacent right-aligned numeric values; opacity displays as a percentage. Image measurements use pixels. Block size ranges from 2–96, brush width from 2–100, and resize dimensions accept 1–65535 subject to engine allocation limits. During OCR detection, text-region controls and canvas region editing lock, while other tools remain available. An edit or save disables document editing until it completes.
 
@@ -114,9 +123,15 @@ Sliders have adjacent right-aligned numeric values; opacity displays as a percen
 
 Active regions have a (2 pt) coral outline and square white corner handles; inactive OCR regions have a (1 pt) outline. Handle hit detection uses a (9 pt) radius. OCR boxes also receive the translucent accent fill described above. Live brush strokes have round caps and joins and are clipped to the image/canvas intersection. The canvas uses a crosshair; holding Space changes it to an open hand. Escape cancels an active drag and restores the prior regions; when idle, it clears all text boxes in Text mosaic or clears the selection in other tools. Delete removes the active OCR box when region editing is enabled.
 
+### Eyedropper loupe
+
+While Eyedropper is active and the pointer is over the image in the key window, a square loupe sits (18 pt) below and to the right of the pointer, moves to the opposite side where it would leave the canvas, and never covers the pixel it magnifies. It shows the 11 × 11 full-resolution pixels around the target in (12 pt) cells with faint cell lines; translucent pixels sit on the transparency checker in (6 pt) cells, and cells outside the image use the canvas background. The center cell has the pin marker: a (2 pt) coral outline inside a (1 pt) white one, drawn outside the cell so the pixel stays uncovered. A (40 pt) caption on `windowBackgroundColor` gives the hex value in `labelColor` above the decimal value in `secondaryLabelColor`. A white line inside a 60% black line frames the loupe against any image.
+
+A click pins the pixel under the pointer, and dragging moves the pin. The pinned pixel carries the same marker on the canvas, at least (9 pt) across. Arrow keys move the pin by one pixel, or ten with Shift, and turn the loupe to the pin until the pointer moves again. Escape clears the pin before the selection. The pin survives a change of tool and is cleared when the image changes. Hex is lowercase `#rrggbb` and decimal is `r, g, b`; a pixel that is not opaque adds alpha to both.
+
 ### Status and native sheets
 
-Status combines image dimensions, zoom, selected-region coordinates and dimensions, OCR region count where applicable, and the latest message. It truncates in the middle and exposes the full text in a tooltip. Progress appears alongside it. Errors use the system error color and a small Dismiss button.
+Status combines image dimensions, zoom, selected-region coordinates and dimensions, OCR region count where applicable, the eyedropper's pixel coordinates and hex value, and the latest message. It truncates in the middle and exposes the full text in a tooltip. Progress appears alongside it. Errors use the system error color and a small Dismiss button.
 
 Open uses `NSOpenPanel`. Saving uses a document-scoped `NSSavePanel` with a visible Format popup offering PNG, JPEG, HEIC, WebP, AVIF where macOS can encode it, TIFF, GIF, BMP, JPEG 2000 and TGA; changing the format updates the filename extension. The accessory stacks aligned native control rows with 8 pt vertical and 10 pt horizontal gaps. JPEG, HEIC, AVIF and JPEG 2000 show a Quality slider (160 pt) and a right-aligned numeric field (48 pt), accepting integers from 1–100. WebP shows a Compression popup for Lossless or Lossy and shows Quality only in lossy mode. Invalid input displays a system-red explanation and prevents saving. Defaults are JPEG 92, HEIC/AVIF/JPEG 2000 85, and WebP lossless with lossy quality 80. Each sheet edits a value snapshot, remembering values across format switches; successful saving commits these settings per document for subsequent Save and Save As. Cancellation and failure keep the prior settings. New documents start with defaults.
 

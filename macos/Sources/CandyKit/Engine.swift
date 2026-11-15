@@ -57,6 +57,8 @@ struct Preview: Sendable {
 struct RenderedDocument: Sendable {
   let state: DocumentState
   let preview: Preview
+  /// The full-resolution pixels the preview was made from, for reading exact colors.
+  let pixels: RustImage
 }
 enum WebpMode: UInt8, Sendable {
   case lossless = 1
@@ -112,7 +114,7 @@ final class RustDocument: @unchecked Sendable {
     let preview = Preview(
       width: Int(p.pointee.width), height: Int(p.pointee.height),
       bytes: Data(bytes: p.pointee.data, count: p.pointee.length))
-    return try RenderedDocument(state: state(), preview: preview)
+    return try RenderedDocument(state: state(), preview: preview, pixels: snapshot())
   }
   func apply(_ edit: Edit) throws {
     let _: UInt8 = try checked { error in
@@ -154,10 +156,43 @@ final class RustDocument: @unchecked Sendable {
     return RustImage(image)
   }
 }
+// An immutable snapshot: unlike a document, it can be read from any thread.
 final class RustImage: @unchecked Sendable {
   private let handle: OpaquePointer
-  init(_ handle: OpaquePointer) { self.handle = handle }
+  let width: Int, height: Int
+  init(_ handle: OpaquePointer) {
+    self.handle = handle
+    let bounds = candy_image_bounds(handle)
+    width = Int(bounds.width)
+    height = Int(bounds.height)
+  }
   deinit { candy_image_free(handle) }
+  /// The colors of the (2 × `radius` + 1)² pixels centered on `center`, row by row. Entries
+  /// outside the image are nil. A small copy, so it is fine on the main thread.
+  func neighborhood(of center: PixelPoint, radius: Int) -> [PixelColor?] {
+    let side = 2 * radius + 1
+    var colors = [PixelColor?](repeating: nil, count: side * side)
+    let left = max(0, center.x - radius), top = max(0, center.y - radius)
+    let right = min(width, center.x + radius + 1), bottom = min(height, center.y + radius + 1)
+    guard right > left, bottom > top else { return colors }
+    let columns = right - left
+    var bytes = [UInt8](repeating: 0, count: columns * (bottom - top) * 4)
+    let rect = CandyRect(
+      x: UInt32(left), y: UInt32(top), width: UInt32(columns), height: UInt32(bottom - top))
+    let copied: UInt8? = bytes.withUnsafeMutableBufferPointer { buffer in
+      try? checked { candy_image_pixels(handle, rect, buffer.baseAddress, buffer.count, $0) }
+    }
+    guard copied == 1 else { return colors }
+    for y in top..<bottom {
+      for x in left..<right {
+        let i = ((y - top) * columns + x - left) * 4
+        colors[(y - center.y + radius) * side + x - center.x + radius] = PixelColor(
+          red: bytes[i], green: bytes[i + 1], blue: bytes[i + 2], alpha: bytes[i + 3])
+      }
+    }
+    return colors
+  }
+  func color(at point: PixelPoint) -> PixelColor? { neighborhood(of: point, radius: 0)[0] }
   func detect() throws -> [PixelRect] {
     guard let result = try checked({ candy_image_detect(handle, $0) }) else {
       throw EngineError(message: localized("Cannot detect text"))

@@ -33,6 +33,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
   private var slider: NSSlider?
   private var alphaSlider: NSSlider?
   private var sliderValues: [(NSSlider, NSTextField)] = []
+  private var swatch: SwatchView?
+  private var hexButton: NSButton?
+  private var rgbButton: NSButton?
   var interactionBlocked = false {
     didSet {
       if interactionBlocked { canvas.cancel() }
@@ -232,6 +235,20 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         ? "\(Int((slider.doubleValue * 100).rounded()))%" : "\(Int(slider.doubleValue.rounded()))"
     }
   }
+  /// A color value that copies itself when clicked: one control, so a value and its copy
+  /// action cannot be mistaken for a neighbor's. It is at least as wide as `widest`, the
+  /// widest opaque value, so the strip moves only for the rarer values with alpha.
+  private func copyButton(_ title: String, _ action: Selector, widest: String) -> NSButton {
+    let b = button(widest, action)
+    b.font = .monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+    b.image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: nil)
+    b.imagePosition = .imageTrailing
+    b.toolTip = title
+    b.setAccessibilityLabel(title)
+    b.widthAnchor.constraint(greaterThanOrEqualToConstant: b.intrinsicContentSize.width)
+      .isActive = true
+    return b
+  }
   private func field(_ value: Int, title: String) -> NSTextField {
     let f = NSTextField(string: String(value))
     f.widthAnchor.constraint(equalToConstant: 76).isActive = true
@@ -255,6 +272,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     colorWell = nil
     slider = nil
     alphaSlider = nil
+    swatch = nil
+    hexButton = nil
+    rgbButton = nil
     switch tool {
     case .select:
       label(localized("Drag a region. Move it or adjust its corners."))
@@ -320,6 +340,24 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       options.addArrangedSubview(well)
       colorWell = well
       button(localized("Flatten alpha"), #selector(applyTool))
+    case .eyedropper:
+      let chip = SwatchView()
+      options.addArrangedSubview(chip)
+      swatch = chip
+      // Each format is a name and one button. "d" is the widest hexadecimal digit.
+      label(localized("Hex"))
+      let hex = copyButton(localized("Copy hex"), #selector(copyHex), widest: "#dddddd")
+      label(localized("RGB"))
+      let rgb = copyButton(localized("Copy RGB"), #selector(copyRGB), widest: "000, 000, 000")
+      let hint = NSTextField(
+        labelWithString: localized("Click to pin a pixel. Arrow keys move it one pixel."))
+      hint.font = .systemFont(ofSize: 12)
+      hint.textColor = .secondaryLabelColor
+      options.addArrangedSubview(hint)
+      // A wider gap after each button keeps a name with its own value.
+      for button in [hex, rgb] { options.setCustomSpacing(18, after: button) }
+      hexButton = hex
+      rgbButton = rgb
     }
     refresh()
   }
@@ -329,6 +367,8 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     tools.selectedSegment = next.rawValue
     canvas.tool = next
     configureOptions()
+    // Arrow keys move the pin as soon as the tool is chosen, without a click first.
+    if next == .eyedropper { window?.makeFirstResponder(canvas) }
   }
   @objc private func changeTool() {
     if let tool = Tool(rawValue: tools.selectedSegment) { selectTool(tool) }
@@ -433,6 +473,17 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     } else {
       canvas.clearTextRegions()
     }
+  }
+  @objc private func copyHex() { copyText(canvas.sample?.color.hex) }
+  @objc private func copyRGB() { copyText(canvas.sample?.color.decimal) }
+  /// Edit ▸ Copy outside a text field: the eyedropper's color as hexadecimal text.
+  @objc func copy(_ sender: Any?) { if tool == .eyedropper { copyHex() } }
+  private func copyText(_ text: String?) {
+    guard let text else { return }
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(text, forType: .string)
+    session.message = localizedFormat("Copied %@", text)
+    refreshStatus()
   }
   override func cancelOperation(_ sender: Any?) { canvas.cancelOperation(sender) }
   @objc private func removeBox() { if regionActionsEnabled { canvas.regions.removeActive() } }
@@ -539,6 +590,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     session.invalidate()
     onClosed?()
   }
+  func windowDidResignKey(_ notification: Notification) { canvas.forgetPointer() }
   func windowDidResize(_ notification: Notification) {
     canvas.needsDisplay = true
     refreshStatus()
@@ -612,6 +664,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       shownRevision = state.revision
       canvas.image = session.image
       canvas.imageSize = state.size
+      canvas.pixels = session.pixels
       canvas.clear()
       if shownSize != state.size {
         let first = shownSize == .zero
@@ -656,7 +709,13 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
       if b.action == #selector(applyTool), tool == .text {
         b.isEnabled = ready && !canvas.regions.boxes.isEmpty
       }
+      if b.action == #selector(copyHex) || b.action == #selector(copyRGB) {
+        b.isEnabled = ready && canvas.sample != nil
+      }
     }
+    swatch?.color = canvas.sample?.color
+    hexButton?.title = canvas.sample?.color.hex ?? "–"
+    rgbButton?.title = canvas.sample?.color.decimal ?? "–"
     if session.busy || session.detecting {
       progress.startAnimation(nil)
     } else {
@@ -672,6 +731,9 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
         parts.append("\(r.x), \(r.y) · \(r.width) × \(r.height) px")
       }
       if tool == .text { parts.append(localizedFormat("%ld regions", canvas.regions.boxes.count)) }
+      if tool == .eyedropper, let sample = canvas.sample {
+        parts.append("\(sample.point.x), \(sample.point.y) · \(sample.color.hex)")
+      }
       parts.append(session.message)
       status.stringValue = parts.joined(separator: "   ·   ")
     } else {
@@ -687,6 +749,7 @@ final class EditorWindow: NSWindowController, NSWindowDelegate, NSToolbarDelegat
     }
     if item.action == #selector(undo(_:)) { return session.ready && session.state?.canUndo == true }
     if item.action == #selector(redo(_:)) { return session.ready && session.state?.canRedo == true }
+    if item.action == #selector(copy(_:)) { return tool == .eyedropper && canvas.sample != nil }
     return session.ready
   }
 }

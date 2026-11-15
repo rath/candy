@@ -93,6 +93,15 @@
 "Replace transparency with" = "투명한 부분을 채울 색상";
 "Background color" = "배경 색상";
 
+/* Eyedropper */
+"Eyedropper" = "스포이드";
+"Hex" = "16진수";
+"RGB" = "RGB";
+"Copy hex" = "16진수 복사하기";
+"Copy RGB" = "RGB 복사하기";
+"Click to pin a pixel. Arrow keys move it one pixel." = "클릭하면 픽셀이 고정됩니다. 화살표 키로 한 픽셀씩 옮길 수 있습니다.";
+"Copied %@" = "%@ 복사됨";
+
 /* Status */
 "Ready" = "준비됨";
 "Dismiss" = "닫기";
