@@ -401,6 +401,45 @@ pub unsafe extern "C" fn candy_image_free(image: *mut CandyImage) {
         drop(unsafe { Box::from_raw(image) });
     }
 }
+/// The image rectangle, `{0, 0, width, height}`; all zero for a missing image.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn candy_image_bounds(image: *const CandyImage) -> CandyRect {
+    unsafe { image.as_ref() }.map_or_else(CandyRect::default, |image| CandyRect {
+        x: 0,
+        y: 0,
+        width: image.0.width(),
+        height: image.0.height(),
+    })
+}
+/// Copies the straight-alpha RGBA8 rows of `rect` into `out`, which must hold exactly
+/// `rect.width * rect.height * 4` bytes. Nothing is written unless the call succeeds.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn candy_image_pixels(
+    image: *const CandyImage,
+    rect: CandyRect,
+    out: *mut u8,
+    length: usize,
+    error: *mut *mut c_char,
+) -> u8 {
+    guarded(error, || {
+        let image = &unsafe { image.as_ref() }.context("Missing image")?.0;
+        let rect = PixelRect::from(rect).validate(image.width(), image.height())?;
+        let row = rect.width as usize * 4;
+        ensure!(
+            row.checked_mul(rect.height as usize) == Some(length),
+            "Pixel buffer does not match the rectangle"
+        );
+        ensure!(!out.is_null(), "Missing buffer");
+        let out = unsafe { std::slice::from_raw_parts_mut(out, length) };
+        let stride = image.width() as usize * 4;
+        let source = image.as_raw();
+        for (y, target) in out.chunks_exact_mut(row).enumerate() {
+            let start = (rect.y as usize + y) * stride + rect.x as usize * 4;
+            target.copy_from_slice(&source[start..start + row]);
+        }
+        Ok(1)
+    })
+}
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn candy_image_detect(
     image: *const CandyImage,
@@ -529,6 +568,62 @@ mod tests {
             drop(d);
             assert_eq!((*snapshot).0.dimensions(), (8, 6));
             candy_image_free(snapshot);
+        }
+    }
+    #[test]
+    fn image_pixels_copy_straight_alpha_rows_inside_the_image() {
+        let mut d = CandyDocument::new(
+            RgbaImage::from_fn(4, 3, |x, y| {
+                image::Rgba([x as u8 * 10, y as u8 * 10, 200, 128])
+            }),
+            None,
+            false,
+        );
+        let mut error = ptr::null_mut();
+        let rect = |x, y, width, height| CandyRect {
+            x,
+            y,
+            width,
+            height,
+        };
+        unsafe {
+            let bounds = candy_image_bounds(ptr::null());
+            assert_eq!((bounds.width, bounds.height), (0, 0));
+            let image = candy_document_snapshot(&mut d, &mut error);
+            let bounds = candy_image_bounds(image);
+            assert_eq!(
+                (bounds.x, bounds.y, bounds.width, bounds.height),
+                (0, 0, 4, 3)
+            );
+            let mut out = [0u8; 16];
+            assert_eq!(
+                candy_image_pixels(image, rect(2, 1, 2, 2), out.as_mut_ptr(), 16, &mut error),
+                1
+            );
+            assert!(error.is_null());
+            // Unlike the preview, colors are not multiplied by alpha.
+            assert_eq!(
+                out,
+                [
+                    20, 10, 200, 128, 30, 10, 200, 128, 20, 20, 200, 128, 30, 20, 200, 128
+                ]
+            );
+            let mut untouched = [7u8; 16];
+            let buffer = untouched.as_mut_ptr();
+            for (area, length, out) in [
+                (rect(3, 1, 2, 2), 16, buffer),
+                (rect(0, 2, 2, 2), 16, buffer),
+                (rect(0, 0, 0, 1), 0, buffer),
+                (rect(u32::MAX, 0, 2, 2), 16, buffer),
+                (rect(0, 0, 2, 2), 12, buffer),
+                (rect(0, 0, 2, 2), 16, ptr::null_mut()),
+            ] {
+                assert_eq!(candy_image_pixels(image, area, out, length, &mut error), 0);
+                assert!(!error.is_null());
+                candy_error_free(error);
+            }
+            assert_eq!(untouched, [7u8; 16]);
+            candy_image_free(image);
         }
     }
     #[test]

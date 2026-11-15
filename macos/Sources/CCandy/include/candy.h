@@ -10,6 +10,8 @@
 // Every fallible call initializes *error; a NULL error means success.
 // Returned preview/region buffers live until their enclosing result is freed.
 // Functions do no UI work. Call decode/render/OCR/save off the main thread.
+// candy_image_bounds and candy_image_pixels only read an immutable image, in
+// time bounded by the requested rectangle, and may be called from any thread.
 typedef struct CandyDocument CandyDocument;
 typedef struct CandyImage CandyImage;
 typedef struct { uint32_t x, y, width, height; } CandyRect;
@@ -43,6 +45,12 @@ CandyPreview *candy_document_preview(CandyDocument *document, char **error);
 void candy_preview_free(CandyPreview *preview);
 CandyImage *candy_document_snapshot(CandyDocument *document, char **error);
 void candy_image_free(CandyImage *image);
+// {0, 0, width, height}; all zero for a NULL image.
+CandyRect candy_image_bounds(const CandyImage *image);
+// Copies rect as tightly packed, straight-alpha (not premultiplied) RGBA8 sRGB
+// rows into out, which holds exactly rect.width * rect.height * 4 bytes. The
+// rect must be non-empty and inside the image. Failure leaves out untouched.
+uint8_t candy_image_pixels(const CandyImage *image, CandyRect rect, uint8_t *out, size_t length, char **error);
 CandyRegions *candy_image_detect(const CandyImage *image, char **error);
 void candy_regions_free(CandyRegions *regions);
 #endif
