@@ -46,6 +46,33 @@ Canonical URLs, language alternates, sitemap and social metadata use the custom
 domain. The demo edits made-up scenes from `scripts/demo/scenes/`; provenance
 is recorded in `site/assets/credits.txt`.
 
+## Re-record the demo
+
+The demo videos, their posters and the social cards show the real app, so a release that changes
+what the editor looks like needs a new recording. `scripts/demo/` holds everything:
+
+```sh
+scripts/build-app.sh                                   # the release build is what gets recorded
+CANDY_DEMO_DRY_RUN=1 scripts/demo/record-demo.sh       # every scene, without touching the mouse
+scripts/demo/record-demo.sh                            # takes over the mouse for about four minutes
+python3 scripts/demo/build-video.py                    # writes site/assets/candy-demo-*.mp4 and candy-editor-*
+scripts/build-og.sh                                    # the social cards use the new stills
+```
+
+`render-scenes.sh` renders the scenes at 2x in a headless browser and records, through
+`targets.js`, where each mosaic, highlight and eyedropper pick goes. `record.swift` opens each
+scene in a new Candy instance with the page's language, sets the highlighter to 40 px at 45 % and
+the mosaic to 14 px blocks through accessibility, then moves the real pointer through the edits
+while ScreenCaptureKit records the display with every other window excluded. Capture the display,
+not Candy's windows: a filter that names the window makes macOS draw a sharing badge over the
+window buttons. Raw movies and stills stay in `.impeccable/review/demo/` (ignored), so
+`build-video.py` can be tuned without recording again.
+
+The recording moves the pointer and brings Candy to the front, which the native UI rules
+otherwise forbid: run it only after the user has agreed to leave the Mac alone, and check each
+language in the output before committing. Update `site/assets/credits.txt` with the version and
+date, and the `width`/`height` of the video and images if the window size changes.
+
 ## Search and sharing
 
 Every page has localized search titles and descriptions, self-referencing
