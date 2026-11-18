@@ -8,7 +8,7 @@ THESIS: A compact product introduction that shows the real editor and returns vi
 
 OWN-WORLD: White, deep ink, coral image stage, familiar rounded controls, clear sans-serif lettering. Actual native screenshot is the main visual; no invented app UI or testimonials.
 
-STORY: Understand the small-edit workflow, see the six capabilities, discover terminal integration, then install with Homebrew or download the signed app. macOS 14+, local OCR and original protection are factual proof.
+STORY: Understand the small-edit workflow, see the seven tools, with original protection and save options beside them, discover terminal integration, then install with Homebrew or download the signed app. macOS 14+, local OCR and original protection are factual proof.
 
 FIRST VIEWPORT: Name and language links; generous headline and concise copy beside a coral stage playing a recording of the real editor in the page language. Install action is beside GitHub. A command strip begins the second section.
 
