@@ -85,6 +85,31 @@ fn resolve_app(explicit: Option<PathBuf>, executable: &Path) -> Result<Option<Pa
 }
 
 pub fn launch(path: Option<PathBuf>) -> Result<()> {
+    run_open(document_command(path)?)
+}
+
+/// LaunchServices diagnostics must go through the browser's status line.
+pub fn launch_captured(path: PathBuf) -> Result<()> {
+    let mut command = document_command(Some(path))?;
+    captured_output(&mut command)
+}
+
+fn captured_output(command: &mut Command) -> Result<()> {
+    let output = command
+        .output()
+        .context("Cannot contact macOS LaunchServices")?;
+    if !output.status.success() {
+        let message = String::from_utf8_lossy(&output.stderr);
+        let message = message.trim();
+        if message.is_empty() {
+            bail!("Cannot launch Candy.app ({})", output.status);
+        }
+        bail!("{message}");
+    }
+    Ok(())
+}
+
+fn document_command(path: Option<PathBuf>) -> Result<Command> {
     let path = path
         .map(|p| {
             p.canonicalize()
@@ -98,7 +123,7 @@ pub fn launch(path: Option<PathBuf>) -> Result<()> {
     if let Some(path) = path {
         command.arg(path);
     }
-    run_open(command)
+    Ok(command)
 }
 
 fn open_command() -> Result<Command> {
@@ -130,6 +155,13 @@ fn run_open(mut command: Command) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn captured_failure_returns_launchers_diagnostic_to_the_caller() {
+        let error =
+            captured_output(Command::new("/bin/sh").args(["-c", "echo 'open failed' >&2; exit 1"]))
+                .unwrap_err();
+        assert_eq!(error.to_string(), "open failed");
+    }
     #[test]
     fn stdin_handoff_keeps_full_image_only_after_successful_launch() {
         let temp = tempfile::tempdir().unwrap();

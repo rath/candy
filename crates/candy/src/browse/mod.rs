@@ -280,7 +280,10 @@ fn key_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Home | KeyCode::Char('g') => Action::First,
         KeyCode::End | KeyCode::Char('G') => Action::Last,
         KeyCode::Char('r') => Action::Rescan,
-        KeyCode::Esc | KeyCode::Char('q') => Action::Quit,
+        KeyCode::Char('e') => Action::Edit,
+        KeyCode::Enter => Action::ToggleViewer,
+        KeyCode::Esc => Action::Escape,
+        KeyCode::Char('q') => Action::Quit,
         _ => return None,
     })
 }
@@ -367,6 +370,11 @@ fn update(app: &mut App, action: Action, request: &mut Option<Request>) -> bool 
     while let Some(effect) = effects.pop() {
         match effect {
             Effect::Request(next) => *request = Some(next),
+            Effect::OpenEditor(path) => {
+                app.notice = crate::launcher::launch_captured(path)
+                    .err()
+                    .map(|error| format!("{error:#}"));
+            }
             Effect::Rescan => match Listing::scan(&app.listing.directory) {
                 Ok(listing) => effects.extend(app.update(Action::Rescanned(listing))),
                 Err(error) => app.notice = Some(format!("{error:#}")),

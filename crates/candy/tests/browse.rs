@@ -139,6 +139,25 @@ fn a_redirected_keyboard_fails_before_capture() {
 }
 
 #[test]
+fn editor_errors_appear_in_the_status_line_and_leave_the_browser_running() {
+    let mut command = browser("kitty");
+    command.env("CANDY_APP", "/nonexistent/browser-test/Candy.app");
+    let mut edited = false;
+    let mut quit = false;
+    let output = common::run(command, None, None, |bytes, master| {
+        if !edited && bytes.windows(4).any(|s| s == "\u{10eeee}".as_bytes()) {
+            master.write_all(b"e").unwrap();
+            edited = true;
+        } else if edited && !quit && bytes.windows(9).any(|s| s == b"CANDY_APP") {
+            master.write_all(b"q").unwrap();
+            quit = true;
+        }
+    });
+    assert!(quit && output.status.success());
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
 fn a_dropped_tmux_file_retries_once_and_the_next_upload_can_quit_immediately() {
     use base64::{Engine, engine::general_purpose::STANDARD};
     use std::{

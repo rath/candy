@@ -41,11 +41,15 @@ pub(super) enum Action {
     Resize(Screen),
     Rescan,
     Rescanned(Listing),
+    ToggleViewer,
+    Escape,
+    Edit,
     Quit,
 }
 
 pub(super) enum Effect {
     Request(Request),
+    OpenEditor(PathBuf),
     Rescan,
     Quit,
 }
@@ -58,6 +62,7 @@ pub(super) struct App {
     pub info: Option<FileInfo>,
     pub preview_error: Option<String>,
     pub notice: Option<String>,
+    viewer: bool,
 }
 
 impl App {
@@ -70,6 +75,7 @@ impl App {
             info: None,
             preview_error: None,
             notice: None,
+            viewer: false,
         }
     }
 
@@ -78,11 +84,18 @@ impl App {
     }
 
     pub fn list_width(&self) -> u16 {
+        if self.in_viewer() {
+            return 0;
+        }
         self.listing
             .longest_name
             .saturating_add(4)
             .max(24)
             .min((u32::from(self.screen.columns) * 2 / 5) as u16)
+    }
+
+    pub fn in_viewer(&self) -> bool {
+        self.viewer || self.screen.columns < 60
     }
 
     fn request(&mut self) -> Vec<Effect> {
@@ -122,6 +135,19 @@ impl App {
                 return self.request();
             }
             Action::Rescan => return vec![Effect::Rescan],
+            Action::Edit => {
+                return self.entry().map_or_else(Vec::new, |entry| {
+                    vec![Effect::OpenEditor(entry.path.clone())]
+                });
+            }
+            Action::Escape if !self.in_viewer() => return vec![Effect::Quit],
+            Action::ToggleViewer | Action::Escape => {
+                if self.screen.columns < 60 {
+                    return Vec::new();
+                }
+                self.viewer = !self.viewer;
+                return self.request();
+            }
             Action::Rescanned(listing) => {
                 self.selected = self
                     .entry()
@@ -228,5 +254,36 @@ mod tests {
                 .as_slice(),
             [Effect::Request(_)]
         ));
+    }
+
+    #[test]
+    fn viewer_mode_and_escape_follow_the_available_columns() {
+        let mut app = sample_app(&["a", "b"]);
+        let wide = Screen {
+            columns: 80,
+            rows: 24,
+            ..Screen::default()
+        };
+        app.update(Action::Resize(wide));
+        let list_width = app.list_width();
+        assert!(list_width >= 24);
+        let effects = app.update(Action::ToggleViewer);
+        assert!(matches!(&effects[..], [Effect::Request(r)] if r.max_width == 80 * 8));
+        assert_eq!(app.list_width(), 0);
+        app.update(Action::Next);
+        assert!(
+            matches!(&app.update(Action::Edit)[..], [Effect::OpenEditor(path)] if path.ends_with("b"))
+        );
+        app.update(Action::Escape);
+        assert_eq!(app.list_width(), list_width);
+        assert!(matches!(&app.update(Action::Escape)[..], [Effect::Quit]));
+        app.update(Action::Resize(Screen {
+            columns: 59,
+            ..wide
+        }));
+        assert!(app.in_viewer() && app.update(Action::ToggleViewer).is_empty());
+        assert!(app.update(Action::Escape).is_empty() && app.list_width() == 0);
+        app.update(Action::Resize(wide));
+        assert_eq!(app.list_width(), list_width);
     }
 }

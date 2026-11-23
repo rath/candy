@@ -64,6 +64,34 @@ pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, sho
     let height = area.height.saturating_sub(1);
     let width = app.list_width().min(area.width);
     let list = Rect::new(area.x, area.y, width, height);
+    if width > 0 {
+        draw_list(frame, list, app, list_state);
+    }
+    let pane = Rect::new(list.right(), area.y, area.width - width, height);
+    if let Some(error) = &app.preview_error {
+        centered_text(frame, pane, error);
+    } else if app.entry().is_none() {
+        centered_text(
+            frame,
+            pane,
+            &format!("No images in {}", app.listing.directory.display()),
+        );
+    } else if let Some(shown) = shown
+        && shown.generation == app.generation
+        && (area.width, area.height) == (app.screen.columns, app.screen.rows)
+    {
+        draw_image(frame, pane, shown);
+    }
+    if area.height > 0 {
+        status(
+            frame,
+            Rect::new(area.x, area.y + height, area.width, 1),
+            app,
+        );
+    }
+}
+
+fn draw_list(frame: &mut Frame, list: Rect, app: &App, list_state: &mut ListState) {
     let block = Block::new().borders(Borders::RIGHT);
     let inner = block.inner(list);
     frame.render_widget(block, list);
@@ -98,29 +126,6 @@ pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, sho
         ),
         list_state,
     );
-
-    let pane = Rect::new(list.right(), area.y, area.width - width, height);
-    if let Some(error) = &app.preview_error {
-        centered_text(frame, pane, error);
-    } else if app.entry().is_none() {
-        centered_text(
-            frame,
-            pane,
-            &format!("No images in {}", directory.display()),
-        );
-    } else if let Some(shown) = shown
-        && shown.generation == app.generation
-        && (area.width, area.height) == (app.screen.columns, app.screen.rows)
-    {
-        draw_image(frame, pane, shown);
-    }
-    if area.height > 0 {
-        status(
-            frame,
-            Rect::new(area.x, area.y + height, area.width, 1),
-            app,
-        );
-    }
 }
 
 fn centered_text(frame: &mut Frame, area: Rect, message: &str) {
@@ -162,7 +167,14 @@ fn status(frame: &mut Frame, area: Rect, app: &App) {
             )
         })
         .unwrap_or_default();
-    let hint = Line::from("  r rescan  q quit").style(Style::new().add_modifier(Modifier::DIM));
+    let keys = if app.screen.columns < 60 {
+        "  e edit  q quit"
+    } else if app.in_viewer() {
+        "  ⏎ list  e edit  q quit"
+    } else {
+        "  ⏎ view  e edit  q quit"
+    };
+    let hint = Line::from(keys).style(Style::new().add_modifier(Modifier::DIM));
     let name = app.entry().map_or("", |entry| &entry.name);
     let index_w = index.len() as u16;
     let details_w = Line::raw(&details).width() as u16;
