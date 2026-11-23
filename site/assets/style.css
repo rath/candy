@@ -451,12 +451,114 @@ h3 {
 .get .text-link {
   font-size: 14px;
 }
+.changes {
+  padding-block: 72px 56px;
+}
+.changes-head {
+  margin-bottom: 40px;
+}
+.changes-head h2 {
+  margin: 0 0 12px;
+}
+.changes-head p {
+  color: var(--muted);
+  max-width: 60ch;
+  margin: 0;
+}
+.changelog {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px 42px;
+}
+.changelog li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: flex-start;
+  column-gap: 12px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.changelog .version {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+.changelog .version:hover {
+  color: var(--accent);
+}
+.changelog li:first-child .version {
+  color: var(--accent);
+}
+.changes details .changelog li:first-child .version {
+  color: inherit;
+}
+.changelog time {
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.changelog p {
+  flex-basis: 100%;
+  max-width: 38ch;
+  margin: 9px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+  word-break: keep-all;
+}
+.changelog code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.92em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.changes details {
+  margin-top: 40px;
+}
+.changes summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.changes summary::-webkit-details-marker {
+  display: none;
+}
+.changes summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+.changes details[open] summary::after {
+  margin-top: 3px;
+  transform: rotate(-135deg);
+}
+.changes summary:hover {
+  color: var(--accent);
+}
+.changes details .changelog {
+  margin-top: 28px;
+}
 footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 24px;
   padding-block: 28px;
+  border-top: 1px solid var(--line);
   font-size: 13px;
   color: var(--muted);
 }
@@ -542,6 +644,9 @@ footer a {
   .get-grid {
     gap: 40px;
   }
+  .changelog {
+    gap: 28px;
+  }
   .feature-grid {
     gap: 28px;
   }
@@ -599,6 +704,23 @@ footer a {
   .get-grid {
     grid-template-columns: 1fr;
     gap: 26px;
+  }
+  .changes-head {
+    margin-bottom: 26px;
+  }
+  .changes {
+    padding-block: 48px 36px;
+  }
+  .changelog {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .changelog li {
+    padding-top: 16px;
+  }
+  .changelog p {
+    max-width: 48ch;
+    font-size: 14px;
   }
   .browse-grid {
     margin-top: 36px;

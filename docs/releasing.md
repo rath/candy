@@ -92,6 +92,11 @@ the hero button, the installation link and the JSON-LD `downloadUrl` in
 so the button downloads directly. Change them only after `gh release create`;
 an earlier push would publish a link to a missing asset.
 
+Add the release to the changelog near the bottom of all three pages: a new
+first entry with the version, its release date and a one- or two-sentence
+summary in each language. Three releases show; move the oldest of them into
+the collapsed earlier versions. Update the hero's release note to match.
+
 Update all three website languages and README installation instructions when needed.
 Pushing `main` publishes committed website changes (see
 [website maintenance](website.md)). Finally verify the public release assets, tap

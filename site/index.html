@@ -348,6 +348,93 @@
           </div>
         </div>
       </section>
+      <section class="changes" aria-labelledby="changes-title">
+        <div class="wrap">
+          <div class="changes-head">
+            <h2 id="changes-title">Changelog</h2>
+            <p>
+              What each release added or fixed. The full notes are on <a href="https://github.com/rath/candy/releases">GitHub</a>.
+            </p>
+          </div>
+          <ol class="changelog">
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.4.0">0.4.0</a>
+              <time datetime="2026-11-23">Nov 23, 2026</time>
+              <p>New <code>candy browse</code> pages through a folder of images in the terminal, with a preview beside the list or a grid of thumbnails, and walks into subfolders as it goes. Press <code>e</code> to edit the selected image in the app. Camera RAW files now open at full resolution.</p>
+            </li>
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.5">0.3.5</a>
+              <time datetime="2026-11-15">Nov 15, 2026</time>
+              <p>An eyedropper magnifies the pixels under the pointer. Pin one, nudge it with the arrow keys, and copy its color as hex or RGB, read from the full-resolution image.</p>
+            </li>
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.4">0.3.4</a>
+              <time datetime="2026-11-15">Nov 15, 2026</time>
+              <p>Text mosaic applies to the selected box or to all of them, leaving the rest to review. Cancel or Escape clears the boxes without touching the image or its undo history.</p>
+            </li>
+          </ol>
+          <details>
+            <summary>Earlier versions</summary>
+            <ol class="changelog">
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.3">0.3.3</a>
+                <time datetime="2026-11-12">Nov 12, 2026</time>
+                <p>Repeated edits and undo are faster, since Candy no longer replays the whole history. Saving a copy works after the original moves, transparent previews keep clean edges, and SVG text uses system fonts.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.2">0.3.2</a>
+                <time datetime="2026-11-03">Nov 3, 2026</time>
+                <p>Piped images display directly: <code>cat image.png | candy</code>. Previews no longer come up blank in local tmux sessions while another pane plays video or sends graphics.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.1">0.3.1</a>
+                <time datetime="2026-10-21">Oct 21, 2026</time>
+                <p>A smaller download: the app executable is now stripped of its symbols, as the bundled CLI already was. Nothing else changed.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.0">0.3.0</a>
+                <time datetime="2026-10-21">Oct 21, 2026</time>
+                <p>SVG and SVGZ files open everywhere a bitmap does: the editor, Finder’s Open With, drag and drop, terminal previews, <code>candy inspect</code> and every editing command.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.4">0.2.4</a>
+                <time datetime="2026-10-14">Oct 14, 2026</time>
+                <p>Set the quality of JPEG, WebP, HEIC, AVIF and JPEG 2000 exports with a slider or <code>--quality</code>, and save WebP with lossy compression. Each document remembers its save settings.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.3">0.2.3</a>
+                <time datetime="2026-10-14">Oct 14, 2026</time>
+                <p>Fixes the malware warning macOS showed the first time a downloaded copy opened. The app no longer carries build-machine paths that Gatekeeper could not verify.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.2">0.2.2</a>
+                <time datetime="2026-10-13">Oct 13, 2026</time>
+                <p>A Japanese interface that follows your macOS language and uses macOS’s own Japanese terms for standard commands. The website gained a Japanese page.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.1">0.2.1</a>
+                <time datetime="2026-10-11">Oct 11, 2026</time>
+                <p>A Korean interface. Candy opens almost any image macOS can read, saves to seven more formats including HEIC and AVIF, rotates by 90°, and edits files in place with <code>--in-place</code>.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.0">0.2.0</a>
+                <time datetime="2026-10-11">Oct 11, 2026</time>
+                <p>Inline previews work inside tmux, the new <code>candy inspect</code> reports a file’s format, size and colors, and editor windows open sized to the image.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.1.1">0.1.1</a>
+                <time datetime="2026-10-11">Oct 11, 2026</time>
+                <p>A new lollipop app icon for Finder and the Dock, with a matching mark and favicon on the website.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.1.0">0.1.0</a>
+                <time datetime="2026-10-11">Oct 11, 2026</time>
+                <p>The first release: a native Mac app with highlight, mosaic, text mosaic, crop, resize and flatten, and the <code>candy</code> command for the same edits in the terminal.</p>
+              </li>
+            </ol>
+          </details>
+        </div>
+      </section>
     </main>
     <footer class="wrap">
       <p>

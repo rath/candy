@@ -349,6 +349,93 @@
           </div>
         </div>
       </section>
+      <section class="changes" aria-labelledby="changes-title">
+        <div class="wrap">
+          <div class="changes-head">
+            <h2 id="changes-title">업데이트 내역</h2>
+            <p>
+              릴리스마다 추가하고 고친 것입니다. 자세한 내용은 <a href="https://github.com/rath/candy/releases">GitHub</a>의 릴리스 노트에 있습니다.
+            </p>
+          </div>
+          <ol class="changelog">
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.4.0">0.4.0</a>
+              <time datetime="2026-11-23">2026. 11. 23.</time>
+              <p><code>candy browse</code>를 추가했습니다. 터미널에서 폴더의 이미지를 목록 옆 미리보기나 썸네일 격자로 둘러보고, 하위 폴더도 오갑니다. <code>e</code>를 누르면 고른 이미지를 앱에서 편집합니다. 카메라 RAW 파일은 이제 원래 해상도로 엽니다.</p>
+            </li>
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.5">0.3.5</a>
+              <time datetime="2026-11-15">2026. 11. 15.</time>
+              <p>포인터 아래 픽셀을 확대해 보여 주는 스포이드를 추가했습니다. 픽셀을 고정해 화살표 키로 옮기고, 원본 해상도에서 읽은 색상을 16진수나 RGB로 복사합니다.</p>
+            </li>
+            <li>
+              <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.4">0.3.4</a>
+              <time datetime="2026-11-15">2026. 11. 15.</time>
+              <p>텍스트 모자이크를 선택한 상자에만, 또는 전체에 적용합니다. 남은 상자는 계속 검토할 수 있고, 취소나 Esc는 이미지와 실행 취소 기록을 그대로 두고 상자만 지웁니다.</p>
+            </li>
+          </ol>
+          <details>
+            <summary>이전 버전</summary>
+            <ol class="changelog">
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.3">0.3.3</a>
+                <time datetime="2026-11-12">2026. 11. 12.</time>
+                <p>편집할 때마다 전체 기록을 다시 적용하지 않아 연속 편집과 실행 취소가 빨라졌습니다. 원본을 옮긴 뒤에도 사본을 저장하고, 투명 이미지 미리보기의 가장자리와 SVG 글자 표시를 고쳤습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.2">0.3.2</a>
+                <time datetime="2026-11-03">2026. 11. 3.</time>
+                <p>파이프로 넘긴 이미지를 바로 보여 줍니다(<code>cat image.png | candy</code>). 다른 패널에서 영상을 재생할 때 로컬 tmux의 미리보기가 비어 보이던 문제를 고쳤습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.1">0.3.1</a>
+                <time datetime="2026-10-21">2026. 10. 21.</time>
+                <p>함께 들어 있는 CLI처럼 앱 실행 파일에서도 심볼을 제거해 다운로드 크기를 줄였습니다. 기능은 바뀌지 않았습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.3.0">0.3.0</a>
+                <time datetime="2026-10-21">2026. 10. 21.</time>
+                <p>SVG와 SVGZ 파일을 다른 이미지처럼 어디서나 엽니다. 편집 창, Finder의 다음으로 열기, 끌어다 놓기, 터미널 미리보기, <code>candy inspect</code>, 모든 편집 명령에서 쓸 수 있습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.4">0.2.4</a>
+                <time datetime="2026-10-14">2026. 10. 14.</time>
+                <p>JPEG, WebP, HEIC, AVIF, JPEG 2000으로 저장할 때 슬라이더나 <code>--quality</code>로 품질을 조절하고, WebP를 손실 압축으로 저장합니다. 문서마다 저장 설정을 기억합니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.3">0.2.3</a>
+                <time datetime="2026-10-14">2026. 10. 14.</time>
+                <p>내려받은 앱을 처음 열 때 macOS가 악성 코드 경고를 띄우던 문제를 고쳤습니다. Gatekeeper가 확인할 수 없던 빌드 컴퓨터의 경로를 앱에서 없앴습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.2">0.2.2</a>
+                <time datetime="2026-10-13">2026. 10. 13.</time>
+                <p>일본어 인터페이스를 추가했습니다. macOS 언어 설정을 따르고, 표준 명령에는 macOS의 일본어 용어를 씁니다. 웹사이트에도 일본어 페이지가 생겼습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.1">0.2.1</a>
+                <time datetime="2026-10-11">2026. 10. 11.</time>
+                <p>한국어 인터페이스를 추가했습니다. macOS가 읽는 거의 모든 이미지를 열고, HEIC와 AVIF를 포함해 저장 형식이 일곱 가지 늘었습니다. 90° 회전과 원본에 바로 저장하는 <code>--in-place</code>도 지원합니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.2.0">0.2.0</a>
+                <time datetime="2026-10-11">2026. 10. 11.</time>
+                <p>tmux 안에서도 이미지를 바로 보여 줍니다. 파일의 형식, 크기, 색상을 알려 주는 <code>candy inspect</code>를 추가했고, 편집 창이 이미지 크기에 맞춰 열립니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.1.1">0.1.1</a>
+                <time datetime="2026-10-11">2026. 10. 11.</time>
+                <p>Finder와 Dock에 보이는 막대사탕 모양의 새 앱 아이콘을 넣고, 웹사이트의 로고와 파비콘도 맞췄습니다.</p>
+              </li>
+              <li>
+                <a class="version" href="https://github.com/rath/candy/releases/tag/v0.1.0">0.1.0</a>
+                <time datetime="2026-10-11">2026. 10. 11.</time>
+                <p>첫 릴리스입니다. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 크기 조절, 배경 채우기를 갖춘 Mac 앱과, 같은 편집을 터미널에서 하는 <code>candy</code> 명령을 제공합니다.</p>
+              </li>
+            </ol>
+          </details>
+        </div>
+      </section>
     </main>
     <footer class="wrap">
       <p>
