@@ -2,9 +2,13 @@
 
 The landing page lives in `site/`: English at `/`, Korean at `/ko/`, Japanese
 at `/ja/`. All three pages are plain HTML sharing one stylesheet, each with a
-recorded app demo in its own language. No JavaScript, package installation,
-analytics, or third-party font request is required; a few inline lines only add
-a pause button to the demo. Update all three pages when changing product copy.
+recorded app demo in its own language and one shared recording of the terminal
+browser. No JavaScript, package installation, analytics, or third-party font
+request is required. A few inline lines add a pause button to each video and
+play the terminal recording only while it is on screen; without them that
+recording stays on its poster. Button labels are the videos' `data-play` and
+`data-pause` attributes, so the script is the same in every language. Update
+all three pages when changing product copy.
 
 Preview locally:
 
@@ -72,6 +76,32 @@ The recording moves the pointer and brings Candy to the front, which the native 
 otherwise forbid: run it only after the user has agreed to leave the Mac alone, and check each
 language in the output before committing. Update `site/assets/credits.txt` with the version and
 date, and the `width`/`height` of the video and images if the window size changes.
+
+## Terminal browser recording
+
+`site/assets/candy-browse.mp4` and its poster `candy-browse.webp` show
+`candy browse` in a real terminal. The browser's interface is not translated, so
+one recording serves all three pages; only the caption, the labels and the
+alternative text differ. It loads on demand (`preload="none"`) and has no
+`autoplay` attribute, so keep the poster a frame worth looking at on its own.
+
+There is no script for it in the repository. To record it again:
+
+- Build `candy` from the commit being shown and put that binary first on the
+  recording shell's `PATH`; an installed older `candy` is easy to run by mistake.
+- Use a separate Ghostty instance with its own config (light theme, 100 × 30
+  cells) attached to an isolated tmux server (`tmux -L <name>`), and send the keys
+  with `tmux send-keys` so the take is repeatable. Ghostty opens its first window
+  only when activated, which takes focus once: agree on that first.
+- Record the display with ScreenCaptureKit, every other window excluded as for
+  the app demo, and with the pointer hidden. The capture has a variable frame
+  rate; convert it to 30 fps and trim it before any compositing.
+- Start and end on an empty prompt so the loop has no visible seam, and keep the
+  folder's contents free of personal files. Record how the recording was made
+  in `site/assets/credits.txt`.
+- The CSS radius of `.window video` is the recorded window's corner radius as a
+  share of the frame. Update it, and the `width`/`height` attributes, if the
+  window size changes.
 
 ## Search and sharing
 
