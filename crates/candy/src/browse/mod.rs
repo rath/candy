@@ -11,7 +11,11 @@ use listing::Listing;
 use loader::{Loader, Rendered};
 use ratatui::{
     DefaultTerminal,
-    crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+    crossterm::{
+        event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers},
+        execute,
+        terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate},
+    },
     widgets::ListState,
 };
 use std::{
@@ -120,8 +124,13 @@ impl Session {
         {
             self.pending = None;
         }
+        // A frame of placeholder cells is tens of kilobytes. Without
+        // synchronized output, the terminal (or tmux) can paint it halfway,
+        // showing the top rows of an image or a cell without its diacritics.
+        execute!(self.terminal.backend_mut(), BeginSynchronizedUpdate)?;
         self.terminal
             .draw(|frame| view::draw(frame, app, &mut self.list, self.shown))?;
+        execute!(self.terminal.backend_mut(), EndSynchronizedUpdate)?;
         let shown = self.shown.map(|image| image.id);
         let pending = self.pending.as_ref().map(|p| p.placement.id);
         let keep = |id: &u32| Some(*id) == shown || Some(*id) == pending;

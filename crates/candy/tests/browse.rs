@@ -80,6 +80,11 @@ fn previews_replace_the_previous_id_and_quit_restores_the_screen() {
         String::from_utf8_lossy(&output.stderr)
     );
     let text = String::from_utf8(output.stdout).unwrap();
+    // Each frame is one synchronized update, so no image is painted halfway.
+    let first_cell = text.find('\u{10eeee}').unwrap();
+    let begin = text[..first_cell].rfind("\x1b[?2026h").unwrap();
+    assert!(!text[begin..first_cell].contains("\x1b[?2026l"));
+    assert!(text[first_cell..].contains("\x1b[?2026l"));
     let ids: Vec<_> = text
         .split("a=T,U=1,i=")
         .skip(1)

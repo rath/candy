@@ -123,9 +123,11 @@ live in the SwiftPM package under `macos`.
 - Capability probing temporarily changes tty mode and signal masks. Preserve
   the RAII restoration on success, timeout and errors.
 - In the browser only the main thread writes to the tty. Graphics transfers
-  and deletes use `q=2`. Alternate two placeholder IDs with different
-  foreground indices in 16–255. Draw the replacement before deleting the old
-  ID. The session guard deletes live IDs and restores the screen.
+  and deletes use `q=2`. Each frame is one synchronized update (mode 2026);
+  without it tmux and Ghostty can show half-painted placeholder images.
+  Alternate two placeholder IDs with different foreground indices in 16–255.
+  Draw the replacement before deleting the old ID. The session guard deletes
+  live IDs and restores the screen.
 - Match decoded previews to the current selection and pixel box by generation.
   Drop stale results before transmission. Re-query cell metrics on resize.
 - Before native mouse automation, read the current window bounds and target PID
