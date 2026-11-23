@@ -166,8 +166,8 @@ Ghostty or kitty with Kitty graphics and Unicode placeholders, directly or as
 the tmux client. Use `candy browse --display kitty` to try another terminal.
 Local tmux uploads wait up to 500 ms for file consumption and retry once.
 You can keep navigating or quit while a transfer is pending. Under heavy
-output load tmux can also discard graphics commands. The browser reuses two
-image IDs and repeats their cleanup on exit.
+output load tmux can also discard graphics commands. The browser draws from a
+pool of 240 image IDs and repeats the cleanup of every ID it used on exit.
 Over SSH, a dropped inline upload can leave a blank preview. Press `r` to
 send it again. Normal exit restores the shell screen and terminal mode.
 SIGTERM and SIGHUP can leave the terminal in raw mode.

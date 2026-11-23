@@ -216,7 +216,7 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     let png = encode_png(preview)?;
     let mut stdout = std::io::stdout().lock();
     if tmux {
-        let id = ImageIds::new().next();
+        let id = image_id();
         let control = placement_control(id, span_cols, span_rows);
         transmit(&mut stdout, &png, &control, true, Transfer::OneShot)?;
         write_placeholders(&mut stdout, id, span_cols, span_rows)
@@ -383,35 +383,54 @@ fn image_id() -> u32 {
     (u32::from(high.max(1)) << 24) | (16 + u32::from(low) % 240)
 }
 
-/// Two reusable slots. Distinct foreground indices also force a cell redraw
-/// on terminals that diff the placeholder grid.
+/// The browser's 240 placeholder IDs: one random high byte per process and
+/// every encodable low byte. Allocation walks the low bytes round-robin, so a
+/// replacement never reuses the foreground index it replaces (terminals that
+/// diff the placeholder grid then redraw its cells) and a released ID waits
+/// for every other one before it names a new image.
 pub(crate) struct ImageIds {
-    slots: [u32; 2],
-    issued: usize,
+    high: u32,
+    cursor: u8,
+    used: [bool; 256],
+    issued: Vec<u32>,
 }
 
 impl ImageIds {
     pub(crate) fn new() -> Self {
-        let first = image_id();
-        let mut second = image_id();
-        if first as u8 == second as u8 {
-            let low = u32::from(first as u8);
-            second = (second & !0xff) | if low == 255 { 16 } else { low + 1 };
-        }
+        let id = image_id();
         Self {
-            slots: [first, second],
-            issued: 0,
+            high: id & 0xff00_0000,
+            cursor: id as u8,
+            used: [false; 256],
+            issued: Vec::new(),
         }
     }
 
-    pub(crate) fn next(&mut self) -> u32 {
-        let id = self.slots[self.issued % self.slots.len()];
-        self.issued += 1;
-        id
+    /// None once every ID is live.
+    pub(crate) fn next(&mut self) -> Option<u32> {
+        for _ in 0..240 {
+            let low = self.cursor;
+            self.cursor = if low == 255 { 16 } else { low + 1 };
+            if !self.used[usize::from(low)] {
+                self.used[usize::from(low)] = true;
+                let id = self.high | u32::from(low);
+                if !self.issued.contains(&id) {
+                    self.issued.push(id);
+                }
+                return Some(id);
+            }
+        }
+        None
     }
 
+    pub(crate) fn release(&mut self, id: u32) {
+        self.used[usize::from(id as u8)] = false;
+    }
+
+    /// Every ID handed out so far, for cleanup that must not rely on
+    /// earlier deletes having arrived.
     pub(crate) fn issued(&self) -> &[u32] {
-        &self.slots[..self.issued.min(self.slots.len())]
+        &self.issued
     }
 }
 
@@ -781,16 +800,27 @@ mod tests {
     }
 
     #[test]
-    fn image_slots_alternate_foregrounds_and_stay_encodable() {
-        for _ in 0..512 {
+    fn image_ids_rotate_through_encodable_foregrounds_and_run_out_when_all_are_live() {
+        for _ in 0..64 {
             let mut ids = ImageIds::new();
-            let (first, second) = (ids.next(), ids.next());
+            let first = ids.next().unwrap();
+            let second = ids.next().unwrap();
             assert_ne!(first as u8, second as u8);
-            for id in [first, second] {
+            ids.release(first);
+            let mut seen = vec![first, second];
+            while let Some(id) = ids.next() {
                 assert_eq!(id & 0x00ff_ff00, 0);
-                assert!(id as u8 >= 16 && id >> 24 > 0);
-                assert_eq!(ids.next(), id);
+                assert!(id as u8 >= 16, "tmux remaps colour indices 0-15");
+                assert_eq!(id >> 24, first >> 24);
+                seen.push(id);
             }
+            // The released ID comes back only after all the others.
+            assert_eq!(seen.len(), 241);
+            assert_eq!(seen.last(), Some(&first));
+            assert_eq!(ids.issued().len(), 240);
+            ids.release(second);
+            assert_eq!(ids.next(), Some(second));
+            assert_eq!(ids.next(), None);
         }
     }
 

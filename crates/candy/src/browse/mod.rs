@@ -136,8 +136,9 @@ impl Session {
         let keep = |id: &u32| Some(*id) == shown || Some(*id) == pending;
         if self.live.iter().any(|id| !keep(id)) {
             let mut out = io::stdout().lock();
-            for id in self.live.iter().filter(|id| !keep(id)) {
-                terminal::delete(&mut out, *id, self.tmux)?;
+            for &id in self.live.iter().filter(|id| !keep(id)) {
+                terminal::delete(&mut out, id, self.tmux)?;
+                self.ids.release(id);
             }
             out.flush()?;
             self.live.retain(keep);
@@ -147,11 +148,11 @@ impl Session {
 
     fn upload(&mut self, app: &mut App, image: Rendered) -> Result<()> {
         let (columns, rows) = view::span(image.width, image.height, app.screen.cell);
-        let mut id = self.ids.next();
-        if self.shown.is_some_and(|shown| shown.id == id) {
-            // A cancelled file handoff used the other slot without painting it.
-            id = self.ids.next();
-        }
+        // Live IDs are never handed out again, including a cancelled handoff's.
+        let id = self
+            .ids
+            .next()
+            .context("Too many images on screen; make the terminal smaller")?;
         // Own the ID before the first byte goes out, including partial writes.
         self.live.push(id);
         let control = terminal::placement_control(id, columns.into(), rows.into());
@@ -212,7 +213,7 @@ impl Drop for Session {
     fn drop(&mut self) {
         let mut out = io::stdout().lock();
         // A congested tmux client can discard a delete sent after a large
-        // frame. Retry cleanup for both slots this session actually issued.
+        // frame. Retry cleanup for every ID this session actually issued.
         let ids = if self.tmux {
             self.ids.issued()
         } else {
