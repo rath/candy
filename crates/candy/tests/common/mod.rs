@@ -43,10 +43,13 @@ pub fn run(
         );
     }
     let (mut master, slave) = unsafe { (File::from_raw_fd(master), File::from_raw_fd(slave)) };
+    // A file, unlike a pipe, never waits for another process that inherited
+    // its write end, so the deadline below bounds the whole run.
+    let mut stderr = tempfile::NamedTempFile::new().unwrap();
     command
         .stdin(stdin.unwrap_or_else(|| slave.try_clone().unwrap().into()))
         .stdout(slave)
-        .stderr(Stdio::piped());
+        .stderr(stderr.reopen().unwrap());
     // SAFETY: only async-signal-safe libc calls run between fork and exec.
     unsafe {
         command.pre_exec(|| {
@@ -61,8 +64,14 @@ pub fn run(
     let mut child = command.spawn().unwrap();
     drop(command);
     if let Some(input) = input {
-        // An explicit-path invocation can exit without consuming its stdin.
-        let _ = child.stdin.take().unwrap().write_all(input);
+        // Write from another thread so a child blocked on PTY output cannot
+        // stall the drain loop. An explicit-path invocation can exit without
+        // consuming its stdin.
+        let mut pipe = child.stdin.take().unwrap();
+        let input = input.to_vec();
+        std::thread::spawn(move || {
+            let _ = pipe.write_all(&input);
+        });
     }
     let mut bytes = Vec::new();
     let deadline = Instant::now() + Duration::from_secs(15);
@@ -90,7 +99,25 @@ pub fn run(
             panic!("PTY command timed out after {} output bytes", bytes.len());
         }
     }
-    let mut output = child.wait_with_output().unwrap();
-    output.stdout = bytes;
-    output
+    let status = loop {
+        if let Some(status) = child.try_wait().unwrap() {
+            break status;
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!(
+                "PTY command did not exit after {} output bytes",
+                bytes.len()
+            );
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    };
+    let mut errors = Vec::new();
+    stderr.read_to_end(&mut errors).unwrap();
+    Output {
+        status,
+        stdout: bytes,
+        stderr: errors,
+    }
 }
