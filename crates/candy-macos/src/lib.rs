@@ -50,6 +50,72 @@ const FORMATS: [(&str, &str); 20] = [
     (candy_core::svg::UTI, "SVG"),
 ];
 
+/// Filename extensions of the document types offered by the macOS editor.
+/// Directory listings use these tags without opening every file.
+pub fn is_image_extension(extension: &str) -> bool {
+    matches!(
+        extension.to_ascii_lowercase().as_str(),
+        "png"
+            | "jpg"
+            | "jpeg"
+            | "jpe"
+            | "webp"
+            | "heic"
+            | "heif"
+            | "hif"
+            | "avif"
+            | "gif"
+            | "tif"
+            | "tiff"
+            | "bmp"
+            | "dib"
+            | "jp2"
+            | "jpf"
+            | "jpx"
+            | "j2k"
+            | "j2c"
+            | "jxl"
+            | "psd"
+            | "tga"
+            | "ico"
+            | "icns"
+            | "exr"
+            | "hdr"
+            | "pbm"
+            | "pgm"
+            | "ppm"
+            | "pfm"
+            | "dng"
+            | "3fr"
+            | "arw"
+            | "axr"
+            | "cr2"
+            | "cr3"
+            | "crw"
+            | "dcr"
+            | "dxo"
+            | "erf"
+            | "fff"
+            | "iiq"
+            | "mos"
+            | "mrw"
+            | "nef"
+            | "nefx"
+            | "nrw"
+            | "orf"
+            | "pef"
+            | "raf"
+            | "raw"
+            | "rw2"
+            | "rwl"
+            | "sr2"
+            | "srf"
+            | "srw"
+            | "svg"
+            | "svgz"
+    )
+}
+
 fn format_name(uti: &str) -> Option<&'static str> {
     FORMATS
         .iter()
@@ -509,6 +575,27 @@ pub fn detect_text(image: &RgbaImage) -> Result<Vec<PixelRect>> {
 mod tests {
     use super::*;
     use image::Rgba;
+
+    #[test]
+    fn image_extensions_cover_fixtures_and_ignore_nonimages() {
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+        for entry in std::fs::read_dir(fixtures).unwrap() {
+            let path = entry.unwrap().path();
+            if path.file_name().unwrap() != "README.md" {
+                assert!(
+                    is_image_extension(path.extension().unwrap().to_str().unwrap()),
+                    "{}",
+                    path.display()
+                );
+            }
+        }
+        for ext in ["JpEg", "HEIF", "CR3", "NEFX", "svgZ"] {
+            assert!(is_image_extension(ext));
+        }
+        for ext in ["txt", "pdf", ""] {
+            assert!(!is_image_extension(ext));
+        }
+    }
     #[test]
     fn rgba_image_owns_straight_rgba_pixels() {
         let source = RgbaImage::from_raw(

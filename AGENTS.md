@@ -95,7 +95,8 @@ live in the SwiftPM package under `macos`.
   text) before Image I/O ever sees the bytes. resvg is built without
   `raster-images`, so bitmaps inside an SVG are skipped; the SVG crates are
   size-optimized in the release profile. When naming a format, update the
-  display names, the open-panel types and the `LSItemContentTypes` list together.
+  display names, `is_image_extension`, the open-panel types and the
+  `LSItemContentTypes` list together.
 
 ## Terminal and native UI checks
 
