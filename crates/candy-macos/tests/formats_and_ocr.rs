@@ -261,6 +261,82 @@ fn exif_orientation_is_applied_before_edit_coordinates() {
 }
 
 #[test]
+fn preview_fits_oriented_pixels_and_reports_original_dimensions() {
+    let path = fixture("orientation6.jpg");
+    let original = candy_macos::load(&path).unwrap();
+    let expected = candy_core::preview(&original, 140, 200).unwrap();
+    let preview = candy_macos::load_preview(&path, 140, 200).unwrap();
+    assert_eq!(preview.pixels.dimensions(), expected.dimensions());
+    assert_eq!(preview.metadata, candy_macos::inspect(&path).unwrap());
+    assert_eq!(preview.file_size, std::fs::metadata(&path).unwrap().len());
+    // The rotated card's margins, sea and paper panel land in the same places.
+    for (x, y) in [(4, 4), (100, 180), (72, 156)] {
+        for channel in 0..3 {
+            assert!(preview.pixels[(x, y)][channel].abs_diff(expected[(x, y)][channel]) < 20);
+        }
+    }
+    for name in ["sample.png", "sample.svg"] {
+        let path = fixture(name);
+        let original = candy_macos::load(&path).unwrap();
+        let preview = candy_macos::load_preview(&path, 8192, 8192).unwrap();
+        assert_eq!(preview.pixels.dimensions(), original.dimensions());
+        assert_eq!(preview.pixels[(20, 20)], original[(20, 20)]);
+    }
+    // Image I/O rounds a reduced decode's shorter side per format (HEIC rounds
+    // up); the preview must still match the full-resolution fit exactly.
+    for name in [
+        "sample.jpg",
+        "orientation6.jpg",
+        "sample.heic",
+        "sample.avif",
+    ] {
+        let path = fixture(name);
+        let (width, height) = candy_macos::load(&path).unwrap().dimensions();
+        for (max_width, max_height) in [(64, 64), (114, 13), (114, 102), (211, 102), (13, 211)] {
+            assert_eq!(
+                candy_macos::load_preview(&path, max_width, max_height)
+                    .unwrap()
+                    .pixels
+                    .dimensions(),
+                candy_core::preview_dimensions(width, height, max_width, max_height),
+                "{name} in {max_width} × {max_height}"
+            );
+        }
+    }
+}
+
+#[test]
+fn preview_preserves_straight_alpha_and_rejects_oversized_sources() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("alpha.png");
+    let image = image::RgbaImage::from_pixel(32, 16, image::Rgba([200, 60, 100, 128]));
+    candy_core::save_atomic(&image, &path, false).unwrap();
+    let preview = candy_macos::load_preview(&path, 8, 8).unwrap();
+    assert_eq!(preview.pixels.dimensions(), (8, 4));
+    let pixel = preview.pixels[(3, 1)];
+    assert_eq!(pixel[3], 128);
+    assert!(pixel[0].abs_diff(200) <= 2);
+    assert!(preview.metadata.has_alpha);
+    // A JPEG SOF header advertises 10000 × 10000. A small requested output
+    // must pass the same source limit as editing before native decoding.
+    let mut jpeg = std::fs::read(fixture("sample.jpg")).unwrap();
+    let sof = jpeg
+        .windows(2)
+        .position(|w| w == [0xff, 0xc0] || w == [0xff, 0xc2])
+        .unwrap();
+    jpeg[sof + 5..sof + 9].copy_from_slice(&[0x27, 0x10, 0x27, 0x10]);
+    let path = dir.path().join("oversized.jpg");
+    std::fs::write(&path, jpeg).unwrap();
+    assert!(
+        candy_macos::load_preview(&path, 32, 32)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("64-megapixel")
+    );
+}
+
+#[test]
 fn detects_english_and_korean_and_mosaics_reported_regions() {
     let image = candy_macos::load(&fixture("sample.png")).unwrap();
     let regions = candy_macos::detect_text(&image).unwrap();

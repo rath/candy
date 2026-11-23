@@ -20,7 +20,8 @@ use objc2_image_io::{
     kCGImagePropertyDepth, kCGImagePropertyHasAlpha, kCGImagePropertyIsFloat,
     kCGImagePropertyIsIndexed, kCGImagePropertyOrientation, kCGImagePropertyPixelHeight,
     kCGImagePropertyPixelWidth, kCGImagePropertyProfileName, kCGImagePropertyTIFFCompression,
-    kCGImagePropertyTIFFDictionary,
+    kCGImagePropertyTIFFDictionary, kCGImageSourceCreateThumbnailFromImageAlways,
+    kCGImageSourceCreateThumbnailWithTransform, kCGImageSourceThumbnailMaxPixelSize,
 };
 use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::path::Path;
@@ -177,6 +178,63 @@ pub fn load(path: &Path) -> Result<RgbaImage> {
     decode(&bytes)
 }
 
+/// Fitted pixels and the original file properties from the same read.
+pub struct ImagePreview {
+    pub pixels: RgbaImage,
+    pub metadata: Metadata,
+    pub file_size: u64,
+}
+
+pub fn load_preview(path: &Path, max_width: u32, max_height: u32) -> Result<ImagePreview> {
+    ensure!(
+        max_width > 0 && max_height > 0,
+        "Preview bounds must be positive"
+    );
+    let bytes = read(path)?;
+    let (pixels, metadata) = if candy_core::svg::is_svg(path, &bytes) {
+        let image = candy_core::svg::render(&bytes, path.parent())?;
+        let metadata = svg_metadata(image.width(), image.height());
+        (
+            candy_core::preview(&image, max_width, max_height)?,
+            metadata,
+        )
+    } else {
+        autoreleasepool(|_| -> Result<_> {
+            let (source, uti, props) = open(&bytes)?;
+            let metadata = native_metadata(&source, uti, &props)?;
+            validate_dimensions(metadata.width, metadata.height)?;
+            // Decode at about the fitted size, then resize to exactly what
+            // `candy_core::preview` gives the full image: Image I/O rounds a
+            // thumbnail's shorter side differently for different formats.
+            let (width, height) = metadata.display_dimensions();
+            let (fit_width, fit_height) =
+                candy_core::preview_dimensions(width, height, max_width, max_height);
+            let limit = CFNumber::new_i64(i64::from(fit_width.max(fit_height)));
+            let yes = CFBoolean::new(true);
+            let options = CFDictionary::<CFString, CFType>::from_slices(
+                &[
+                    unsafe { kCGImageSourceThumbnailMaxPixelSize },
+                    unsafe { kCGImageSourceCreateThumbnailFromImageAlways },
+                    unsafe { kCGImageSourceCreateThumbnailWithTransform },
+                ],
+                &[&limit, yes, yes],
+            );
+            // SAFETY: The source and options stay alive throughout decoding.
+            // Image I/O has already applied EXIF orientation to this thumbnail.
+            let thumb = unsafe { source.thumbnail_at_index(0, Some(options.as_opaque())) }
+                .context("Image I/O could not decode the preview")?;
+            let pixels =
+                candy_core::resize_preview(&straight_rgba(&thumb)?, fit_width, fit_height)?;
+            Ok((pixels, metadata))
+        })?
+    };
+    Ok(ImagePreview {
+        pixels,
+        metadata,
+        file_size: bytes.len() as u64,
+    })
+}
+
 /// Decodes an image without a filename, including SVG and gzip-compressed SVGZ.
 /// Relative SVG resources resolve against the caller's current directory.
 pub fn load_bytes(bytes: &[u8]) -> Result<RgbaImage> {
@@ -190,59 +248,69 @@ pub fn load_bytes(bytes: &[u8]) -> Result<RgbaImage> {
 fn decode(bytes: &[u8]) -> Result<RgbaImage> {
     autoreleasepool(|_| {
         let (source, _, props) = open(bytes)?;
-        let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
-            .context("Missing image width")?;
-        let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
-            .context("Missing image height")?;
-        validate_dimensions(width.try_into()?, height.try_into()?)?;
+        let (width, height) = source_dimensions(&props)?;
+        validate_dimensions(width, height)?;
         let orientation =
             property_number(&props, unsafe { kCGImagePropertyOrientation }).unwrap_or(1);
         let cg_image = unsafe { source.image_at_index(0, None) }
             .context("Image I/O could not decode the image")?;
-        let w = CGImage::width(Some(&cg_image));
-        let h = CGImage::height(Some(&cg_image));
-        validate_dimensions(w.try_into()?, h.try_into()?)?;
-        let space = CGColorSpace::with_name(Some(unsafe { kCGColorSpaceSRGB }))
-            .context("Cannot create sRGB color space")?;
-        let mut pixels = vec![0_u8; w * h * 4];
-        // SAFETY: The backing buffer is w*h*4 bytes, remains allocated and is not
-        // accessed while the context is alive. Big-endian + premultiplied-last
-        // specifies byte order R,G,B,A independently of the host endianness.
-        let context = unsafe {
-            CGBitmapContextCreate(
-                pixels.as_mut_ptr().cast(),
-                w,
-                h,
-                8,
-                w * 4,
-                Some(&space),
-                0x4001,
-            )
-        }
-        .context("Cannot create image conversion context")?;
-        CGContext::draw_image(
-            Some(&context),
-            CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(w as f64, h as f64)),
-            Some(&cg_image),
-        );
-        drop(context);
-        for pixel in pixels.as_chunks_mut::<4>().0 {
-            for c in 0..3 {
-                pixel[c] = if pixel[3] == 0 {
-                    0
-                } else {
-                    (u32::from(pixel[c]) * 255 / u32::from(pixel[3])).min(255) as u8
-                };
-            }
-        }
-        let image = RgbaImage::from_raw(w as u32, h as u32, pixels)
-            .context("Invalid decoded pixel buffer")?;
-        let mut image = DynamicImage::ImageRgba8(image);
+        let mut image = DynamicImage::ImageRgba8(straight_rgba(&cg_image)?);
         if let Some(orientation) = image::metadata::Orientation::from_exif(orientation as u8) {
             image.apply_orientation(orientation);
         }
         Ok(image.into_rgba8())
     })
+}
+
+fn straight_rgba(cg_image: &CGImage) -> Result<RgbaImage> {
+    let w = CGImage::width(Some(cg_image));
+    let h = CGImage::height(Some(cg_image));
+    validate_dimensions(w.try_into()?, h.try_into()?)?;
+    let space = CGColorSpace::with_name(Some(unsafe { kCGColorSpaceSRGB }))
+        .context("Cannot create sRGB color space")?;
+    let mut pixels = vec![0_u8; w * h * 4];
+    // SAFETY: The backing buffer is w*h*4 bytes, remains allocated and is not
+    // accessed while the context is alive. Big-endian + premultiplied-last
+    // specifies byte order R,G,B,A independently of the host endianness.
+    let context = unsafe {
+        CGBitmapContextCreate(
+            pixels.as_mut_ptr().cast(),
+            w,
+            h,
+            8,
+            w * 4,
+            Some(&space),
+            0x4001,
+        )
+    }
+    .context("Cannot create image conversion context")?;
+    CGContext::draw_image(
+        Some(&context),
+        CGRect::new(CGPoint::new(0.0, 0.0), CGSize::new(w as f64, h as f64)),
+        Some(cg_image),
+    );
+    drop(context);
+    for pixel in pixels.as_chunks_mut::<4>().0 {
+        for c in 0..3 {
+            pixel[c] = if pixel[3] == 0 {
+                0
+            } else {
+                (u32::from(pixel[c]) * 255 / u32::from(pixel[3])).min(255) as u8
+            };
+        }
+    }
+    RgbaImage::from_raw(w as u32, h as u32, pixels).context("Invalid decoded pixel buffer")
+}
+
+fn source_dimensions(props: &CFDictionary) -> Result<(u32, u32)> {
+    let width = property_number(props, unsafe { kCGImagePropertyPixelWidth })
+        .context("Missing image width")?;
+    let height = property_number(props, unsafe { kCGImagePropertyPixelHeight })
+        .context("Missing image height")?;
+    Ok((
+        width.try_into().context("Invalid image width")?,
+        height.try_into().context("Invalid image height")?,
+    ))
 }
 
 fn property<'a, T: ConcreteType>(props: &'a CFDictionary, key: &CFString) -> Option<&'a T> {
@@ -317,50 +385,55 @@ pub fn inspect(path: &Path) -> Result<Metadata> {
     let bytes = read(path)?;
     if candy_core::svg::is_svg(path, &bytes) {
         let (width, height) = candy_core::svg::dimensions(&bytes, path.parent())?;
-        return Ok(Metadata {
-            uti: candy_core::svg::UTI.to_owned(),
-            format: Some("SVG"),
-            width,
-            height,
-            orientation: 1,
-            color_model: None,
-            depth: None,
-            has_alpha: true,
-            is_float: false,
-            is_indexed: false,
-            profile: None,
-            dpi: None,
-            images: 1,
-        });
+        return Ok(svg_metadata(width, height));
     }
     autoreleasepool(|_| {
         let (source, uti, props) = open(&bytes)?;
-        let width = property_number(&props, unsafe { kCGImagePropertyPixelWidth })
-            .context("Missing image width")?;
-        let height = property_number(&props, unsafe { kCGImagePropertyPixelHeight })
-            .context("Missing image height")?;
-        let orientation = property_number(&props, unsafe { kCGImagePropertyOrientation })
-            .filter(|o| (1..=8).contains(o))
-            .map_or(1, |o| o as u8);
-        let dpi = property_f64(&props, unsafe { kCGImagePropertyDPIWidth })
-            .zip(property_f64(&props, unsafe { kCGImagePropertyDPIHeight }));
-        Ok(Metadata {
-            format: format_name(&uti),
-            uti,
-            width: width.try_into().context("Invalid image width")?,
-            height: height.try_into().context("Invalid image height")?,
-            orientation,
-            color_model: property_string(&props, unsafe { kCGImagePropertyColorModel }),
-            depth: property_number(&props, unsafe { kCGImagePropertyDepth })
-                .and_then(|depth| depth.try_into().ok()),
-            has_alpha: property_bool(&props, unsafe { kCGImagePropertyHasAlpha }),
-            is_float: property_bool(&props, unsafe { kCGImagePropertyIsFloat }),
-            is_indexed: property_bool(&props, unsafe { kCGImagePropertyIsIndexed }),
-            profile: property_string(&props, unsafe { kCGImagePropertyProfileName }),
-            dpi,
-            // SAFETY: The retained source outlives this call.
-            images: unsafe { source.count() },
-        })
+        native_metadata(&source, uti, &props)
+    })
+}
+
+fn svg_metadata(width: u32, height: u32) -> Metadata {
+    Metadata {
+        uti: candy_core::svg::UTI.to_owned(),
+        format: Some("SVG"),
+        width,
+        height,
+        orientation: 1,
+        color_model: None,
+        depth: None,
+        has_alpha: true,
+        is_float: false,
+        is_indexed: false,
+        profile: None,
+        dpi: None,
+        images: 1,
+    }
+}
+
+fn native_metadata(source: &CGImageSource, uti: String, props: &CFDictionary) -> Result<Metadata> {
+    let (width, height) = source_dimensions(props)?;
+    let orientation = property_number(props, unsafe { kCGImagePropertyOrientation })
+        .filter(|o| (1..=8).contains(o))
+        .map_or(1, |o| o as u8);
+    let dpi = property_f64(props, unsafe { kCGImagePropertyDPIWidth })
+        .zip(property_f64(props, unsafe { kCGImagePropertyDPIHeight }));
+    Ok(Metadata {
+        format: format_name(&uti),
+        uti,
+        width,
+        height,
+        orientation,
+        color_model: property_string(props, unsafe { kCGImagePropertyColorModel }),
+        depth: property_number(props, unsafe { kCGImagePropertyDepth })
+            .and_then(|depth| depth.try_into().ok()),
+        has_alpha: property_bool(props, unsafe { kCGImagePropertyHasAlpha }),
+        is_float: property_bool(props, unsafe { kCGImagePropertyIsFloat }),
+        is_indexed: property_bool(props, unsafe { kCGImagePropertyIsIndexed }),
+        profile: property_string(props, unsafe { kCGImagePropertyProfileName }),
+        dpi,
+        // SAFETY: The retained source outlives this call.
+        images: unsafe { source.count() },
     })
 }
 

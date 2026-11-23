@@ -72,16 +72,15 @@ pub(super) struct Rendered {
 }
 
 fn render(request: &Request) -> Result<Rendered> {
-    let image = candy_macos::load(&request.path)?;
-    let preview = candy_core::preview(&image, request.max_width, request.max_height)?;
-    let (width, height) = preview.dimensions();
+    let preview = candy_macos::load_preview(&request.path, request.max_width, request.max_height)?;
+    let (width, height) = preview.pixels.dimensions();
     Ok(Rendered {
-        png: crate::terminal::encode_png(preview)?,
+        png: crate::terminal::encode_png(preview.pixels)?,
         width,
         height,
         info: FileInfo {
-            metadata: candy_macos::inspect(&request.path)?,
-            file_size: std::fs::metadata(&request.path)?.len(),
+            metadata: preview.metadata,
+            file_size: preview.file_size,
         },
     })
 }

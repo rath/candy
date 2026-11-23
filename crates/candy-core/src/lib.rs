@@ -149,11 +149,24 @@ pub fn preview(input: &RgbaImage, max_width: u32, max_height: u32) -> Result<Rgb
         max_width > 0 && max_height > 0,
         "Preview bounds must be positive"
     );
-    let scale = (f64::from(max_width) / f64::from(input.width()))
-        .min(f64::from(max_height) / f64::from(input.height()))
+    let (width, height) = preview_dimensions(input.width(), input.height(), max_width, max_height);
+    resize_preview(input, width, height)
+}
+
+/// The size `preview` gives an image of `width` × `height`. Callers that start
+/// from a reduced decode use it to land on the same pixels per side.
+pub fn preview_dimensions(width: u32, height: u32, max_width: u32, max_height: u32) -> (u32, u32) {
+    let scale = (f64::from(max_width) / f64::from(width))
+        .min(f64::from(max_height) / f64::from(height))
         .min(1.0);
-    let width = (f64::from(input.width()) * scale).round().max(1.0) as u32;
-    let height = (f64::from(input.height()) * scale).round().max(1.0) as u32;
+    (
+        (f64::from(width) * scale).round().max(1.0) as u32,
+        (f64::from(height) * scale).round().max(1.0) as u32,
+    )
+}
+
+/// Resize straight-alpha pixels to exact dimensions with the preview filter.
+pub fn resize_preview(input: &RgbaImage, width: u32, height: u32) -> Result<RgbaImage> {
     resize_rgba(input, width, height, imageops::FilterType::Triangle)
 }
 
