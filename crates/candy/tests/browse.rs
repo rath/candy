@@ -266,3 +266,47 @@ fn remote_tmux_sends_quiet_inline_chunks_through_passthrough() {
     }
     assert!(packets.iter().any(|packet| packet.starts_with("a=d,d=I,")));
 }
+
+#[test]
+fn enter_opens_a_folder_and_backspace_returns_to_it() {
+    let fixtures = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../candy-macos/tests/fixtures");
+    let temp = tempfile::tempdir().unwrap();
+    let album = temp.path().join("album");
+    std::fs::create_dir(&album).unwrap();
+    std::fs::copy(fixtures.join("sample.png"), album.join("only.png")).unwrap();
+    let mut command = Command::new(env!("CARGO_BIN_EXE_candy"));
+    command
+        .args(["browse", "--display", "kitty"])
+        .arg(temp.path())
+        .env_remove("TMUX")
+        .env("TERM", "xterm-kitty");
+    let mut stage = 0;
+    let output = common::run(command, None, None, |bytes, master| {
+        let uploads = bytes.windows(9).filter(|s| s == b"a=T,U=1,i").count();
+        let text = String::from_utf8_lossy(bytes);
+        match stage {
+            // A folder with no images of its own opens on its first folder,
+            // previewed by that folder's first image. Unchanged blank cells
+            // are skipped, so match single words of "album/  1 image".
+            0 if uploads == 1 && text.contains("album/") && text.contains("image") => {
+                master.write_all(b"\r").unwrap();
+                stage = 1;
+            }
+            1 if uploads == 2 && text.contains("1/1") && text.contains("only.png") => {
+                master.write_all(b"\x7f").unwrap();
+                stage = 2;
+            }
+            2 if uploads == 3 => {
+                master.write_all(b"q").unwrap();
+                stage = 3;
+            }
+            _ => {}
+        }
+    });
+    assert!(
+        stage == 3 && output.status.success(),
+        "stage {stage}, {:?}: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+}

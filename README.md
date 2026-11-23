@@ -139,27 +139,31 @@ candy browse ~/Pictures/trip/photo42.heic
 ```
 
 The first command browses the current directory. A file argument to
-`candy browse` selects that file in its directory. The list includes visible
-image files and links to files, sorted by name with numbers in numeric order.
-The preview fits the available space at up to the image's original resolution.
-The status line shows the filename, format, oriented dimensions and file size.
-A damaged image displays its error in the preview pane and navigation continues.
+`candy browse` selects that file in its directory. The list starts with `../`,
+then visible folders, then visible image files and links to them, each group
+sorted by name with numbers in numeric order. The preview fits the available
+space at up to the image's original resolution. A selected folder previews its
+first image, and the status line counts its images and folders; for a file it
+shows the filename, format, oriented dimensions and file size. A damaged image
+displays its error in the preview pane and navigation continues.
 
 | Key | Action |
 | --- | --- |
-| ↓, →, `j`, `l`, Space | Next image |
-| ↑, ←, `k`, `h` | Previous image |
+| ↓, →, `j`, `l`, Space | Next entry |
+| ↑, ←, `k`, `h` | Previous entry |
 | Page Down / Page Up | Move one list page |
-| Home, `g` / End, `G` | First / last image |
-| Enter | Toggle the list and full-width viewer |
-| `e` | Open the selected file in Candy.app and keep browsing |
-| `r` | Rescan the directory and refresh the selected preview |
+| Home, `g` / End, `G` | First / last entry |
+| Enter | Open a folder, or toggle the list and full-width viewer |
+| Backspace | Open the parent folder |
+| `e` | Open the selected image in Candy.app and keep browsing |
+| `r` | Rescan the folder and refresh the selected preview |
 | Esc | Return to the list, or quit from the list |
 | `q`, Ctrl-C | Quit |
 
-Below 60 columns the viewer occupies the full width. Use `q` or Ctrl-C to
-leave it. The browser reads one directory level and shows the first image or
-frame of each file. Use the editor for changes.
+The viewer skips folders, so arrow keys flip through images only. Leaving a
+folder selects it in its parent. Below 60 columns the viewer occupies the full
+width; Enter still opens folders. Use `q` or Ctrl-C to leave it. The browser
+shows the first image or frame of each file. Use the editor for changes.
 
 Both stdin and stdout must be interactive. Automatic detection requires
 Ghostty or kitty with Kitty graphics and Unicode placeholders, directly or as

@@ -8,7 +8,7 @@ use crate::{cli::Display, terminal};
 use anyhow::{Context, Result, ensure};
 use app::{Action, App, Effect, Request, Screen};
 use listing::Listing;
-use loader::{Loader, Rendered};
+use loader::{Loaded, Loader, Rendered};
 use ratatui::{
     DefaultTerminal,
     crossterm::{
@@ -21,7 +21,7 @@ use ratatui::{
 use std::{
     io::{self, IsTerminal, Write},
     panic,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -35,7 +35,7 @@ enum Message {
     Input(io::Result<Event>),
     Preview {
         generation: u64,
-        result: Result<Rendered, String>,
+        result: Result<Loaded, String>,
     },
 }
 
@@ -70,6 +70,7 @@ impl PendingFile {
 struct Session {
     terminal: DefaultTerminal,
     list: ListState,
+    list_directory: PathBuf,
     tmux: bool,
     ids: terminal::ImageIds,
     live: Vec<u32>,
@@ -86,6 +87,7 @@ impl Session {
         let session = Self {
             terminal,
             list: ListState::default(),
+            list_directory: PathBuf::new(),
             tmux,
             ids: terminal::ImageIds::new(),
             live: Vec::with_capacity(2),
@@ -116,6 +118,10 @@ impl Session {
     fn draw(&mut self, app: &App) -> Result<()> {
         if app.entry().is_none() {
             self.shown = None;
+        }
+        if self.list_directory != app.listing.directory {
+            self.list = ListState::default();
+            self.list_directory.clone_from(&app.listing.directory);
         }
         if self
             .pending
@@ -290,8 +296,9 @@ fn key_action(key: KeyEvent) -> Option<Action> {
         KeyCode::Home | KeyCode::Char('g') => Action::First,
         KeyCode::End | KeyCode::Char('G') => Action::Last,
         KeyCode::Char('r') => Action::Rescan,
+        KeyCode::Backspace => Action::Parent,
         KeyCode::Char('e') => Action::Edit,
-        KeyCode::Enter => Action::ToggleViewer,
+        KeyCode::Enter => Action::Activate,
         KeyCode::Esc => Action::Escape,
         KeyCode::Char('q') => Action::Quit,
         _ => return None,
@@ -361,11 +368,17 @@ pub(crate) fn run(path: &Path, display: Display) -> Result<()> {
         if let Some((generation, result)) = preview
             && generation == app.generation
         {
-            let result = result.and_then(|image| {
-                session
+            let result = match result {
+                Ok(Loaded::Picture(image)) => session
                     .upload(&mut app, image)
-                    .map_err(|error| format!("{error:#}"))
-            });
+                    .map_err(|error| format!("{error:#}")),
+                Ok(Loaded::Empty(info)) => {
+                    session.shown = None;
+                    app.apply_preview(generation, Ok(info));
+                    Ok(())
+                }
+                Err(error) => Err(error),
+            };
             if let Err(error) = result {
                 session.shown = None;
                 app.apply_preview(generation, Err(error));
@@ -385,6 +398,10 @@ fn update(app: &mut App, action: Action, request: &mut Option<Request>) -> bool 
                     .err()
                     .map(|error| format!("{error:#}"));
             }
+            Effect::Enter(path) => match Listing::enter(&path) {
+                Ok(listing) => effects.extend(app.update(Action::Entered(listing))),
+                Err(error) => app.notice = Some(format!("{error:#}")),
+            },
             Effect::Rescan => match Listing::scan(&app.listing.directory) {
                 Ok(listing) => effects.extend(app.update(Action::Rescanned(listing))),
                 Err(error) => app.notice = Some(format!("{error:#}")),

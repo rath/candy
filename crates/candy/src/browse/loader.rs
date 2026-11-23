@@ -1,10 +1,12 @@
 use super::{
     Message,
-    app::{FileInfo, Request},
+    app::{Info, Request},
+    listing::Listing,
 };
 use anyhow::Result;
 use std::{
     panic::catch_unwind,
+    path::Path,
     sync::{Arc, Condvar, Mutex, mpsc::Sender},
     thread,
 };
@@ -38,9 +40,16 @@ impl Loader {
                     let request = state.pending.take().unwrap();
                     drop(state);
                     let generation = request.generation;
-                    let result = catch_unwind(|| render(&request))
-                        .map_err(|_| String::from("Image decoder panicked"))
-                        .and_then(|r| r.map_err(|error| format!("{error:#}")));
+                    let result = catch_unwind(|| {
+                        load(
+                            &request.path,
+                            request.folder,
+                            request.max_width,
+                            request.max_height,
+                        )
+                    })
+                    .map_err(|_| String::from("Image decoder panicked"))
+                    .and_then(|r| r.map_err(|error| format!("{error:#}")));
                     if tx.send(Message::Preview { generation, result }).is_err() {
                         break;
                     }
@@ -68,19 +77,45 @@ pub(super) struct Rendered {
     pub png: Vec<u8>,
     pub width: u32,
     pub height: u32,
-    pub info: FileInfo,
+    pub info: Info,
 }
 
-fn render(request: &Request) -> Result<Rendered> {
-    let preview = candy_macos::load_preview(&request.path, request.max_width, request.max_height)?;
-    let (width, height) = preview.pixels.dimensions();
-    Ok(Rendered {
-        png: crate::terminal::encode_png(preview.pixels)?,
-        width,
-        height,
-        info: FileInfo {
+pub(super) enum Loaded {
+    Picture(Rendered),
+    /// A folder with nothing to show; its counts still go in the status line.
+    Empty(Info),
+}
+
+fn load(path: &Path, folder: bool, max_width: u32, max_height: u32) -> Result<Loaded> {
+    if !folder {
+        let preview = candy_macos::load_preview(path, max_width, max_height)?;
+        let info = Info::File {
             metadata: preview.metadata,
             file_size: preview.file_size,
-        },
+        };
+        return render(preview.pixels, info).map(Loaded::Picture);
+    }
+    // A folder shows its first image, the one opening it would select.
+    let listing = Listing::scan(path)?;
+    let info = Info::Folder {
+        images: listing.images().len(),
+        folders: listing.folders(),
+    };
+    let Some(cover) = listing.images().first() else {
+        return Ok(Loaded::Empty(info));
+    };
+    match candy_macos::load_preview(&cover.path, max_width, max_height) {
+        Ok(preview) => render(preview.pixels, info).map(Loaded::Picture),
+        Err(_) => Ok(Loaded::Empty(info)),
+    }
+}
+
+fn render(pixels: image::RgbaImage, info: Info) -> Result<Rendered> {
+    let (width, height) = pixels.dimensions();
+    Ok(Rendered {
+        png: crate::terminal::encode_png(pixels)?,
+        width,
+        height,
+        info,
     })
 }

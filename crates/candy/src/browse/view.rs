@@ -1,6 +1,6 @@
 use super::{
-    app::{App, Screen},
-    listing::display_text,
+    app::{App, Info, Screen},
+    listing::{Kind, display_text},
 };
 use crate::terminal::{self, DIACRITICS};
 use ratatui::{
@@ -37,24 +37,25 @@ pub(super) fn span(width: u32, height: u32, cell: (u32, u32)) -> (u16, u16) {
     )
 }
 
-fn draw_image(frame: &mut Frame, area: Rect, shown: Shown) {
-    if shown.columns > area.width || shown.rows > area.height {
+/// Centers an image's placeholder cells in `area`.
+pub(super) fn draw_image(frame: &mut Frame, area: Rect, id: u32, columns: u16, rows: u16) {
+    if columns > area.width || rows > area.height {
         return;
     }
-    let x = area.x + (area.width - shown.columns) / 2;
-    let y = area.y + (area.height - shown.rows) / 2;
+    let x = area.x + (area.width - columns) / 2;
+    let y = area.y + (area.height - rows) / 2;
     let mut symbol = String::with_capacity(16);
     let buffer = frame.buffer_mut();
-    for row in 0..shown.rows {
-        for col in 0..shown.columns {
+    for row in 0..rows {
+        for col in 0..columns {
             buffer[(x + col, y + row)]
                 .set_symbol(terminal::placeholder(
                     &mut symbol,
                     row.into(),
                     col.into(),
-                    (shown.id >> 24) as usize,
+                    (id >> 24) as usize,
                 ))
-                .set_fg(Color::Indexed(shown.id as u8));
+                .set_fg(Color::Indexed(id as u8));
         }
     }
 }
@@ -62,6 +63,9 @@ fn draw_image(frame: &mut Frame, area: Rect, shown: Shown) {
 pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, shown: Option<Shown>) {
     let area = frame.area();
     let height = area.height.saturating_sub(1);
+    // Placeholder sizes were computed for the app's screen; a frame of
+    // another size is about to be replaced by a resize.
+    let images = (area.width, area.height) == (app.screen.columns, app.screen.rows);
     let width = app.list_width().min(area.width);
     let list = Rect::new(area.x, area.y, width, height);
     if width > 0 {
@@ -70,17 +74,13 @@ pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, sho
     let pane = Rect::new(list.right(), area.y, area.width - width, height);
     if let Some(error) = &app.preview_error {
         centered_text(frame, pane, error);
-    } else if app.entry().is_none() {
-        centered_text(
-            frame,
-            pane,
-            &format!("No images in {}", app.listing.directory.display()),
-        );
+    } else if let Some(message) = empty_message(app) {
+        centered_text(frame, pane, &message);
     } else if let Some(shown) = shown
         && shown.generation == app.generation
-        && (area.width, area.height) == (app.screen.columns, app.screen.rows)
+        && images
     {
-        draw_image(frame, pane, shown);
+        draw_image(frame, pane, shown.id, shown.columns, shown.rows);
     }
     if area.height > 0 {
         status(
@@ -91,11 +91,19 @@ pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, sho
     }
 }
 
-fn draw_list(frame: &mut Frame, list: Rect, app: &App, list_state: &mut ListState) {
-    let block = Block::new().borders(Borders::RIGHT);
-    let inner = block.inner(list);
-    frame.render_widget(block, list);
+fn empty_message(app: &App) -> Option<String> {
+    let none_here = || format!("No images in {}", app.listing.directory.display());
+    match app.entry().map(|entry| entry.kind) {
+        None => Some(none_here()),
+        Some(Kind::Parent) if app.listing.entries.len() == 1 => Some(none_here()),
+        Some(Kind::Folder) if matches!(app.info, Some(Info::Folder { images: 0, .. })) => {
+            Some("No images".into())
+        }
+        _ => None,
+    }
+}
 
+fn title(app: &App, width: u16) -> Line<'static> {
     let directory = &app.listing.directory;
     let title = std::env::home_dir()
         .and_then(|home| directory.strip_prefix(home).ok())
@@ -103,16 +111,24 @@ fn draw_list(frame: &mut Frame, list: Rect, app: &App, list_state: &mut ListStat
             || directory.clone(),
             |rest| std::path::Path::new("~").join(rest),
         );
-    let mut title = Line::from(display_text(&title.to_string_lossy()))
+    let title = Line::from(display_text(&title.to_string_lossy()))
         .style(Style::new().add_modifier(Modifier::DIM));
-    if title.width() > usize::from(inner.width) {
-        title = title.right_aligned();
+    if title.width() > usize::from(width) {
+        title.right_aligned()
+    } else {
+        title
     }
+}
+
+fn draw_list(frame: &mut Frame, list: Rect, app: &App, list_state: &mut ListState) {
+    let block = Block::new().borders(Borders::RIGHT);
+    let inner = block.inner(list);
+    frame.render_widget(block, list);
     frame.render_widget(
-        title,
+        title(app, inner.width),
         Rect::new(inner.x, inner.y, inner.width, inner.height.min(1)),
     );
-    let items = List::new(app.listing.files.iter().map(|entry| entry.name.as_str()))
+    let items = List::new(app.listing.entries.iter().map(|entry| entry.name.as_str()))
         .highlight_style(Style::new().add_modifier(Modifier::REVERSED))
         .highlight_symbol("> ");
     list_state.select(app.entry().map(|_| app.selected));
@@ -144,38 +160,64 @@ fn centered_text(frame: &mut Frame, area: Rect, message: &str) {
     );
 }
 
+fn count(n: usize, noun: &str) -> String {
+    if n == 1 {
+        format!("1 {noun}")
+    } else {
+        format!("{n} {noun}s")
+    }
+}
+
+fn summary(images: usize, folders: usize) -> String {
+    match (images, folders) {
+        (0, 0) => "No images".into(),
+        (_, 0) => count(images, "image"),
+        (0, _) => count(folders, "folder"),
+        _ => format!("{}, {}", count(images, "image"), count(folders, "folder")),
+    }
+}
+
 fn status(frame: &mut Frame, area: Rect, app: &App) {
     if let Some(notice) = &app.notice {
         frame.render_widget(Line::from(display_text(notice)), area);
         return;
     }
-    let index = if app.entry().is_some() {
-        app.selected + 1
+    let entry = app.entry();
+    let image = entry.is_some_and(|entry| entry.kind == Kind::Image);
+    let index = if image {
+        format!(
+            "{}/{}  ",
+            app.selected - app.listing.first_image + 1,
+            app.listing.images().len()
+        )
     } else {
-        0
+        String::new()
     };
-    let index = format!("{index}/{}  ", app.listing.files.len());
-    let details = app
-        .info
-        .as_ref()
-        .map(|info| {
-            let (w, h) = info.metadata.display_dimensions();
-            let format = info.metadata.format.unwrap_or(&info.metadata.uti);
+    let details = match &app.info {
+        Some(Info::File {
+            metadata,
+            file_size,
+        }) => {
+            let (w, h) = metadata.display_dimensions();
+            let format = metadata.format.unwrap_or(&metadata.uti);
             format!(
                 "  {format}  {w} × {h}  {}",
-                crate::inspect::human_size(info.file_size)
+                crate::inspect::human_size(*file_size)
             )
-        })
-        .unwrap_or_default();
-    let keys = if app.screen.columns < 60 {
-        "  e edit  q quit"
-    } else if app.in_viewer() {
-        "  ⏎ list  e edit  q quit"
-    } else {
-        "  ⏎ view  e edit  q quit"
+        }
+        Some(Info::Folder { images, folders }) => format!("  {}", summary(*images, *folders)),
+        None => String::new(),
+    };
+    let narrow = app.screen.columns < 60;
+    let keys = match (image, narrow) {
+        (false, true) => "  ⏎ open  q quit",
+        (false, false) => "  ⏎ open  ⌫ up  q quit",
+        (true, true) => "  e edit  q quit",
+        _ if app.in_viewer() => "  ⏎ list  e edit  q quit",
+        _ => "  ⏎ view  e edit  q quit",
     };
     let hint = Line::from(keys).style(Style::new().add_modifier(Modifier::DIM));
-    let name = app.entry().map_or("", |entry| &entry.name);
+    let name = entry.map_or("", |entry| &entry.name);
     let index_w = index.len() as u16;
     let details_w = Line::raw(&details).width() as u16;
     // Keep the dimensions readable when a filename has to be truncated.
@@ -210,8 +252,12 @@ fn status(frame: &mut Frame, area: Rect, app: &App) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::browse::app::{Screen, sample_app};
-    use ratatui::{Terminal, backend::TestBackend};
+    use crate::browse::app::{Action, Screen, sample_app};
+    use ratatui::{Terminal, backend::TestBackend, buffer::Buffer};
+
+    fn row(buf: &Buffer, y: u16) -> String {
+        (0..buf.area.width).map(|x| buf[(x, y)].symbol()).collect()
+    }
 
     #[test]
     fn list_clips_wide_names_and_draws_error_in_its_own_pane() {
@@ -297,5 +343,46 @@ mod tests {
             .draw(|frame| draw(frame, &app, &mut ListState::default(), Some(shown)))
             .unwrap();
         assert_eq!(terminal.backend().buffer()[(54, 3)].symbol(), " ");
+    }
+
+    #[test]
+    fn folders_show_counts_and_empty_folders_say_so() {
+        let mut app = sample_app(&["../", "cups/", "empty/", "a.png"]);
+        app.update(Action::Resize(Screen {
+            columns: 80,
+            rows: 10,
+            ..Screen::default()
+        }));
+        app.selected = 1;
+        app.info = Some(Info::Folder {
+            images: 14,
+            folders: 1,
+        });
+        let mut terminal = Terminal::new(TestBackend::new(80, 10)).unwrap();
+        terminal
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None))
+            .unwrap();
+        let status = row(terminal.backend().buffer(), 9);
+        assert!(status.starts_with("cups/  14 images, 1 folder"), "{status}");
+        assert!(status.trim_end().ends_with("⏎ open  ⌫ up  q quit"));
+        app.selected = 2;
+        app.info = Some(Info::Folder {
+            images: 0,
+            folders: 0,
+        });
+        terminal
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None))
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        assert!((0..9).any(|y| row(buf, y).contains("No images")));
+        assert!(row(buf, 9).starts_with("empty/  No images"));
+        // An emptied folder keeps only its parent link.
+        let mut empty = sample_app(&["../"]);
+        empty.screen = app.screen;
+        terminal
+            .draw(|frame| draw(frame, &empty, &mut ListState::default(), None))
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        assert!((0..9).any(|y| row(buf, y).contains("No images in /images")));
     }
 }
