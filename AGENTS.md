@@ -131,6 +131,12 @@ live in the SwiftPM package under `macos`.
   session guard deletes live IDs and restores the screen.
 - Match decoded previews to the current selection and pixel box by generation.
   Drop stale results before transmission. Re-query cell metrics on resize.
+  Grid thumbnails are keyed by path and tile size; keep only those within a
+  page of the screen, and let the preview request jump the thumbnail queue.
+- Ghostty creates its first window only once the app is activated, so a
+  background `open -g -n` launch has no window. A separate recording instance
+  needs one brief activation; macOS 14+ will not let a background process hand
+  focus back, so say so before doing it.
 - Before native mouse automation, read the current window bounds and target PID
   or window ID. Users can move windows between actions. macOS window coordinates
   are logical points; Retina screenshots can contain twice as many pixels.

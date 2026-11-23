@@ -310,3 +310,70 @@ fn enter_opens_a_folder_and_backspace_returns_to_it() {
         String::from_utf8_lossy(&output.stderr)
     );
 }
+
+#[test]
+fn the_grid_uploads_a_thumbnail_per_image_and_enter_opens_the_selection_large() {
+    let mut stage = 0;
+    let output = common::run(browser("kitty"), None, None, |bytes, master| {
+        let uploads = bytes.windows(9).filter(|s| s == b"a=T,U=1,i").count();
+        match stage {
+            0 if bytes.windows(4).any(|s| s == "\u{10eeee}".as_bytes()) => {
+                master.write_all(b"\t").unwrap();
+                stage = 1;
+            }
+            // The list preview, then one thumbnail for each of the seven fixtures.
+            1 if uploads == 8 => {
+                master.write_all(b"l\r").unwrap();
+                stage = 2;
+            }
+            2 if uploads == 9 => {
+                master.write_all(b"q").unwrap();
+                stage = 3;
+            }
+            _ => {}
+        }
+    });
+    assert!(
+        stage == 3 && output.status.success(),
+        "stage {stage}, {:?}: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let text = String::from_utf8(output.stdout).unwrap();
+    let uploads: Vec<(u32, u32, u32)> = text
+        .split("a=T,U=1,i=")
+        .skip(1)
+        .map(|control| {
+            let control = control.split([';', '\x1b']).next().unwrap();
+            let field = |key: &str| {
+                control
+                    .split(',')
+                    .find_map(|pair| pair.strip_prefix(key))
+                    .unwrap()
+                    .parse::<u32>()
+                    .unwrap()
+            };
+            (
+                control.split(',').next().unwrap().parse().unwrap(),
+                field("c="),
+                field("r="),
+            )
+        })
+        .collect();
+    assert_eq!(uploads.len(), 9);
+    let ids: std::collections::HashSet<_> = uploads.iter().map(|upload| upload.0).collect();
+    assert_eq!(ids.len(), 9, "every live image has its own ID");
+    // An 80 × 30 terminal of 8 × 16 cells has two rows of four 18 × 11 boxes.
+    for &(id, columns, rows) in &uploads[1..8] {
+        assert!(columns <= 18 && rows <= 11, "{columns} × {rows}");
+        assert!(text.contains(&format!("38;5;{}", id as u8)));
+    }
+    let (viewer, columns, _) = uploads[8];
+    assert!(columns > 18, "the viewer uses the full width");
+    // The grid frame retires the list preview; quitting deletes the rest.
+    let exit = text.rfind(&format!("a=T,U=1,i={viewer}")).unwrap();
+    assert!(text[..exit].contains(&format!("a=d,d=I,i={},q=2", uploads[0].0)));
+    for (id, ..) in &uploads[1..] {
+        assert!(text[exit..].contains(&format!("a=d,d=I,i={id},q=2")));
+    }
+}

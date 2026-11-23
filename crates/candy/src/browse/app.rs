@@ -1,6 +1,9 @@
-use super::listing::{Entry, Kind, Listing};
+use super::{
+    grid::Grid,
+    listing::{Entry, Kind, Listing},
+};
 use candy_macos::Metadata;
-use std::path::PathBuf;
+use std::{ops::Range, path::PathBuf};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Screen {
@@ -32,9 +35,17 @@ pub(super) struct Request {
     pub max_height: u32,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Layout {
+    List,
+    Grid,
+}
+
 pub(super) enum Action {
     Previous,
     Next,
+    Up,
+    Down,
     PageUp,
     PageDown,
     First,
@@ -45,6 +56,7 @@ pub(super) enum Action {
     Entered(Listing),
     Activate,
     Parent,
+    ToggleGrid,
     Escape,
     Edit,
     Quit,
@@ -63,9 +75,14 @@ pub(super) struct App {
     pub selected: usize,
     pub screen: Screen,
     pub generation: u64,
+    /// Counts listings, so thumbnails can tell a rescan from a redraw.
+    pub scans: u64,
     pub info: Option<Info>,
     pub preview_error: Option<String>,
     pub notice: Option<String>,
+    pub layout: Layout,
+    /// The first tile row on screen.
+    pub grid_top: usize,
     viewer: bool,
 }
 
@@ -76,9 +93,12 @@ impl App {
             selected,
             screen: Screen::default(),
             generation: 0,
+            scans: 0,
             info: None,
             preview_error: None,
             notice: None,
+            layout: Layout::List,
+            grid_top: 0,
             viewer: false,
         }
     }
@@ -105,7 +125,47 @@ impl App {
     /// Whether one image fills the screen: by choice, or because the list
     /// leaves the preview too little room.
     pub fn in_viewer(&self) -> bool {
-        self.viewer || self.screen.columns < 60
+        self.viewer || (self.layout == Layout::List && self.screen.columns < 60)
+    }
+
+    pub fn viewer_from_grid(&self) -> bool {
+        self.viewer && self.layout == Layout::Grid
+    }
+
+    pub fn in_grid(&self) -> bool {
+        self.layout == Layout::Grid && !self.viewer
+    }
+
+    pub fn grid(&self) -> Grid {
+        Grid::new(self.screen)
+    }
+
+    /// Tiles on screen.
+    pub fn visible_tiles(&self) -> Range<usize> {
+        let grid = self.grid();
+        let start = self.grid_top * grid.columns;
+        let end = (self.grid_top + grid.rows) * grid.columns;
+        start.min(self.listing.entries.len())..end.min(self.listing.entries.len())
+    }
+
+    /// Tiles whose thumbnails stay loaded: the screen and a page either side.
+    pub fn kept_tiles(&self) -> Range<usize> {
+        let visible = self.visible_tiles();
+        let page = self.grid().page();
+        visible.start.saturating_sub(page)..(visible.end + page).min(self.listing.entries.len())
+    }
+
+    fn scroll(&mut self) {
+        let grid = self.grid();
+        let row = self.selected / grid.columns;
+        let rows = grid.rows.max(1);
+        if row < self.grid_top {
+            self.grid_top = row;
+        } else if row >= self.grid_top + rows {
+            self.grid_top = row + 1 - rows;
+        }
+        let total = self.listing.entries.len().div_ceil(grid.columns);
+        self.grid_top = self.grid_top.min(total.saturating_sub(rows));
     }
 
     fn request(&mut self) -> Vec<Effect> {
@@ -113,6 +173,11 @@ impl App {
         self.info = None;
         self.preview_error = None;
         self.notice = None;
+        self.scroll();
+        // Grid tiles carry their own details; only the viewer needs a preview.
+        if self.in_grid() {
+            return Vec::new();
+        }
         let (max_width, max_height) = super::view::pixel_box(self.screen, self.list_width());
         if max_width == 0 || max_height == 0 {
             return Vec::new();
@@ -137,10 +202,22 @@ impl App {
         } else {
             0
         };
-        let page = usize::from(self.screen.rows.saturating_sub(2).max(1));
+        let (step, page) = if self.in_grid() {
+            let grid = self.grid();
+            (grid.columns, grid.page())
+        } else {
+            (1, usize::from(self.screen.rows.saturating_sub(2).max(1)))
+        };
         let selected = match action {
             Action::Previous => self.selected.saturating_sub(1).max(first),
             Action::Next => self.selected.saturating_add(1).min(last),
+            Action::Up if self.selected >= first + step => self.selected - step,
+            Action::Up => self.selected,
+            // Down stays put on the last row instead of sliding sideways.
+            Action::Down if self.selected / step < last / step => {
+                self.selected.saturating_add(step).min(last)
+            }
+            Action::Down => self.selected,
             Action::PageUp => self.selected.saturating_sub(page).max(first),
             Action::PageDown => self.selected.saturating_add(page).min(last),
             Action::First => first,
@@ -183,9 +260,19 @@ impl App {
                     .map(|parent| vec![Effect::Enter(parent.to_owned())])
                     .unwrap_or_default();
             }
+            Action::ToggleGrid => {
+                self.layout = match self.layout {
+                    Layout::List => Layout::Grid,
+                    Layout::Grid => Layout::List,
+                };
+                self.viewer = false;
+                return self.request();
+            }
             Action::Escape => {
                 if self.viewer {
                     self.viewer = false;
+                } else if self.layout == Layout::Grid {
+                    self.layout = Layout::List;
                 } else if self.in_viewer() {
                     return Vec::new();
                 } else {
@@ -199,6 +286,7 @@ impl App {
                     .and_then(|entry| listing.entries.iter().position(|e| e.path == entry.path))
                     .unwrap_or_else(|| self.selected.min(listing.entries.len().saturating_sub(1)));
                 self.listing = listing;
+                self.scans += 1;
                 self.viewer &= self.kind() == Some(Kind::Image);
                 return self.request();
             }
@@ -211,7 +299,9 @@ impl App {
                     .position(|e| e.kind == Kind::Folder && &e.path == left)
                     .unwrap_or_else(|| listing.initial());
                 self.listing = listing;
+                self.scans += 1;
                 self.viewer = false;
+                self.grid_top = 0;
                 return self.request();
             }
             Action::Quit => return vec![Effect::Quit],
@@ -290,8 +380,11 @@ mod tests {
         app.update(Action::PageDown);
         assert_eq!(app.selected, 5);
         assert!(app.update(Action::Next).is_empty());
+        assert!(app.update(Action::Down).is_empty());
         app.update(Action::PageUp);
         assert_eq!(app.selected, 2);
+        app.update(Action::Up);
+        assert_eq!(app.selected, 1);
         app.update(Action::First);
         let generation = app.generation;
         app.update(Action::Resize(Screen {
@@ -327,6 +420,7 @@ mod tests {
                 .as_slice(),
             [Effect::Request(_)]
         ));
+        assert_eq!(app.scans, 4);
     }
 
     #[test]
@@ -403,5 +497,48 @@ mod tests {
         up.directory = "/images".into();
         app.update(Action::Entered(up));
         assert_eq!(app.entry().unwrap().name, "cups/");
+    }
+
+    #[test]
+    fn the_grid_moves_by_rows_scrolls_and_backs_out_to_the_list() {
+        let names: Vec<String> = (0..40).map(|i| format!("{i:02}.png")).collect();
+        let names: Vec<&str> = names.iter().map(String::as_str).collect();
+        let mut app = sample_app(&names);
+        app.update(Action::Resize(Screen {
+            columns: 100,
+            rows: 30,
+            cell: (18, 40),
+        }));
+        assert!(app.update(Action::ToggleGrid).is_empty());
+        let grid = app.grid();
+        assert_eq!((grid.columns, grid.rows), (5, 2));
+        app.update(Action::Down);
+        assert_eq!(app.selected, 5);
+        app.update(Action::Up);
+        app.update(Action::Up);
+        assert_eq!(app.selected, 0);
+        app.update(Action::PageDown);
+        assert_eq!((app.selected, app.grid_top), (10, 1));
+        assert_eq!(app.visible_tiles(), 5..15);
+        assert_eq!(app.kept_tiles(), 0..25);
+        app.update(Action::Last);
+        assert_eq!((app.selected, app.grid_top), (39, 6));
+        app.update(Action::Down);
+        assert_eq!(app.selected, 39, "the last row stays put");
+        app.selected = 34;
+        app.update(Action::Down);
+        assert_eq!(app.selected, 39);
+        // Enter opens the large view; Escape returns to the grid, then the list.
+        assert!(
+            matches!(&app.update(Action::Activate)[..], [Effect::Request(r)] if r.max_width == 100 * 18)
+        );
+        assert!(app.viewer_from_grid() && !app.in_grid());
+        assert!(app.update(Action::Escape).is_empty());
+        assert!(app.in_grid());
+        assert!(matches!(
+            &app.update(Action::Escape)[..],
+            [Effect::Request(_)]
+        ));
+        assert_eq!(app.layout, Layout::List);
     }
 }

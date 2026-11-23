@@ -1,5 +1,6 @@
 //! Full-screen terminal image browser. Only the event loop writes to the tty.
 mod app;
+mod grid;
 mod listing;
 mod loader;
 mod view;
@@ -7,6 +8,7 @@ mod view;
 use crate::{cli::Display, terminal};
 use anyhow::{Context, Result, ensure};
 use app::{Action, App, Effect, Request, Screen};
+use grid::{Thumb, Thumbs};
 use listing::Listing;
 use loader::{Loaded, Loader, Rendered};
 use ratatui::{
@@ -37,19 +39,36 @@ enum Message {
         generation: u64,
         result: Result<Loaded, String>,
     },
+    Thumbnail {
+        path: PathBuf,
+        size: (u32, u32),
+        result: Result<Loaded, String>,
+    },
 }
 
 const HANDOFF_TIMEOUT: Duration = Duration::from_millis(500);
 // The browser has no GUI fallback; `r` decodes and sends the preview again.
 const HANDOFF_TIMEOUT_ERROR: &str = "Terminal did not read the preview file; check tmux allow-passthrough (use all), then press r to retry";
 
+/// Where an image goes once the terminal has read its file.
+enum Target {
+    Preview(view::Shown),
+    Thumbnail {
+        path: PathBuf,
+        size: (u32, u32),
+        columns: u16,
+        rows: u16,
+    },
+}
+
 struct PendingFile {
     path: tempfile::TempPath,
     deadline: Instant,
     retried: bool,
     control: String,
-    placement: view::Shown,
+    id: u32,
     image: Rendered,
+    target: Target,
 }
 
 impl PendingFile {
@@ -67,6 +86,15 @@ impl PendingFile {
     }
 }
 
+/// An image the terminal has been sent, and the file local tmux must still read.
+struct Sent {
+    id: u32,
+    columns: u16,
+    rows: u16,
+    control: String,
+    file: Option<tempfile::TempPath>,
+}
+
 struct Session {
     terminal: DefaultTerminal,
     list: ListState,
@@ -75,7 +103,8 @@ struct Session {
     ids: terminal::ImageIds,
     live: Vec<u32>,
     shown: Option<view::Shown>,
-    pending: Option<PendingFile>,
+    pending: Vec<PendingFile>,
+    thumbs: Thumbs,
 }
 
 impl Session {
@@ -90,9 +119,10 @@ impl Session {
             list_directory: PathBuf::new(),
             tmux,
             ids: terminal::ImageIds::new(),
-            live: Vec::with_capacity(2),
+            live: Vec::new(),
             shown: None,
-            pending: None,
+            pending: Vec::new(),
+            thumbs: Thumbs::default(),
         };
         // try_init installs a process-wide hook that writes to stdout. A
         // caught decoder panic must become a preview error inside the TUI.
@@ -115,46 +145,58 @@ impl Session {
         })
     }
 
+    /// Drops thumbnails the grid no longer keeps and queues the missing ones.
+    fn sync(&mut self, app: &App, loader: &Loader) {
+        self.thumbs.retain(app);
+        let missing = self.thumbs.missing(app);
+        if self.thumbs.changed(&missing) {
+            loader.thumbnails(missing);
+        }
+    }
+
     fn draw(&mut self, app: &App) -> Result<()> {
-        if app.entry().is_none() {
+        // No preview replaces the large image while the grid is up.
+        if app.entry().is_none() || app.in_grid() {
             self.shown = None;
         }
         if self.list_directory != app.listing.directory {
             self.list = ListState::default();
             self.list_directory.clone_from(&app.listing.directory);
         }
-        if self
-            .pending
-            .as_ref()
-            .is_some_and(|p| p.placement.generation != app.generation)
-        {
-            self.pending = None;
-        }
+        let thumbs = &self.thumbs;
+        self.pending.retain(|pending| match &pending.target {
+            Target::Preview(placement) => placement.generation == app.generation,
+            Target::Thumbnail { path, size, .. } => {
+                *size == thumbs.size() && matches!(thumbs.map.get(path), Some(Thumb::Uploading))
+            }
+        });
         // A frame of placeholder cells is tens of kilobytes. Without
         // synchronized output, the terminal (or tmux) can paint it halfway,
         // showing the top rows of an image or a cell without its diacritics.
         execute!(self.terminal.backend_mut(), BeginSynchronizedUpdate)?;
-        self.terminal
-            .draw(|frame| view::draw(frame, app, &mut self.list, self.shown))?;
+        self.terminal.draw(|frame| {
+            view::draw(frame, app, &mut self.list, self.shown, &self.thumbs);
+        })?;
         execute!(self.terminal.backend_mut(), EndSynchronizedUpdate)?;
+        // Delete images only after the frame that stopped showing them.
         let shown = self.shown.map(|image| image.id);
-        let pending = self.pending.as_ref().map(|p| p.placement.id);
-        let keep = |id: &u32| Some(*id) == shown || Some(*id) == pending;
-        if self.live.iter().any(|id| !keep(id)) {
+        let mut keep: Vec<u32> = self.thumbs.ids().collect();
+        keep.extend(shown);
+        keep.extend(self.pending.iter().map(|pending| pending.id));
+        if self.live.iter().any(|id| !keep.contains(id)) {
             let mut out = io::stdout().lock();
-            for &id in self.live.iter().filter(|id| !keep(id)) {
+            for &id in self.live.iter().filter(|id| !keep.contains(id)) {
                 terminal::delete(&mut out, id, self.tmux)?;
                 self.ids.release(id);
             }
             out.flush()?;
-            self.live.retain(keep);
+            self.live.retain(|id| keep.contains(id));
         }
         Ok(())
     }
 
-    fn upload(&mut self, app: &mut App, image: Rendered) -> Result<()> {
-        let (columns, rows) = view::span(image.width, image.height, app.screen.cell);
-        // Live IDs are never handed out again, including a cancelled handoff's.
+    fn send(&mut self, image: &Rendered, cell: (u32, u32)) -> Result<Sent> {
+        let (columns, rows) = view::span(image.width, image.height, cell);
         let id = self
             .ids
             .next()
@@ -163,7 +205,7 @@ impl Session {
         self.live.push(id);
         let control = terminal::placement_control(id, columns.into(), rows.into());
         let mut out = io::stdout().lock();
-        let path = terminal::transmit(
+        let file = terminal::transmit(
             &mut out,
             &image.png,
             &control,
@@ -171,20 +213,38 @@ impl Session {
             terminal::Transfer::Browser,
         )?;
         out.flush()?;
+        Ok(Sent {
+            id,
+            columns,
+            rows,
+            control,
+            file,
+        })
+    }
+
+    fn upload(&mut self, app: &mut App, image: Rendered) -> Result<()> {
+        let Sent {
+            id,
+            columns,
+            rows,
+            control,
+            file,
+        } = self.send(&image, app.screen.cell)?;
         let placement = view::Shown {
             generation: app.generation,
             id,
             columns,
             rows,
         };
-        if let Some(path) = path {
-            self.pending = Some(PendingFile {
+        if let Some(path) = file {
+            self.pending.push(PendingFile {
                 path,
                 deadline: Instant::now() + HANDOFF_TIMEOUT,
                 retried: false,
                 control,
-                placement,
+                id,
                 image,
+                target: Target::Preview(placement),
             });
         } else {
             self.shown = Some(placement);
@@ -193,16 +253,105 @@ impl Session {
         Ok(())
     }
 
-    /// Receive input and decoded images even while local tmux has a PNG in flight.
-    /// A completed or failed handoff needs a frame before the old ID is deleted.
-    fn receive(&mut self, rx: &Receiver<Message>, app: &mut App) -> Result<Option<Message>> {
-        while let Some(pending) = self.pending.as_mut() {
-            let result = pending.poll();
-            if !matches!(result, Ok(false)) {
-                let pending = self.pending.take().unwrap();
-                self.shown = result.is_ok().then_some(pending.placement);
+    fn accept_thumbnail(
+        &mut self,
+        app: &App,
+        path: PathBuf,
+        size: (u32, u32),
+        result: Result<Loaded, String>,
+    ) {
+        if !app.in_grid() || !self.thumbs.wants(app, &path, size) {
+            return;
+        }
+        let thumb = match result {
+            Ok(Loaded::Picture(image)) => match self.send(&image, app.screen.cell) {
+                Ok(Sent {
+                    id,
+                    columns,
+                    rows,
+                    control,
+                    file: Some(file),
+                }) => {
+                    self.pending.push(PendingFile {
+                        path: file,
+                        deadline: Instant::now() + HANDOFF_TIMEOUT,
+                        retried: false,
+                        control,
+                        id,
+                        image,
+                        target: Target::Thumbnail {
+                            path: path.clone(),
+                            size,
+                            columns,
+                            rows,
+                        },
+                    });
+                    Thumb::Uploading
+                }
+                Ok(Sent {
+                    id,
+                    columns,
+                    rows,
+                    file: None,
+                    ..
+                }) => Thumb::Ready {
+                    id,
+                    columns,
+                    rows,
+                    info: image.info,
+                },
+                Err(error) => Thumb::Failed(format!("{error:#}")),
+            },
+            Ok(Loaded::Empty(info)) => Thumb::Empty(info),
+            Err(error) => Thumb::Failed(error),
+        };
+        self.thumbs.map.insert(path, thumb);
+    }
+
+    fn finish(&mut self, app: &mut App, pending: PendingFile, result: Result<()>) {
+        match pending.target {
+            Target::Preview(placement) => {
+                self.shown = result.is_ok().then_some(placement);
                 app.apply_preview(app.generation, Ok(pending.image.info));
                 app.preview_error = result.err().map(|error| format!("{error:#}"));
+            }
+            Target::Thumbnail {
+                path,
+                columns,
+                rows,
+                ..
+            } => {
+                let thumb = match result {
+                    Ok(()) => Thumb::Ready {
+                        id: pending.id,
+                        columns,
+                        rows,
+                        info: pending.image.info,
+                    },
+                    Err(error) => Thumb::Failed(format!("{error:#}")),
+                };
+                self.thumbs.map.insert(path, thumb);
+            }
+        }
+    }
+
+    /// Receive input and decoded images even while local tmux has PNGs in flight.
+    /// A completed or failed handoff needs a frame before an old ID is deleted.
+    fn receive(&mut self, rx: &Receiver<Message>, app: &mut App) -> Result<Option<Message>> {
+        while !self.pending.is_empty() {
+            let mut finished = false;
+            let mut index = 0;
+            while index < self.pending.len() {
+                let result = self.pending[index].poll();
+                if matches!(result, Ok(false)) {
+                    index += 1;
+                    continue;
+                }
+                let pending = self.pending.remove(index);
+                self.finish(app, pending, result.map(drop));
+                finished = true;
+            }
+            if finished {
                 return Ok(None);
             }
             match rx.recv_timeout(Duration::from_millis(10)) {
@@ -289,14 +438,17 @@ fn key_action(key: KeyEvent) -> Option<Action> {
         return None;
     }
     Some(match key.code {
-        KeyCode::Down | KeyCode::Right | KeyCode::Char('j' | 'l' | ' ') => Action::Next,
-        KeyCode::Up | KeyCode::Left | KeyCode::Char('k' | 'h') => Action::Previous,
+        KeyCode::Down | KeyCode::Char('j') => Action::Down,
+        KeyCode::Up | KeyCode::Char('k') => Action::Up,
+        KeyCode::Right | KeyCode::Char('l' | ' ') => Action::Next,
+        KeyCode::Left | KeyCode::Char('h') => Action::Previous,
         KeyCode::PageUp => Action::PageUp,
         KeyCode::PageDown => Action::PageDown,
         KeyCode::Home | KeyCode::Char('g') => Action::First,
         KeyCode::End | KeyCode::Char('G') => Action::Last,
-        KeyCode::Char('r') => Action::Rescan,
+        KeyCode::Tab | KeyCode::BackTab => Action::ToggleGrid,
         KeyCode::Backspace => Action::Parent,
+        KeyCode::Char('r') => Action::Rescan,
         KeyCode::Char('e') => Action::Edit,
         KeyCode::Enter => Action::Activate,
         KeyCode::Esc => Action::Escape,
@@ -337,6 +489,7 @@ pub(crate) fn run(path: &Path, display: Display) -> Result<()> {
         {
             loader.request(request);
         }
+        session.sync(&app, &loader);
         session.draw(&app)?;
         let Some(message) = session.receive(&rx, &mut app)? else {
             continue;
@@ -345,6 +498,7 @@ pub(crate) fn run(path: &Path, display: Display) -> Result<()> {
         // Apply them in order, then decode and paint the last visible state.
         // Bound the batch so a continuous input stream still gets frames.
         let mut preview = None;
+        let mut thumbnails = Vec::new();
         for message in std::iter::once(message).chain(rx.try_iter().take(255)) {
             match message {
                 Message::Input(input) => {
@@ -363,6 +517,7 @@ pub(crate) fn run(path: &Path, display: Display) -> Result<()> {
                     preview = Some((generation, result));
                 }
                 Message::Preview { .. } => {}
+                Message::Thumbnail { path, size, result } => thumbnails.push((path, size, result)),
             }
         }
         if let Some((generation, result)) = preview
@@ -383,6 +538,11 @@ pub(crate) fn run(path: &Path, display: Display) -> Result<()> {
                 session.shown = None;
                 app.apply_preview(generation, Err(error));
             }
+        }
+        // Thumbnails arrive after input, so they land in the grid it shows.
+        session.sync(&app, &loader);
+        for (path, size, result) in thumbnails {
+            session.accept_thumbnail(&app, path, size, result);
         }
     }
 }

@@ -1,5 +1,6 @@
 use super::{
     app::{App, Info, Screen},
+    grid::{self, Thumb, Thumbs},
     listing::{Kind, display_text},
 };
 use crate::terminal::{self, DIACRITICS};
@@ -60,33 +61,56 @@ pub(super) fn draw_image(frame: &mut Frame, area: Rect, id: u32, columns: u16, r
     }
 }
 
-pub(super) fn draw(frame: &mut Frame, app: &App, list_state: &mut ListState, shown: Option<Shown>) {
+pub(super) fn draw(
+    frame: &mut Frame,
+    app: &App,
+    list_state: &mut ListState,
+    shown: Option<Shown>,
+    thumbs: &Thumbs,
+) {
     let area = frame.area();
     let height = area.height.saturating_sub(1);
     // Placeholder sizes were computed for the app's screen; a frame of
     // another size is about to be replaced by a resize.
     let images = (area.width, area.height) == (app.screen.columns, app.screen.rows);
-    let width = app.list_width().min(area.width);
-    let list = Rect::new(area.x, area.y, width, height);
-    if width > 0 {
-        draw_list(frame, list, app, list_state);
-    }
-    let pane = Rect::new(list.right(), area.y, area.width - width, height);
-    if let Some(error) = &app.preview_error {
-        centered_text(frame, pane, error);
-    } else if let Some(message) = empty_message(app) {
-        centered_text(frame, pane, &message);
-    } else if let Some(shown) = shown
-        && shown.generation == app.generation
-        && images
-    {
-        draw_image(frame, pane, shown.id, shown.columns, shown.rows);
+    if app.in_grid() {
+        if height > 0 {
+            frame.render_widget(
+                title(app, area.width),
+                Rect::new(area.x, area.y, area.width, 1),
+            );
+        }
+        let tiles = Rect::new(
+            area.x,
+            area.y.saturating_add(1),
+            area.width,
+            height.saturating_sub(1),
+        );
+        grid::draw(frame, tiles, app, thumbs, images);
+    } else {
+        let width = app.list_width().min(area.width);
+        let list = Rect::new(area.x, area.y, width, height);
+        if width > 0 {
+            draw_list(frame, list, app, list_state);
+        }
+        let pane = Rect::new(list.right(), area.y, area.width - width, height);
+        if let Some(error) = &app.preview_error {
+            centered_text(frame, pane, error);
+        } else if let Some(message) = empty_message(app) {
+            centered_text(frame, pane, &message);
+        } else if let Some(shown) = shown
+            && shown.generation == app.generation
+            && images
+        {
+            draw_image(frame, pane, shown.id, shown.columns, shown.rows);
+        }
     }
     if area.height > 0 {
         status(
             frame,
             Rect::new(area.x, area.y + height, area.width, 1),
             app,
+            thumbs,
         );
     }
 }
@@ -177,7 +201,7 @@ fn summary(images: usize, folders: usize) -> String {
     }
 }
 
-fn status(frame: &mut Frame, area: Rect, app: &App) {
+fn status(frame: &mut Frame, area: Rect, app: &App, thumbs: &Thumbs) {
     if let Some(notice) = &app.notice {
         frame.render_widget(Line::from(display_text(notice)), area);
         return;
@@ -193,11 +217,24 @@ fn status(frame: &mut Frame, area: Rect, app: &App) {
     } else {
         String::new()
     };
-    let details = match &app.info {
-        Some(Info::File {
-            metadata,
-            file_size,
-        }) => {
+    // The grid reads details from thumbnails; the list from its preview.
+    let (info, error) = if app.in_grid() {
+        match entry.and_then(|entry| thumbs.map.get(&entry.path)) {
+            Some(Thumb::Ready { info, .. } | Thumb::Empty(info)) => (Some(info), None),
+            Some(Thumb::Failed(error)) => (None, Some(error.as_str())),
+            _ => (None, None),
+        }
+    } else {
+        (app.info.as_ref(), None)
+    };
+    let details = match (info, error) {
+        (
+            Some(Info::File {
+                metadata,
+                file_size,
+            }),
+            _,
+        ) => {
             let (w, h) = metadata.display_dimensions();
             let format = metadata.format.unwrap_or(&metadata.uti);
             format!(
@@ -205,37 +242,40 @@ fn status(frame: &mut Frame, area: Rect, app: &App) {
                 crate::inspect::human_size(*file_size)
             )
         }
-        Some(Info::Folder { images, folders }) => format!("  {}", summary(*images, *folders)),
-        None => String::new(),
+        (Some(Info::Folder { images, folders }), _) => format!("  {}", summary(*images, *folders)),
+        (None, Some(error)) => format!("  {}", display_text(error)),
+        (None, None) => String::new(),
     };
     let narrow = app.screen.columns < 60;
     let keys = match (image, narrow) {
         (false, true) => "  ⏎ open  q quit",
         (false, false) => "  ⏎ open  ⌫ up  q quit",
         (true, true) => "  e edit  q quit",
+        _ if app.viewer_from_grid() => "  ⏎ grid  e edit  q quit",
         _ if app.in_viewer() => "  ⏎ list  e edit  q quit",
-        _ => "  ⏎ view  e edit  q quit",
+        _ if app.in_grid() => "  ⏎ view  ⇥ list  e edit  q quit",
+        _ => "  ⏎ view  ⇥ grid  e edit  q quit",
     };
     let hint = Line::from(keys).style(Style::new().add_modifier(Modifier::DIM));
     let name = entry.map_or("", |entry| &entry.name);
     let index_w = index.len() as u16;
-    let details_w = Line::raw(&details).width() as u16;
-    // Keep the dimensions readable when a filename has to be truncated.
+    let name_full = Line::raw(name).width() as u16;
+    let details_full = Line::raw(&details).width() as u16;
+    // Keep the dimensions readable when a filename has to be truncated, but
+    // let a long error yield to the name it belongs to.
+    let reserved = if error.is_some() { 0 } else { details_full };
     let hint_w = if area.width
         >= index_w
-            .saturating_add(details_w)
+            .saturating_add(reserved)
             .saturating_add(hint.width() as u16 + 8)
     {
         hint.width() as u16
     } else {
         0
     };
-    let name_w = area
-        .width
-        .saturating_sub(index_w)
-        .saturating_sub(details_w)
-        .saturating_sub(hint_w)
-        .min(Line::raw(name).width() as u16);
+    let room = area.width.saturating_sub(index_w).saturating_sub(hint_w);
+    let name_w = room.saturating_sub(reserved).min(name_full);
+    let details_w = room.saturating_sub(name_w).min(details_full);
     let mut x = area.x;
     for (line, width) in [
         (Line::from(index), index_w),
@@ -270,7 +310,15 @@ mod tests {
         app.preview_error = Some("Bad image".into());
         let mut terminal = Terminal::new(TestBackend::new(80, 9)).unwrap();
         terminal
-            .draw(|frame| draw(frame, &app, &mut ListState::default(), None))
+            .draw(|frame| {
+                draw(
+                    frame,
+                    &app,
+                    &mut ListState::default(),
+                    None,
+                    &Thumbs::default(),
+                )
+            })
             .unwrap();
         let buf = terminal.backend().buffer();
         assert!(buf[(0, 1)].modifier.contains(Modifier::REVERSED));
@@ -319,9 +367,10 @@ mod tests {
             columns: 4,
             rows: 3,
         };
+        let thumbs = Thumbs::default();
         let mut terminal = Terminal::new(TestBackend::new(80, 10)).unwrap();
         terminal
-            .draw(|frame| draw(frame, &app, &mut ListState::default(), Some(shown)))
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), Some(shown), &thumbs))
             .unwrap();
         let buf = terminal.backend().buffer();
         let mut symbol = String::new();
@@ -340,7 +389,7 @@ mod tests {
         }
         app.generation += 1;
         terminal
-            .draw(|frame| draw(frame, &app, &mut ListState::default(), Some(shown)))
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), Some(shown), &thumbs))
             .unwrap();
         assert_eq!(terminal.backend().buffer()[(54, 3)].symbol(), " ");
     }
@@ -359,8 +408,9 @@ mod tests {
             folders: 1,
         });
         let mut terminal = Terminal::new(TestBackend::new(80, 10)).unwrap();
+        let thumbs = Thumbs::default();
         terminal
-            .draw(|frame| draw(frame, &app, &mut ListState::default(), None))
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None, &thumbs))
             .unwrap();
         let status = row(terminal.backend().buffer(), 9);
         assert!(status.starts_with("cups/  14 images, 1 folder"), "{status}");
@@ -371,7 +421,7 @@ mod tests {
             folders: 0,
         });
         terminal
-            .draw(|frame| draw(frame, &app, &mut ListState::default(), None))
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None, &thumbs))
             .unwrap();
         let buf = terminal.backend().buffer();
         assert!((0..9).any(|y| row(buf, y).contains("No images")));
@@ -380,9 +430,75 @@ mod tests {
         let mut empty = sample_app(&["../"]);
         empty.screen = app.screen;
         terminal
-            .draw(|frame| draw(frame, &empty, &mut ListState::default(), None))
+            .draw(|frame| draw(frame, &empty, &mut ListState::default(), None, &thumbs))
             .unwrap();
         let buf = terminal.backend().buffer();
         assert!((0..9).any(|y| row(buf, y).contains("No images in /images")));
+    }
+
+    #[test]
+    fn the_grid_frames_the_selection_and_names_every_tile() {
+        let mut app = sample_app(&["../", "cups/", "a.png", "b.png", "02-high-priestess.webp"]);
+        app.update(Action::Resize(Screen {
+            columns: 100,
+            rows: 30,
+            cell: (18, 40),
+        }));
+        app.update(Action::ToggleGrid);
+        app.update(Action::Last);
+        app.update(Action::Previous);
+        assert_eq!(app.entry().unwrap().name, "b.png");
+        let mut thumbs = Thumbs::default();
+        thumbs.retain(&app);
+        thumbs.map.insert(
+            "/images/b.png".into(),
+            Thumb::Ready {
+                id: (7 << 24) | 99,
+                columns: 10,
+                rows: 8,
+                // Any details will do; the status line prints what it gets.
+                info: Info::Folder {
+                    images: 0,
+                    folders: 0,
+                },
+            },
+        );
+        thumbs
+            .map
+            .insert("/images/a.png".into(), Thumb::Failed("Broken".into()));
+        let mut terminal = Terminal::new(TestBackend::new(100, 30)).unwrap();
+        terminal
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None, &thumbs))
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        assert_eq!(row(buf, 0).trim_end(), "/images");
+        // The fourth tile (columns 60..80) is selected and framed.
+        assert_eq!(buf[(60, 1)].symbol(), "╭");
+        assert_eq!(buf[(79, 14)].symbol(), "╯");
+        assert_eq!(buf[(0, 1)].symbol(), " ", "unselected tiles have no frame");
+        let names = row(buf, 13);
+        for name in ["../", "cups/", "a.png", "b.png", "02-high-p…ess.webp"] {
+            assert!(names.contains(name), "{names}");
+        }
+        assert!(buf[(68, 13)].modifier.contains(Modifier::REVERSED));
+        assert!(!buf[(48, 13)].modifier.contains(Modifier::REVERSED));
+        assert!(row(buf, 7).contains('↑') && row(buf, 7).contains("Cannot preview"));
+        // A 10 × 8 thumbnail centered in the 18 × 11 box inside the frame.
+        assert_eq!(buf[(65, 3)].fg, Color::Indexed(99));
+        assert_eq!(buf[(64, 3)].symbol(), " ");
+        assert_eq!(buf[(65, 2)].symbol(), " ");
+        assert_eq!(buf[(74, 10)].fg, Color::Indexed(99));
+        let status = row(buf, 29);
+        assert!(status.starts_with("2/3  b.png  No images"), "{status}");
+        assert!(
+            status
+                .trim_end()
+                .ends_with("⏎ view  ⇥ list  e edit  q quit")
+        );
+        app.update(Action::Previous);
+        terminal
+            .draw(|frame| draw(frame, &app, &mut ListState::default(), None, &thumbs))
+            .unwrap();
+        assert!(row(terminal.backend().buffer(), 29).starts_with("1/3  a.png  Broken"));
     }
 }

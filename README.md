@@ -147,23 +147,29 @@ first image, and the status line counts its images and folders; for a file it
 shows the filename, format, oriented dimensions and file size. A damaged image
 displays its error in the preview pane and navigation continues.
 
+Tab switches to a grid of thumbnails, one tile per folder or image, sized to
+show at least two rows when the terminal is tall enough. Arrow keys move
+across and between rows. Enter shows the selected image large; Enter or Esc
+returns to the grid.
+
 | Key | Action |
 | --- | --- |
-| ↓, →, `j`, `l`, Space | Next entry |
-| ↑, ←, `k`, `h` | Previous entry |
-| Page Down / Page Up | Move one list page |
+| ↓ / ↑, `j` / `k` | Next / previous entry; next / previous row in the grid |
+| → / ←, `l` / `h`, Space | Next / previous entry |
+| Page Down / Page Up | Move one page |
 | Home, `g` / End, `G` | First / last entry |
-| Enter | Open a folder, or toggle the list and full-width viewer |
+| Enter | Open a folder, or show the selected image large and return |
 | Backspace | Open the parent folder |
+| Tab | Switch between the list and the grid |
 | `e` | Open the selected image in Candy.app and keep browsing |
-| `r` | Rescan the folder and refresh the selected preview |
-| Esc | Return to the list, or quit from the list |
+| `r` | Rescan the folder and refresh its previews |
+| Esc | Return from the large image or the grid, or quit from the list |
 | `q`, Ctrl-C | Quit |
 
-The viewer skips folders, so arrow keys flip through images only. Leaving a
-folder selects it in its parent. Below 60 columns the viewer occupies the full
-width; Enter still opens folders. Use `q` or Ctrl-C to leave it. The browser
-shows the first image or frame of each file. Use the editor for changes.
+The large image skips folders, so arrow keys flip through images only.
+Leaving a folder selects it in its parent. Below 60 columns the list view
+shows only the large image; Enter still opens folders. The browser shows the
+first image or frame of each file. Use the editor for changes.
 
 Both stdin and stdout must be interactive. Automatic detection requires
 Ghostty or kitty with Kitty graphics and Unicode placeholders, directly or as
