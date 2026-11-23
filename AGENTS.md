@@ -106,7 +106,9 @@ live in the SwiftPM package under `macos`.
   back as keystrokes without ESC bytes, and placeholders need more than Kitty
   graphics. It requires `#{pane_tty}` to be this process's tty,
   `allow-passthrough` on or all, and a Ghostty or kitty `#{client_termtype}`;
-  otherwise, and under screen, it falls back to the GUI. A standalone terminal
+  otherwise, and under screen, one-shot display falls back to the GUI and the
+  browser reports an unsupported terminal. Outside tmux, browser auto detection
+  needs both the graphics reply and a Ghostty or kitty XTVERSION. A standalone terminal
   launched from an agent or tmux can inherit a stale `TMUX` that names another
   pane; clear it only in that isolated test process when verifying
   direct-terminal detection. Do not change the user's global setup.
@@ -118,6 +120,12 @@ live in the SwiftPM package under `macos`.
   can be lost), and remember that a detached server has no outer terminal.
 - Capability probing temporarily changes tty mode and signal masks. Preserve
   the RAII restoration on success, timeout and errors.
+- In the browser only the main thread writes to the tty. Graphics transfers
+  and deletes use `q=2`. Alternate two placeholder IDs with different
+  foreground indices in 16–255. Draw the replacement before deleting the old
+  ID. The session guard deletes live IDs and restores the screen.
+- Match decoded previews to the current selection and pixel box by generation.
+  Drop stale results before transmission. Re-query cell metrics on resize.
 - Before native mouse automation, read the current window bounds and target PID
   or window ID. Users can move windows between actions. macOS window coordinates
   are logical points; Retina screenshots can contain twice as many pixels.

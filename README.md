@@ -116,7 +116,7 @@ tmux.
 In local tmux sessions, Candy hands the preview to the terminal in a private
 temporary PNG file using Kitty's temporary-file transport. This avoids chunked
 image uploads colliding with graphics from another pane, such as a video player.
-The terminal deletes the file after reading it. Candy waits up to two seconds
+The terminal deletes the file after reading it. One-shot display waits up to two seconds
 for that deletion; failed or timed-out transfers are cleaned up and reported as
 errors. Sessions with `SSH_CONNECTION`, `SSH_CLIENT` or `SSH_TTY` set keep the
 inline data transport, since the terminal cannot read files on the remote host;
@@ -129,6 +129,50 @@ transfers report a timeout; inline data transfers can leave a blank preview
 without an error, because terminal replies reach Candy through tmux as keystrokes.
 `set -g allow-passthrough all` forwards image data even while a redraw is
 pending, but it also lets panes in hidden windows write to the terminal.
+
+### Browse a directory
+
+```sh
+candy browse
+candy ~/Pictures
+candy browse ~/Pictures/trip/photo42.heic
+```
+
+The first command browses the current directory. A file argument to
+`candy browse` selects that file in its directory. The list includes visible
+image files and links to files, sorted by name with numbers in numeric order.
+The preview fits the available space at up to the image's original resolution.
+The status line shows the filename, format, oriented dimensions and file size.
+A damaged image displays its error in the preview pane and navigation continues.
+For camera RAW files, the reported format and dimensions describe the first
+image macOS Image I/O exposes, which can be an embedded preview.
+
+| Key | Action |
+| --- | --- |
+| ↓, →, `j`, `l`, Space | Next image |
+| ↑, ←, `k`, `h` | Previous image |
+| Page Down / Page Up | Move one list page |
+| Home, `g` / End, `G` | First / last image |
+| Enter | Toggle the list and full-width viewer |
+| `e` | Open the selected file in Candy.app and keep browsing |
+| `r` | Rescan the directory and refresh the selected preview |
+| Esc | Return to the list, or quit from the list |
+| `q`, Ctrl-C | Quit |
+
+Below 60 columns the viewer occupies the full width. Use `q` or Ctrl-C to
+leave it. The browser reads one directory level and shows the first image or
+frame of each file. Use the editor for changes.
+
+Both stdin and stdout must be interactive. Automatic detection requires
+Ghostty or kitty with Kitty graphics and Unicode placeholders, directly or as
+the tmux client. Use `candy browse --display kitty` to try another terminal.
+Local tmux uploads wait up to 500 ms for file consumption and retry once.
+You can keep navigating or quit while a transfer is pending. Under heavy
+output load tmux can also discard graphics commands. The browser reuses two
+image IDs and repeats their cleanup on exit.
+Over SSH, a dropped inline upload can leave a blank preview. Press `r` to
+send it again. Normal exit restores the shell screen and terminal mode.
+SIGTERM and SIGHUP can leave the terminal in raw mode.
 
 ## Editing
 
@@ -287,9 +331,9 @@ scripts/build-app.sh
 ```
 
 - `candy-core`: pixel operations, edit history and atomic export.
-- `candy-macos`: shared Image I/O decoding and Apple Vision text detection.
+- `candy-macos`: shared Image I/O decoding, oriented thumbnails and Apple Vision text detection.
 - `candy-ffi`: synchronous C ABI, owned document/image handles, bounded previews.
-- `candy`: Rust CLI, Kitty graphics protocol and native-app launcher.
+- `candy`: Rust CLI, ratatui directory browser, Kitty graphics transport and native-app launcher.
 - `macos`: SwiftPM AppKit application, document coordination and canvas interaction.
 
 New edits apply to the current pixels. Undo/redo reuse up to 16 rendered
