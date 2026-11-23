@@ -64,9 +64,24 @@ impl Drop for Loader {
     }
 }
 
-fn render(request: &Request) -> Result<FileInfo> {
-    Ok(FileInfo {
-        metadata: candy_macos::inspect(&request.path)?,
-        file_size: std::fs::metadata(&request.path)?.len(),
+pub(super) struct Rendered {
+    pub png: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+    pub info: FileInfo,
+}
+
+fn render(request: &Request) -> Result<Rendered> {
+    let image = candy_macos::load(&request.path)?;
+    let preview = candy_core::preview(&image, request.max_width, request.max_height)?;
+    let (width, height) = preview.dimensions();
+    Ok(Rendered {
+        png: crate::terminal::encode_png(preview)?,
+        width,
+        height,
+        info: FileInfo {
+            metadata: candy_macos::inspect(&request.path)?,
+            file_size: std::fs::metadata(&request.path)?.len(),
+        },
     })
 }

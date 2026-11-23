@@ -33,13 +33,21 @@ impl Drop for TerminalGuard {
 }
 
 pub fn supported() -> bool {
+    supports_graphics(false)
+}
+
+pub(crate) fn placeholders_supported() -> bool {
+    supports_graphics(true)
+}
+
+fn supports_graphics(require_placeholders: bool) -> bool {
     if std::env::var_os("TMUX").is_some() {
         return tmux_supported();
     }
     if std::env::var("TERM").is_ok_and(|t| t.starts_with("tmux") || t.starts_with("screen")) {
         return false;
     }
-    probe().unwrap_or(false)
+    probe(require_placeholders).unwrap_or(false)
 }
 
 /// tmux turns a probe reply into keystrokes and drops its ESC bytes, and a
@@ -66,12 +74,22 @@ fn pane_shows_images(reply: &str, tty: &str) -> bool {
     else {
         return false;
     };
-    let name = terminal.split([' ', '(']).next().unwrap_or_default();
-    pane_tty == tty
-        && matches!(passthrough, "on" | "all")
-        && ["ghostty", "kitty"]
-            .iter()
-            .any(|known| name.eq_ignore_ascii_case(known))
+    pane_tty == tty && matches!(passthrough, "on" | "all") && placeholder_terminal(terminal)
+}
+
+fn placeholder_terminal(version: &str) -> bool {
+    let name = version.split([' ', '(']).next().unwrap_or_default();
+    ["ghostty", "kitty"]
+        .iter()
+        .any(|known| name.eq_ignore_ascii_case(known))
+}
+
+fn xtversion(response: &[u8]) -> Option<&str> {
+    const PREFIX: &[u8] = b"\x1bP>|";
+    let start = response.windows(PREFIX.len()).position(|w| w == PREFIX)? + PREFIX.len();
+    let body = &response[start..];
+    let end = body.windows(2).position(|w| w == b"\x1b\\")?;
+    std::str::from_utf8(&body[..end]).ok()
 }
 
 /// Expands a tmux format for the pane this process runs in; None when tmux
@@ -95,7 +113,7 @@ fn stdout_tty() -> Option<String> {
     }
 }
 
-fn probe() -> Result<bool> {
+fn probe(require_placeholders: bool) -> Result<bool> {
     let mut tty = OpenOptions::new().read(true).write(true).open("/dev/tty")?;
     let fd = tty.as_raw_fd();
     // SAFETY: All structures are initialized by libc before use, the file owns
@@ -135,6 +153,9 @@ fn probe() -> Result<bool> {
         guard
     };
     write!(tty, "\x1b_Ga=q,i={QUERY_ID},s=1,v=1,t=d,f=24;AAAA\x1b\\")?;
+    if require_placeholders {
+        tty.write_all(b"\x1b[>0q")?;
+    }
     tty.flush()?;
     let deadline = Instant::now() + Duration::from_millis(180);
     let mut response = Vec::new();
@@ -154,11 +175,15 @@ fn probe() -> Result<bool> {
         let mut bytes = [0_u8; 256];
         let count = tty.read(&mut bytes)?;
         response.extend_from_slice(&bytes[..count]);
-        if response.ends_with(b"\x1b\\") {
+        if response.ends_with(b"\x1b\\")
+            && (!require_placeholders
+                || (xtversion(&response).is_some() && query_succeeded(&response)))
+        {
             break;
         }
     }
-    Ok(query_succeeded(&response))
+    Ok(query_succeeded(&response)
+        && (!require_placeholders || xtversion(&response).is_some_and(placeholder_terminal)))
 }
 
 fn query_succeeded(bytes: &[u8]) -> bool {
@@ -193,7 +218,7 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     if tmux {
         let id = ImageIds::new().next();
         let control = placement_control(id, span_cols, span_rows);
-        transmit(&mut stdout, &png, &control, true, FILE_TRANSFER_TIMEOUT)?;
+        transmit(&mut stdout, &png, &control, true, Transfer::OneShot)?;
         write_placeholders(&mut stdout, id, span_cols, span_rows)
     } else {
         write_graphics(&mut stdout, &png, "a=T,t=d,f=100,q=2", false)
@@ -236,19 +261,36 @@ pub(crate) fn placement_control(id: u32, columns: u32, rows: u32) -> String {
     format!("a=T,U=1,i={id},c={columns},r={rows},f=100,q=2")
 }
 
+#[derive(Clone, Copy)]
+pub(crate) enum Transfer {
+    OneShot,
+    Browser,
+}
+
 pub(crate) fn transmit(
     output: impl Write,
     png: &[u8],
     control: &str,
     tmux: bool,
-    timeout: Duration,
-) -> Result<()> {
+    transfer: Transfer,
+) -> Result<Option<tempfile::TempPath>> {
     if tmux && local_tmux() {
-        transmit_file(output, png, control, timeout)
-    } else {
-        write_graphics(output, png, &format!("{control},t=d"), tmux)
-            .context("Cannot write image to terminal")
+        return match transfer {
+            Transfer::OneShot => {
+                transmit_file(output, png, control, FILE_TRANSFER_TIMEOUT).map(|()| None)
+            }
+            Transfer::Browser => send_file(output, png, control).map(Some),
+        };
     }
+    write_chunks(
+        output,
+        png,
+        &format!("{control},t=d"),
+        tmux,
+        matches!(transfer, Transfer::Browser),
+    )
+    .context("Cannot write image to terminal")?;
+    Ok(None)
 }
 
 fn local_tmux() -> bool {
@@ -270,6 +312,15 @@ fn transmit_file(
     control: &str,
     timeout: Duration,
 ) -> Result<()> {
+    let path = send_file(&mut output, png, control)?;
+    wait_for_file_consumption(&path, timeout)
+}
+
+pub(crate) fn send_file(
+    mut output: impl Write,
+    png: &[u8],
+    control: &str,
+) -> Result<tempfile::TempPath> {
     let mut file = tempfile::Builder::new()
         .prefix("tty-graphics-protocol-candy-")
         .suffix(".png")
@@ -286,23 +337,26 @@ fn transmit_file(
     )
     .context("Cannot send terminal preview file")?;
     output.flush().context("Cannot flush terminal preview")?;
-    wait_for_file_consumption(&path, timeout)
+    Ok(path)
 }
+
+pub(crate) fn file_consumed(path: &Path) -> Result<bool> {
+    match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(true),
+        Err(error) => Err(error).context("Cannot check terminal preview file"),
+        Ok(_) => Ok(false),
+    }
+}
+
+const HANDOFF_TIMEOUT_ERROR: &str = "Terminal did not read the preview file; check tmux allow-passthrough (use all), or use --display gui";
 
 fn wait_for_file_consumption(path: &Path, timeout: Duration) -> Result<()> {
     let deadline = Instant::now() + timeout;
-    loop {
-        match fs::symlink_metadata(path) {
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
-            Err(error) => return Err(error).context("Cannot check terminal preview file"),
-            Ok(_) => {}
-        }
-        ensure!(
-            Instant::now() < deadline,
-            "Terminal did not read the preview file; check tmux allow-passthrough (use all), or use --display gui"
-        );
+    while !file_consumed(path)? {
+        ensure!(Instant::now() < deadline, HANDOFF_TIMEOUT_ERROR);
         thread::sleep(Duration::from_millis(10));
     }
+    Ok(())
 }
 
 pub(crate) fn ensure_passthrough() -> Result<()> {
@@ -331,7 +385,10 @@ fn image_id() -> u32 {
 
 /// Two reusable slots. Distinct foreground indices also force a cell redraw
 /// on terminals that diff the placeholder grid.
-pub(crate) struct ImageIds([u32; 2]);
+pub(crate) struct ImageIds {
+    slots: [u32; 2],
+    issued: usize,
+}
 
 impl ImageIds {
     pub(crate) fn new() -> Self {
@@ -341,13 +398,20 @@ impl ImageIds {
             let low = u32::from(first as u8);
             second = (second & !0xff) | if low == 255 { 16 } else { low + 1 };
         }
-        Self([first, second])
+        Self {
+            slots: [first, second],
+            issued: 0,
+        }
     }
 
     pub(crate) fn next(&mut self) -> u32 {
-        let id = self.0[0];
-        self.0.swap(0, 1);
+        let id = self.slots[self.issued % self.slots.len()];
+        self.issued += 1;
         id
+    }
+
+    pub(crate) fn issued(&self) -> &[u32] {
+        &self.slots[..self.issued.min(self.slots.len())]
     }
 }
 
@@ -359,20 +423,26 @@ fn graphics_framing(tmux: bool) -> (&'static str, &'static str, &'static str) {
     }
 }
 
-#[cfg_attr(
-    not(test),
-    expect(dead_code, reason = "used by the upcoming browser session")
-)]
 pub(crate) fn delete(mut output: impl Write, id: u32, tmux: bool) -> std::io::Result<()> {
     let (start, esc, end) = graphics_framing(tmux);
     write!(output, "{start}{esc}_Ga=d,d=I,i={id},q=2{esc}\\{end}")
 }
 
 fn write_graphics(
+    output: impl Write,
+    png: &[u8],
+    control: &str,
+    tmux: bool,
+) -> std::io::Result<()> {
+    write_chunks(output, png, control, tmux, false)
+}
+
+fn write_chunks(
     mut output: impl Write,
     png: &[u8],
     control: &str,
     tmux: bool,
+    quiet_chunks: bool,
 ) -> std::io::Result<()> {
     // tmux passthrough wraps each chunk separately and doubles its ESC bytes.
     let (start, escape, end) = graphics_framing(tmux);
@@ -383,6 +453,8 @@ fn write_graphics(
         let more = u8::from(index + 1 < total);
         if index == 0 {
             write!(output, "{start}{escape}_G{control},m={more};")?;
+        } else if quiet_chunks {
+            write!(output, "{start}{escape}_Gm={more},q=2;")?;
         } else {
             write!(output, "{start}{escape}_Gm={more};")?;
         }
@@ -584,6 +656,40 @@ mod tests {
         assert!(query_succeeded(b"\x1b_Gi=73921;OK\x1b\\"));
         assert!(!query_succeeded(b"\x1b_Gi=73921;ENOTSUP\x1b\\"));
         assert!(!query_succeeded(b"\x1b_Gi=42;OK\x1b\\"));
+    }
+
+    #[test]
+    fn xtversion_requires_a_complete_reply_and_a_known_terminal_name() {
+        for (bytes, expected) in [
+            (
+                &b"\x1b_Gi=73921;OK\x1b\\\x1bP>|ghostty 1.3.1\x1b\\"[..],
+                true,
+            ),
+            (
+                &b"\x1bP>|kitty(0.42.1)\x1b\\\x1b_Gi=73921;OK\x1b\\"[..],
+                true,
+            ),
+            (&b"\x1bP>|WezTerm 20240203\x1b\\"[..], false),
+            (&b"\x1bP>|ghostty 1.3.1"[..], false),
+            (&b"\x1b_Gi=73921;OK\x1b\\"[..], false),
+        ] {
+            assert_eq!(xtversion(bytes).is_some_and(placeholder_terminal), expected);
+        }
+    }
+
+    #[test]
+    fn cell_metrics_handle_missing_pixel_sizes_independently() {
+        let mut size = libc::winsize {
+            ws_row: 20,
+            ws_col: 80,
+            ws_xpixel: 0,
+            ws_ypixel: 0,
+        };
+        assert_eq!(cell_size(&size), (8, 16));
+        size.ws_xpixel = 800;
+        assert_eq!(cell_size(&size), (10, 16));
+        size.ws_ypixel = 5;
+        assert_eq!(cell_size(&size), (10, 1));
     }
     #[test]
     fn tmux_panes_need_passthrough_and_a_placeholder_terminal() {

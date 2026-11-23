@@ -2,10 +2,21 @@ use super::listing::{Entry, Listing};
 use candy_macos::Metadata;
 use std::path::PathBuf;
 
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(super) struct Screen {
     pub columns: u16,
     pub rows: u16,
+    pub cell: (u32, u32),
+}
+
+impl Default for Screen {
+    fn default() -> Self {
+        Self {
+            columns: 0,
+            rows: 0,
+            cell: (8, 16),
+        }
+    }
 }
 
 pub(super) struct FileInfo {
@@ -16,6 +27,8 @@ pub(super) struct FileInfo {
 pub(super) struct Request {
     pub generation: u64,
     pub path: PathBuf,
+    pub max_width: u32,
+    pub max_height: u32,
 }
 
 pub(super) enum Action {
@@ -77,10 +90,16 @@ impl App {
         self.info = None;
         self.preview_error = None;
         self.notice = None;
+        let (max_width, max_height) = super::view::pixel_box(self.screen, self.list_width());
+        if max_width == 0 || max_height == 0 {
+            return Vec::new();
+        }
         self.entry().map_or_else(Vec::new, |entry| {
             vec![Effect::Request(Request {
                 generation: self.generation,
                 path: entry.path.clone(),
+                max_width,
+                max_height,
             })]
         })
     }
@@ -160,6 +179,7 @@ mod tests {
         app.update(Action::Resize(Screen {
             columns: 80,
             rows: 5,
+            ..Screen::default()
         }));
         let generation = app.generation;
         assert!(app.update(Action::Previous).is_empty());
@@ -178,6 +198,7 @@ mod tests {
         app.update(Action::Resize(Screen {
             columns: 90,
             rows: 5,
+            ..Screen::default()
         }));
         assert_eq!(app.generation, generation + 1);
         assert!(app.apply_preview(app.generation, Err("corrupt".into())));
@@ -187,6 +208,11 @@ mod tests {
     #[test]
     fn rescan_preserves_path_then_clamps_and_can_recover_from_empty() {
         let mut app = sample_app(&["b", "c"]);
+        app.update(Action::Resize(Screen {
+            columns: 80,
+            rows: 24,
+            ..Screen::default()
+        }));
         app.update(Action::Last);
         app.update(Action::Rescanned(sample_app(&["a", "b", "c"]).listing));
         assert_eq!(app.selected, 2);
