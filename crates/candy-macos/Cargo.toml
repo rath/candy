@@ -15,6 +15,10 @@ objc2-foundation = "0.3.2"
 objc2-core-foundation = "0.3.2"
 objc2-core-graphics = "0.3.2"
 objc2-image-io = "0.3.2"
+objc2-uniform-type-identifiers = { version = "0.3.2", default-features = false, features = [
+    "std",
+    "UTType",
+] }
 objc2-vision = "0.3.2"
 
 [dev-dependencies]

@@ -51,6 +51,37 @@ fn bytes_decode_like_files_without_a_format_hint() {
 }
 
 #[test]
+fn filename_type_hints_do_not_override_the_contents() {
+    // Paths pass their extension's type to Image I/O so camera RAW files are
+    // not read as their TIFF thumbnail. A wrong extension must still decode.
+    let dir = tempfile::tempdir().unwrap();
+    for (source, renamed, uti) in [
+        ("sample.png", "png-named.jpg", "public.png"),
+        ("sample.jpg", "jpeg-named.nef", "public.jpeg"),
+        ("orientation6.jpg", "rotated-named.tiff", "public.jpeg"),
+        ("sample.heic", "heic-named.png", "public.heic"),
+    ] {
+        let path = dir.path().join(renamed);
+        std::fs::copy(fixture(source), &path).unwrap();
+        let expected = candy_macos::load(&fixture(source)).unwrap();
+        assert_eq!(candy_macos::load(&path).unwrap(), expected, "{renamed}");
+        let metadata = candy_macos::inspect(&path).unwrap();
+        assert_eq!(metadata.uti, uti, "{renamed}");
+        assert_eq!(
+            metadata.display_dimensions(),
+            expected.dimensions(),
+            "{renamed}"
+        );
+        let preview = candy_macos::load_preview(&path, 64, 64).unwrap();
+        assert_eq!(
+            preview.pixels.dimensions(),
+            candy_core::preview(&expected, 64, 64).unwrap().dimensions(),
+            "{renamed}"
+        );
+    }
+}
+
+#[test]
 fn image_io_exports_accept_quality_and_reopen() {
     let image = image::RgbaImage::from_fn(128, 96, |x, y| {
         image::Rgba([

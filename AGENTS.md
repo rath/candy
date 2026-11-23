@@ -89,10 +89,12 @@ live in the SwiftPM package under `macos`.
   and TGA use the `image` crate in `candy-core`; HEIC, AVIF, TIFF, BMP and
   JPEG 2000 use Image I/O. Image I/O cannot read the alpha BMP the `image` crate
   writes, and AVIF encoding exists only on newer macOS, so check `can_encode`
-  instead of assuming. Loading accepts whatever Image I/O decodes, plus SVG and
-  SVGZ, which `candy_core::svg` rasterizes with resvg (longer side at least
-  1024 px, reduced to fit the pixel limit, system fonts loaded once on first
-  text) before Image I/O ever sees the bytes. resvg is built without
+  instead of assuming. Loading a path passes its extension's type to Image I/O
+  as a hint: camera RAW files are TIFF containers, and sniffing the bytes alone
+  returns their small embedded TIFF thumbnail. Loading accepts whatever Image
+  I/O decodes, plus SVG and SVGZ, which `candy_core::svg` rasterizes with resvg
+  (longer side at least 1024 px, reduced to fit the pixel limit, system fonts
+  loaded once on first text) before Image I/O ever sees the bytes. resvg is built without
   `raster-images`, so bitmaps inside an SVG are skipped; the SVG crates are
   size-optimized in the release profile. When naming a format, update the
   display names, `is_image_extension`, the open-panel types and the

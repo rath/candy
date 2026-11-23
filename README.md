@@ -144,8 +144,6 @@ image files and links to files, sorted by name with numbers in numeric order.
 The preview fits the available space at up to the image's original resolution.
 The status line shows the filename, format, oriented dimensions and file size.
 A damaged image displays its error in the preview pane and navigation continues.
-For camera RAW files, the reported format and dimensions describe the first
-image macOS Image I/O exposes, which can be an embedded preview.
 
 | Key | Action |
 | --- | --- |
@@ -298,9 +296,11 @@ source metadata, HDR data and wide-gamut profiles are not retained on export.
 JPEG exports flatten transparency onto white; GIF keeps pixels at or above 50%
 alpha and drops the rest. AVIF saving needs an Image I/O with an AVIF encoder,
 which arrived after macOS 14 (verified on macOS 26); older systems explain this
-when asked. RAW files are developed with Image I/O's defaults. Only the first
-image/frame is loaded. Images are limited to approximately 64 megapixels. The GUI preview is
-limited to 4096 pixels per side; edits and saves use full image resolution.
+when asked. RAW files are developed with Image I/O's defaults. Camera RAW is
+recognized by its filename extension; RAW data piped to stdin or renamed to a
+non-RAW extension opens as the small TIFF thumbnail at the start of the file.
+Only the first image/frame is loaded. Images are limited to approximately 64
+megapixels. The GUI preview is limited to 4096 pixels per side; edits and saves use full image resolution.
 Encoded files and stdin are limited to 512 MiB. SVG/SVGZ input and the total
 decoded XML of the document and its referenced or embedded SVGs are limited to
 32 MiB; excessive input is rejected before decoding or saving.

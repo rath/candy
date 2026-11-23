@@ -13,7 +13,7 @@ use objc2_core_graphics::{
     CGBitmapContextCreate, CGBitmapInfo, CGColorRenderingIntent, CGColorSpace, CGContext,
     CGDataProvider, CGImage, CGImageAlphaInfo, CGImageByteOrderInfo, kCGColorSpaceSRGB,
 };
-use objc2_foundation::{NSArray, NSDictionary};
+use objc2_foundation::{NSArray, NSDictionary, NSString};
 use objc2_image_io::{
     CGImageDestination, CGImageSource, kCGImageDestinationLossyCompressionQuality,
     kCGImagePropertyColorModel, kCGImagePropertyDPIHeight, kCGImagePropertyDPIWidth,
@@ -22,7 +22,9 @@ use objc2_image_io::{
     kCGImagePropertyPixelWidth, kCGImagePropertyProfileName, kCGImagePropertyTIFFCompression,
     kCGImagePropertyTIFFDictionary, kCGImageSourceCreateThumbnailFromImageAlways,
     kCGImageSourceCreateThumbnailWithTransform, kCGImageSourceThumbnailMaxPixelSize,
+    kCGImageSourceTypeIdentifierHint,
 };
+use objc2_uniform_type_identifiers::UTType;
 use objc2_vision::{VNDetectTextRectanglesRequest, VNImageRequestHandler, VNRequest};
 use std::path::Path;
 
@@ -122,7 +124,9 @@ fn format_name(uti: &str) -> Option<&'static str> {
         .iter()
         .find(|(kind, _)| *kind == uti)
         .map(|(_, name)| *name)
-        .or_else(|| uti.ends_with("-raw-image").then_some("RAW"))
+        // Vendors name RAW types both ways: com.canon.cr2-raw-image and
+        // com.nikon.raw-image.
+        .or_else(|| uti.ends_with("raw-image").then_some("RAW"))
 }
 
 /// Output formats encoded by Image I/O, keyed by lowercase extension, with the
@@ -153,13 +157,37 @@ fn read(path: &Path) -> Result<Vec<u8>> {
     candy_core::input::read_file(path, limit)
 }
 
+/// The type macOS assigns to a filename extension, as an Image I/O hint.
+/// Camera RAW files are TIFF containers: sniffing the bytes alone finds only
+/// the small TIFF thumbnail at their start. A hint that disagrees with the
+/// contents does not override them.
+pub fn type_hint(path: &Path) -> Option<String> {
+    let extension = path.extension()?.to_str()?;
+    let kind = UTType::typeWithFilenameExtension(&NSString::from_str(extension))?;
+    let identifier = kind.identifier().to_string();
+    // Unknown extensions get a dynamic placeholder type that names no format.
+    (!identifier.starts_with("dyn.")).then_some(identifier)
+}
+
 /// Opens image file bytes with Image I/O and reads the first image's header
 /// properties.
-fn open(bytes: &[u8]) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
+fn open(
+    bytes: &[u8],
+    hint: Option<&str>,
+) -> Result<(CFRetained<CGImageSource>, String, CFRetained<CFDictionary>)> {
     let data = CFData::from_bytes(bytes);
-    // SAFETY: All options are absent, and retained CF objects outlive each native call.
+    let hint = hint.map(CFString::from_str);
+    let options = hint.as_deref().map(|hint| {
+        CFDictionary::<CFString, CFType>::from_slices(
+            &[unsafe { kCGImageSourceTypeIdentifierHint }],
+            &[hint],
+        )
+    });
+    // SAFETY: The data and options are retained CF objects that outlive each
+    // native call.
     let source =
-        unsafe { CGImageSource::with_data(&data, None) }.context("Cannot decode this image")?;
+        unsafe { CGImageSource::with_data(&data, options.as_deref().map(|o| o.as_opaque())) }
+            .context("Cannot decode this image")?;
     let kind = unsafe { source.r#type() }
         .context("Unknown image format")?
         .to_string();
@@ -175,7 +203,7 @@ pub fn load(path: &Path) -> Result<RgbaImage> {
     if candy_core::svg::is_svg(path, &bytes) {
         return candy_core::svg::render(&bytes, path.parent());
     }
-    decode(&bytes)
+    decode(&bytes, type_hint(path).as_deref())
 }
 
 /// Fitted pixels and the original file properties from the same read.
@@ -200,7 +228,7 @@ pub fn load_preview(path: &Path, max_width: u32, max_height: u32) -> Result<Imag
         )
     } else {
         autoreleasepool(|_| -> Result<_> {
-            let (source, uti, props) = open(&bytes)?;
+            let (source, uti, props) = open(&bytes, type_hint(path).as_deref())?;
             let metadata = native_metadata(&source, uti, &props)?;
             validate_dimensions(metadata.width, metadata.height)?;
             // Decode at about the fitted size, then resize to exactly what
@@ -242,12 +270,12 @@ pub fn load_bytes(bytes: &[u8]) -> Result<RgbaImage> {
     if candy_core::svg::is_svg(Path::new(""), bytes) || bytes.starts_with(&[0x1f, 0x8b]) {
         return candy_core::svg::render(bytes, None);
     }
-    decode(bytes)
+    decode(bytes, None)
 }
 
-fn decode(bytes: &[u8]) -> Result<RgbaImage> {
+fn decode(bytes: &[u8], hint: Option<&str>) -> Result<RgbaImage> {
     autoreleasepool(|_| {
-        let (source, _, props) = open(bytes)?;
+        let (source, _, props) = open(bytes, hint)?;
         let (width, height) = source_dimensions(&props)?;
         validate_dimensions(width, height)?;
         let orientation =
@@ -388,7 +416,7 @@ pub fn inspect(path: &Path) -> Result<Metadata> {
         return Ok(svg_metadata(width, height));
     }
     autoreleasepool(|_| {
-        let (source, uti, props) = open(&bytes)?;
+        let (source, uti, props) = open(&bytes, type_hint(path).as_deref())?;
         native_metadata(&source, uti, &props)
     })
 }
@@ -648,6 +676,27 @@ pub fn detect_text(image: &RgbaImage) -> Result<Vec<PixelRect>> {
 mod tests {
     use super::*;
     use image::Rgba;
+
+    #[test]
+    fn filename_hints_name_camera_raw_types_and_skip_unknown_extensions() {
+        for (name, expected) in [
+            ("a.NEF", Some("com.nikon.raw-image")),
+            ("b.cr3", Some("com.canon.cr3-raw-image")),
+            ("c.PNG", Some("public.png")),
+            ("d.candy-unknown", None),
+            ("no-extension", None),
+        ] {
+            assert_eq!(type_hint(Path::new(name)).as_deref(), expected, "{name}");
+        }
+        for (uti, name) in [
+            ("com.nikon.raw-image", Some("RAW")),
+            ("com.canon.cr2-raw-image", Some("RAW")),
+            ("com.adobe.raw-image", Some("DNG")),
+            ("com.example.drawing", None),
+        ] {
+            assert_eq!(format_name(uti), name, "{uti}");
+        }
+    }
 
     #[test]
     fn image_extensions_cover_fixtures_and_ignore_nonimages() {
