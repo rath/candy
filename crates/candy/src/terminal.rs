@@ -174,10 +174,7 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     if tmux {
         ensure_passthrough()?;
     }
-    let mut size: libc::winsize = unsafe { std::mem::zeroed() };
-    unsafe {
-        libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size);
-    }
+    let size = window_size();
     // Placeholder rows and columns are numbered by diacritics, which bounds the grid.
     let limit = if tmux {
         DIACRITICS.len() as u32
@@ -186,39 +183,72 @@ pub fn display(image: &RgbaImage) -> Result<()> {
     };
     let cols = u32::from(size.ws_col).max(20).min(limit);
     let rows = u32::from(size.ws_row).max(10).saturating_sub(3).min(limit);
-    let cell_width = if size.ws_xpixel > 0 && size.ws_col > 0 {
-        (u32::from(size.ws_xpixel) / u32::from(size.ws_col)).max(1)
-    } else {
-        8
-    };
-    let cell_height = if size.ws_ypixel > 0 && size.ws_row > 0 {
-        (u32::from(size.ws_ypixel) / u32::from(size.ws_row)).max(1)
-    } else {
-        16
-    };
+    let (cell_width, cell_height) = cell_size(&size);
     let (pixel_width, pixel_height) = (cols * cell_width, rows * cell_height);
     let preview = candy_core::preview(image, pixel_width, pixel_height)?;
     let span_cols = preview.width().div_ceil(cell_width);
     let span_rows = preview.height().div_ceil(cell_height);
-    let mut png = Cursor::new(Vec::new());
-    DynamicImage::ImageRgba8(preview).write_to(&mut png, ImageFormat::Png)?;
+    let png = encode_png(preview)?;
     let mut stdout = std::io::stdout().lock();
     if tmux {
-        let id = image_id();
-        let control = format!("a=T,U=1,i={id},c={span_cols},r={span_rows},f=100,q=2");
-        if local_tmux() {
-            transmit_file(&mut stdout, png.get_ref(), &control, FILE_TRANSFER_TIMEOUT)?;
-        } else {
-            write_graphics(&mut stdout, png.get_ref(), &format!("{control},t=d"), true)?;
-        }
+        let id = ImageIds::new().next();
+        let control = placement_control(id, span_cols, span_rows);
+        transmit(&mut stdout, &png, &control, true, FILE_TRANSFER_TIMEOUT)?;
         write_placeholders(&mut stdout, id, span_cols, span_rows)
     } else {
-        write_graphics(&mut stdout, png.get_ref(), "a=T,t=d,f=100,q=2", false)
+        write_graphics(&mut stdout, &png, "a=T,t=d,f=100,q=2", false)
             .and_then(|()| writeln!(stdout))
     }
     .context("Cannot write image to terminal")?;
     stdout.flush()?;
     Ok(())
+}
+
+pub(crate) fn window_size() -> libc::winsize {
+    // SAFETY: ioctl writes the window size into this initialized structure.
+    // Its zero fields select the fallback when the tty has no pixel metrics.
+    let mut size: libc::winsize = unsafe { std::mem::zeroed() };
+    unsafe { libc::ioctl(libc::STDOUT_FILENO, libc::TIOCGWINSZ, &mut size) };
+    size
+}
+
+pub(crate) fn cell_size(size: &libc::winsize) -> (u32, u32) {
+    let width = if size.ws_xpixel > 0 && size.ws_col > 0 {
+        (u32::from(size.ws_xpixel) / u32::from(size.ws_col)).max(1)
+    } else {
+        8
+    };
+    let height = if size.ws_ypixel > 0 && size.ws_row > 0 {
+        (u32::from(size.ws_ypixel) / u32::from(size.ws_row)).max(1)
+    } else {
+        16
+    };
+    (width, height)
+}
+
+pub(crate) fn encode_png(image: RgbaImage) -> Result<Vec<u8>> {
+    let mut png = Cursor::new(Vec::new());
+    DynamicImage::ImageRgba8(image).write_to(&mut png, ImageFormat::Png)?;
+    Ok(png.into_inner())
+}
+
+pub(crate) fn placement_control(id: u32, columns: u32, rows: u32) -> String {
+    format!("a=T,U=1,i={id},c={columns},r={rows},f=100,q=2")
+}
+
+pub(crate) fn transmit(
+    output: impl Write,
+    png: &[u8],
+    control: &str,
+    tmux: bool,
+    timeout: Duration,
+) -> Result<()> {
+    if tmux && local_tmux() {
+        transmit_file(output, png, control, timeout)
+    } else {
+        write_graphics(output, png, &format!("{control},t=d"), tmux)
+            .context("Cannot write image to terminal")
+    }
 }
 
 fn local_tmux() -> bool {
@@ -275,7 +305,7 @@ fn wait_for_file_consumption(path: &Path, timeout: Duration) -> Result<()> {
     }
 }
 
-fn ensure_passthrough() -> Result<()> {
+pub(crate) fn ensure_passthrough() -> Result<()> {
     // A blocked upload would leave only empty placeholder cells. An older tmux
     // without the option always passes through, so only a definite "off" fails.
     // Suggest "all": with "on", tmux drops chunks that arrive while a redraw is
@@ -299,6 +329,45 @@ fn image_id() -> u32 {
     (u32::from(high.max(1)) << 24) | (16 + u32::from(low) % 240)
 }
 
+/// Two reusable slots. Distinct foreground indices also force a cell redraw
+/// on terminals that diff the placeholder grid.
+pub(crate) struct ImageIds([u32; 2]);
+
+impl ImageIds {
+    pub(crate) fn new() -> Self {
+        let first = image_id();
+        let mut second = image_id();
+        if first as u8 == second as u8 {
+            let low = u32::from(first as u8);
+            second = (second & !0xff) | if low == 255 { 16 } else { low + 1 };
+        }
+        Self([first, second])
+    }
+
+    pub(crate) fn next(&mut self) -> u32 {
+        let id = self.0[0];
+        self.0.swap(0, 1);
+        id
+    }
+}
+
+fn graphics_framing(tmux: bool) -> (&'static str, &'static str, &'static str) {
+    if tmux {
+        ("\x1bPtmux;", "\x1b\x1b", "\x1b\\")
+    } else {
+        ("", "\x1b", "")
+    }
+}
+
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "used by the upcoming browser session")
+)]
+pub(crate) fn delete(mut output: impl Write, id: u32, tmux: bool) -> std::io::Result<()> {
+    let (start, esc, end) = graphics_framing(tmux);
+    write!(output, "{start}{esc}_Ga=d,d=I,i={id},q=2{esc}\\{end}")
+}
+
 fn write_graphics(
     mut output: impl Write,
     png: &[u8],
@@ -306,11 +375,7 @@ fn write_graphics(
     tmux: bool,
 ) -> std::io::Result<()> {
     // tmux passthrough wraps each chunk separately and doubles its ESC bytes.
-    let (start, escape, end) = if tmux {
-        ("\x1bPtmux;", "\x1b\x1b", "\x1b\\")
-    } else {
-        ("", "\x1b", "")
-    };
+    let (start, escape, end) = graphics_framing(tmux);
     let data = STANDARD.encode(png);
     let chunks = data.as_bytes().chunks(4096);
     let total = chunks.len();
@@ -335,20 +400,32 @@ fn write_placeholders(
     columns: u32,
     rows: u32,
 ) -> std::io::Result<()> {
-    let high = DIACRITICS[(id >> 24) as usize];
-    for row in DIACRITICS.iter().take(rows as usize) {
+    let mut symbol = String::with_capacity(16);
+    for row in 0..rows as usize {
         write!(output, "\x1b[38;5;{}m", id & 0xff)?;
-        for column in DIACRITICS.iter().take(columns as usize) {
-            write!(output, "{PLACEHOLDER}{row}{column}{high}")?;
+        for column in 0..columns as usize {
+            output
+                .write_all(placeholder(&mut symbol, row, column, (id >> 24) as usize).as_bytes())?;
         }
         writeln!(output, "\x1b[39m")?;
     }
     Ok(())
 }
 
+pub(crate) fn placeholder(symbol: &mut String, row: usize, col: usize, high: usize) -> &str {
+    symbol.clear();
+    symbol.extend([
+        PLACEHOLDER,
+        DIACRITICS[row],
+        DIACRITICS[col],
+        DIACRITICS[high],
+    ]);
+    symbol
+}
+
 /// Row and column numbers for Unicode placeholders, from kitty's rowcolumn-diacritics.txt.
 #[rustfmt::skip]
-const DIACRITICS: [char; 297] = [
+pub(crate) const DIACRITICS: [char; 297] = [
     '\u{0305}', '\u{030D}', '\u{030E}', '\u{0310}', '\u{0312}', '\u{033D}', '\u{033E}',
     '\u{033F}', '\u{0346}', '\u{034A}', '\u{034B}', '\u{034C}', '\u{0350}', '\u{0351}',
     '\u{0352}', '\u{0357}', '\u{035B}', '\u{0363}', '\u{0364}', '\u{0365}', '\u{0366}',
@@ -594,6 +671,35 @@ mod tests {
             assert_eq!(id & 0x00ff_ff00, 0);
             assert!((id & 0xff) >= 16, "tmux remaps colour indices 0-15");
             assert_ne!(id >> 24, 0);
+        }
+    }
+
+    #[test]
+    fn image_slots_alternate_foregrounds_and_stay_encodable() {
+        for _ in 0..512 {
+            let mut ids = ImageIds::new();
+            let (first, second) = (ids.next(), ids.next());
+            assert_ne!(first as u8, second as u8);
+            for id in [first, second] {
+                assert_eq!(id & 0x00ff_ff00, 0);
+                assert!(id as u8 >= 16 && id >> 24 > 0);
+                assert_eq!(ids.next(), id);
+            }
+        }
+    }
+
+    #[test]
+    fn deletes_address_only_the_named_image_without_a_reply() {
+        for (tmux, expected) in [
+            (false, "\x1b_Ga=d,d=I,i=123,q=2\x1b\\"),
+            (
+                true,
+                "\x1bPtmux;\x1b\x1b_Ga=d,d=I,i=123,q=2\x1b\x1b\\\x1b\\",
+            ),
+        ] {
+            let mut out = Vec::new();
+            delete(&mut out, 123, tmux).unwrap();
+            assert_eq!(out, expected.as_bytes());
         }
     }
 }
