@@ -1,0 +1,184 @@
+# Candy — Complete Technical & Product Reference
+
+> Candy is a free, MIT-licensed native macOS image editor and Rust command-line utility built by Jang-Ho Hwang (황장호). It is written in Swift 6 / AppKit and Rust with no web view or Electron, and runs entirely locally on macOS using Image I/O and Apple Vision.
+
+- Canonical URL (English): https://candy.told.me/
+- Korean URL: https://candy.told.me/ko/
+- Japanese URL: https://candy.told.me/ja/
+- Concise LLM index: https://candy.told.me/llms.txt
+- Source code: https://github.com/rath/candy
+- Latest release: v0.4.0 (2026-11-23)
+- Direct download (v0.4.0, Apple Silicon): https://github.com/rath/candy/releases/download/v0.4.0/Candy-0.4.0-macos-arm64.zip
+- License: MIT (https://github.com/rath/candy/blob/main/LICENSE)
+- Author: Jang-Ho Hwang (황장호), https://xrath.com
+
+## Positioning: What Candy Is (and Is Not)
+
+Candy is built for the gap between macOS Preview and heavy editors like Adobe Photoshop:
+
+- **Compared to macOS Preview**: Preview cannot pixelate sensitive regions with a mosaic brush, detect text locally with Apple Vision for one-click text mosaic, read exact full-resolution pixels with a magnifying loupe eyedropper, export lossy/lossless WebP or quality-tuned HEIC/AVIF from a unified save panel, or preview and browse images inside a Kitty-compatible terminal.
+- **Compared to Photoshop / GIMP / Pixelmator**: Candy is a single-window, instant-launch native tool for quick screenshot and image preparation before sharing. It has no subscription, no login, no Electron/web view, and intentionally omits layers, brushes, animation editing, and cloud features.
+- **Platform boundaries**: macOS only (macOS 14 Sonoma or later). Prebuilt signed/notarized releases are Apple Silicon (`arm64`) only. Intel Macs are not shipped as release binaries, though the repository can be built from source on macOS with Rust 1.95+ and Xcode 16+ (Swift 6). There are no Windows, Linux, web, or iOS versions.
+
+## Installation & Updates
+
+### Homebrew (Recommended — installs `Candy.app` and puts `candy` on `PATH`)
+
+```sh
+brew install --cask rath/tap/candy
+```
+
+Update an existing Homebrew installation (quit Candy first):
+
+```sh
+brew update && brew upgrade --cask candy
+```
+
+### Direct ZIP Download
+
+Download `Candy-0.4.0-macos-arm64.zip` from https://github.com/rath/candy/releases/latest, unzip it, and drag `Candy.app` into `/Applications`. Public releases are signed with a Developer ID Application certificate and notarized by Apple. The CLI binary is bundled inside the app at `Candy.app/Contents/Helpers/candy` (separate from `Contents/MacOS/Candy` to avoid case-insensitive APFS name collisions).
+
+### Building from Source
+
+Requires macOS 14+, Rust 1.95+, and Xcode 16+ (Swift 6):
+
+```sh
+scripts/build-app.sh
+./target/release/candy edit photo.png
+```
+
+Note: `cargo install --locked --path crates/candy` installs only the CLI binary and does not build the Swift/AppKit GUI bundle.
+
+## GUI Editor: Seven Tools & Native macOS Workflow
+
+Candy follows the system appearance (light/dark) and system language (English, Korean, or Japanese using native macOS AppKit/Preview terminology). Each document uses native macOS windows, tabs, menus, save sheets, and undo/redo history (up to 16 rendered checkpoints within a 64 MiB per-document budget).
+
+1. **Select / Crop (`Cmd+1`)**: Drag a rectangle, move or resize its edges, and extract the selected region into a new tab without altering the original document.
+2. **Mosaic (`Cmd+2`)**: Pixelate a rectangular selection with an adjustable block size to hide names, emails, addresses, or faces.
+3. **Highlight (`Cmd+3`)**: Draw translucent marker strokes with adjustable color, stroke width, and opacity.
+4. **Text mosaic (`Cmd+4`)**: Detects candidate text lines locally using Apple Vision's text-region detector (script-independent; verified for English, Korean, and Japanese) without transcribing text or sending data off-device. Review, move, resize, or delete (`Delete`/`Backspace`) detected boxes, then apply mosaic to the selected box or to all boxes. Canceling or pressing `Escape` clears remaining boxes without touching the image or undo history. Note: mosaic is a visual effect and detection can miss text or flag non-text graphics; always review before sharing.
+5. **Resize and Rotate (`Cmd+5`)**: Resize with aspect ratio locked or exact pixel dimensions, or rotate 90° clockwise / counterclockwise.
+6. **Flatten alpha (`Cmd+6`)**: Composite transparent regions onto a chosen solid background color before exporting to formats without alpha (such as JPEG).
+7. **Eyedropper (`Cmd+7`)**: Displays an 11×11 magnified pixel loupe beside the pointer reading full-resolution, straight-alpha 8-bit sRGB values (`#rrggbb` / `r, g, b`, plus alpha when translucent). Click to pin a pixel, nudge by 1 px with arrow keys or 10 px with `Shift`+arrow keys, click hex or RGB above the canvas to copy, or press `Cmd+C` to copy hex.
+
+### Key GUI Shortcuts
+
+- `Cmd+O`: Open image
+- `Cmd+S` / `Shift+Cmd+S`: Save / Save As
+- `Cmd+Z` / `Shift+Cmd+Z`: Undo / Redo
+- `Cmd+W` / `Cmd+Q`: Close document / Quit
+- `Cmd+0` / `Cmd+9`: Actual size (1 image pixel = 1 display backing pixel) / Zoom to fit (manual zoom 1%–1600%)
+- `Cmd+1` – `Cmd+7`: Select, Mosaic, Highlight, Text mosaic, Resize, Flatten alpha, Eyedropper
+- `Cmd+C`: Copy eyedropper color as hex
+- Arrow keys / `Shift`+Arrow keys: Move pinned eyedropper 1 px / 10 px
+- `Escape`: Cancel drag, clear text boxes, clear eyedropper pin, or clear selection
+- `Delete` / `Backspace`: Remove selected OCR box
+- `Space` + drag: Pan
+- Scroll / pinch: Zoom
+
+## Original File Protection & Privacy
+
+- **GUI save safety**: First Save always prompts for a new destination and refuses to overwrite the original input path, including symlink and hardlink aliases. Subsequent saves update the newly created copy. Saves encode to a temporary file before atomic replacement. Closing unsaved documents prompts to save or discard.
+- **CLI save safety**: Editing commands write to `-o <path>`. `--force` allows overwriting an existing separate output file, never the input file. Only an explicit `-i` / `--in-place` overwrites the input (via atomic replacement preserving file permissions and following symlinks to their targets).
+- **Privacy**: All decoding, editing, Apple Vision text-region detection, and encoding run 100% locally on the Mac. No network requests, telemetry, accounts, cloud storage, or remote AI APIs exist in the app or CLI.
+
+## Terminal Workflow & CLI Reference
+
+### Display & Inspect Images
+
+```sh
+candy photo.png                        # Inline preview in Kitty-compatible terminal, else launches GUI
+candy --display gui photo.heic         # Force opening in Candy.app
+candy --display kitty photo.avif       # Force Kitty graphics without capability probing
+cat photo.png | candy                  # Display image piped via stdin (format auto-detected, incl. SVG)
+candy < photo.heic                     # Redirected stdin display
+cat drawing.svg | candy -              # Explicit stdin marker
+candy inspect photo.heic               # Print format, dimensions, EXIF, color profile, DPI, and pixel stats
+candy inspect --json photo.heic        # Machine-readable JSON inspection output
+candy edit photo.png                   # Launch detached Candy.app editor and return shell immediately
+```
+
+### Terminal Directory Browser (`candy browse`)
+
+```sh
+candy browse                           # Browse current directory
+candy ~/Pictures                       # Passing a directory launches browse
+candy browse ~/Pictures/photo42.heic   # Open directory with file preselected
+```
+
+- Runs in **Ghostty** and **kitty**, both directly and inside **tmux** (requires `set -g allow-passthrough on` or `all`; uses Kitty Unicode placeholders and local temporary-file transport to prevent collisions with other panes).
+- Lists `../`, visible folders, and visible images/symlinks in natural numeric order.
+- Switch between live-preview list view and thumbnail grid with `Tab`.
+- Keys: `↑`/`↓`/`j`/`k` (move/row), `←`/`→`/`h`/`l`/`Space` (prev/next), `PgUp`/`PgDn`, `Home`/`g`/`End`/`G`, `Enter` (open folder or toggle large view), `Backspace` (parent folder), `Tab` (list/grid), `e` (open selected image in Candy.app while keeping your place), `r` (rescan/refresh), `Esc` (back/quit), `q`/`Ctrl-C` (quit).
+
+### CLI Image Editing Commands
+
+Rectangle coordinates are `x,y,width,height` in image pixels from the top-left after EXIF orientation is applied. Output format is selected by the output path's extension.
+
+```sh
+candy crop photo.png --rect 20,30,300,200 -o crop.heic
+candy resize photo.heic --width 1200 -o smaller.png
+candy resize scan.tif --width 800 --height 600 -o exact.webp
+candy resize photo.png --width 1200 -o photo.jpg --quality 80
+candy resize photo.png --width 1200 -o photo.webp --webp-mode lossy --quality 80
+candy rotate photo.heic --cw -o upright.heic --quality 90
+candy rotate photo.jpg --ccw --in-place
+candy mosaic photo.png --rect 20,30,300,200 --block-size 16 -o mosaic.png
+candy mosaic screenshot.png --text -o text-mosaic.png
+candy flatten logo.png --background '#ffffff' -o flat.jpg
+```
+
+- `--quality <1-100>`: Supported for JPEG (default 92), lossy WebP (default 80), HEIC (default 85), AVIF (default 85), and JPEG 2000 (default 85).
+- `--webp-mode <lossless|lossy>`: WebP defaults to lossless.
+
+## Supported Formats & Limits
+
+- **Open**: Anything macOS Image I/O decodes on the user's Mac — PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, full-resolution camera RAW and DNG (recognized by extension), and JPEG XL on macOS 26+ — plus SVG and SVGZ rasterized with bundled `resvg` (longer side at least 1024 px, system fonts loaded for text, embedded raster images inside SVGs skipped).
+- **Save**: PNG, JPEG, HEIC, WebP (lossless or lossy; encoder bundled), AVIF (requires macOS Image I/O AVIF encoder, verified on macOS 26), TIFF (LZW), GIF (256 colors), BMP, JPEG 2000, TGA.
+- **Color & metadata**: Edited as 8-bit sRGB RGBA. EXIF orientation is applied on load; source metadata, HDR data, and wide-gamut color profiles are not retained on export. JPEG flattens alpha onto white.
+- **Limits**: ~64 megapixels maximum image size; 512 MiB maximum encoded file or stdin input; 32 MiB maximum decoded XML for SVG/SVGZ; 16,383 px per side limit for lossy WebP; 4096 px per side display preview cap (all edits and exports operate on full-resolution pixels); first frame/image only.
+
+## Architecture
+
+- `candy-core` (Rust): Shared pixel operations, edit history checkpoints, SVG rasterization (`resvg`), and atomic export.
+- `candy-macos` (Rust): macOS Image I/O decoding/encoding, oriented thumbnails, and Apple Vision text-region detection.
+- `candy-ffi` (Rust): Synchronous C ABI statically linked into Swift.
+- `candy` (Rust): CLI commands, `ratatui` terminal directory browser, Kitty graphics/tmux passthrough transport, and native app launcher.
+- `macos` (Swift 6 / AppKit): Native macOS document windows, canvas, toolbar, menus, and localization (`en`, `ko`, `ja`).
+
+## Frequently Asked Questions
+
+### What is Candy, and how is it different from Preview or Photoshop?
+Candy is a free, MIT-licensed native macOS image editor and CLI built with Swift/AppKit and Rust, with no web view. It fills the gap between Preview and Photoshop: Preview lacks pixelation mosaic, Apple Vision text mosaic, a full-resolution eyedropper, and a terminal image browser, while Photoshop is heavy and subscription-based for quick screenshot edits.
+
+### Do my images or detected text ever leave my Mac?
+No. Every edit, format conversion, and Apple Vision text-region detection runs locally on your Mac with no cloud service, account, telemetry, or network request. Because mosaic is a visual effect and text detection can occasionally miss text, always review detected boxes before sharing sensitive images.
+
+### Will Candy overwrite my original image?
+Not by default. In the app, the first Save always asks for a new file and protects the original path, including symlinks and hardlinks; subsequent saves update that copy. In the CLI, editing commands write to `-o` and only modify the input file when you explicitly pass `--in-place`.
+
+### Which Macs and macOS versions are supported?
+Public releases require Apple Silicon and macOS 14 (Sonoma) or later, and are signed with a Developer ID and notarized by Apple. The interface follows macOS in English, Korean, and Japanese. Windows, Linux, and iOS are not supported; Intel Macs can build from source with Rust and Xcode.
+
+### Which terminals work with inline image previews and `candy browse`?
+Automatic inline display and `candy browse` work in Ghostty and kitty, both directly and inside tmux with `allow-passthrough` enabled. In unsupported terminals, `candy <file>` automatically falls back to opening the native Mac app. Piped input like `cat photo.png | candy` is also supported.
+
+### What are Candy's format support and current limits?
+Candy opens everything macOS Image I/O decodes (including PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD, and full-resolution camera RAW) plus SVG and SVGZ, and exports ten raster formats with quality controls. Images are edited as 8-bit sRGB up to about 64 megapixels (512 MiB input); Candy does not have layers, animation editing, or SVG export.
+
+## Release History
+
+- **0.4.0** (2026-11-23): Added `candy browse` terminal directory browser (list preview, thumbnail grid, subfolder navigation, `e` to edit in Candy.app). Camera RAW files now open at full resolution.
+- **0.3.5** (2026-11-15): Added full-resolution Eyedropper tool with 11×11 magnifying loupe, pixel pinning, arrow-key nudging, and hex/RGB copy.
+- **0.3.4** (2026-11-15): Separated text mosaic apply-to-selected vs apply-to-all; canceling clears boxes without touching the image or undo history.
+- **0.3.3** (2026-11-12): Checkpoint-based undo/redo cache; safer copy saves after moving originals; cleaner transparent preview edges; system fonts for SVG text.
+- **0.3.2** (2026-11-03): Stdin piped image display (`cat image.png | candy`) and local tmux temporary-file graphics transport.
+- **0.3.1** (2026-10-21): Stripped symbols from app binary for smaller download size.
+- **0.3.0** (2026-10-21): SVG and SVGZ support across editor, Finder, terminal previews, `candy inspect`, and CLI edits.
+- **0.2.4** (2026-10-14): Export quality controls (`--quality` and GUI slider) for JPEG, WebP, HEIC, AVIF, and JPEG 2000; lossy WebP support; per-document remembered save settings.
+- **0.2.3** (2026-10-14): Removed build-machine rpaths to fix Gatekeeper warning on first launch.
+- **0.2.2** (2026-10-13): Added Japanese app interface and Japanese website (`/ja/`).
+- **0.2.1** (2026-10-11): Added Korean app interface, 7 more export formats (incl. HEIC/AVIF), 90° rotation, and CLI `--in-place`.
+- **0.2.0** (2026-10-11): Added tmux passthrough inline previews, `candy inspect`, and image-sized initial editor windows.
+- **0.1.1** (2026-10-11): New lollipop app icon, website brand mark, and favicon.
+- **0.1.0** (2026-10-11): Initial release with Highlight, Mosaic, Text mosaic, Crop, Resize, Flatten, and matching CLI commands.

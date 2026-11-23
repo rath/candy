@@ -1,0 +1,40 @@
+# Candy
+
+> Candy is a free, MIT-licensed native macOS image editor and terminal CLI built with Swift/AppKit and Rust (no web view or Electron). It handles quick screenshot and image edits—highlighting, region mosaic, on-device Apple Vision text mosaic, cropping, resizing, 90° rotation, transparency flattening, and a magnifying eyedropper—plus inline Kitty terminal image previews and folder browsing (`candy browse`) in Ghostty and kitty, including inside tmux.
+
+- Latest version: 0.4.0 (2026-11-23)
+- Platform: macOS 14 (Sonoma) or later; public release binaries support Apple Silicon (`arm64`)
+- Signing: Developer ID signed and notarized by Apple
+- Languages: English, Korean (`캔디`), and Japanese (follows macOS language)
+- Privacy: 100% local on macOS; no cloud services, accounts, telemetry, or external OCR APIs
+- Price & License: Free, open source under the MIT license
+- Author: Jang-Ho Hwang (황장호) — https://xrath.com
+
+## Install
+
+- Homebrew (installs both `Candy.app` and the `candy` CLI): `brew install --cask rath/tap/candy`
+- Direct download (v0.4.0, Apple Silicon): https://github.com/rath/candy/releases/download/v0.4.0/Candy-0.4.0-macos-arm64.zip
+
+## Key capabilities
+
+- Seven GUI tools: Highlight (translucent marker with color, width, opacity), Mosaic (pixelation with adjustable block size), Text mosaic (on-device Apple Vision text detection for English, Korean, Japanese, and other scripts), Crop (extract selection to a new tab), Resize and 90° rotate, Flatten transparency onto a solid color, and Eyedropper (11×11 loupe, pixel pinning, arrow-key nudging, full-resolution sRGB hex/RGB copy).
+- Original protection: First GUI save always creates a new file and refuses to overwrite the original path (including symlink and hardlink aliases). CLI commands write to `-o` by default and replace inputs only with explicit `--in-place`.
+- Terminal workflow: `candy photo.png` displays inline in Kitty-compatible terminals (Ghostty, kitty, direct or inside tmux with `allow-passthrough`) or falls back to the Mac app; `cat photo.png | candy` displays piped images; `candy browse` explores image folders as a live-preview list or thumbnail grid and hands selected images to the editor (`e`); `candy inspect` prints headers and pixel statistics (with `--json`); `candy crop`, `resize`, `rotate`, `mosaic`, and `flatten` share the same Rust engine as the app.
+- Formats: Opens anything macOS Image I/O decodes (PNG, JPEG, WebP, HEIC/HEIF, AVIF, GIF, TIFF, BMP, JPEG 2000, PSD, TGA, ICO, ICNS, OpenEXR, Radiance HDR, PBM, full-resolution camera RAW/DNG, JPEG XL on macOS 26+) plus SVG and SVGZ via bundled resvg. Exports PNG, JPEG, HEIC, WebP (lossless or lossy), AVIF (where macOS encodes it, verified on macOS 26), TIFF (LZW), GIF, BMP, JPEG 2000, and TGA with quality controls.
+- Limits & non-goals: Edits as 8-bit sRGB RGBA up to ~64 megapixels (512 MiB input, 32 MiB SVG XML). First frame only. No layers, animation editing, SVG export, cloud sync, LLM features, Windows, Linux, or iOS builds.
+
+## Pages
+
+- [English landing page](https://candy.told.me/): Overview, editor demo, tools (`#features`), terminal CLI & `candy browse` (`#terminal`, `#browse`), installation (`#get`), FAQ (`#faq`), and changelog (`#changelog`)
+- [Korean landing page (한국어)](https://candy.told.me/ko/): Full Korean landing page for 캔디 (Candy)
+- [Japanese landing page (日本語)](https://candy.told.me/ja/): Full Japanese landing page for Candy
+- [Complete LLM reference](https://candy.told.me/llms-full.txt): Self-contained technical guide with all CLI commands, shortcuts, format matrix, limits, FAQ, and release history
+
+## Documentation & Releases
+
+- [GitHub Repository](https://github.com/rath/candy): Source code in Rust (`candy-core`, `candy-macos`, `candy-ffi`, `candy`) and Swift/AppKit (`macos`)
+- [README & CLI Reference](https://github.com/rath/candy/blob/main/README.md): Detailed commands, options, keyboard shortcuts, and format limits
+- [Latest Release Notes (v0.4.0)](https://github.com/rath/candy/releases/tag/v0.4.0): Adds `candy browse` terminal directory browser and full-resolution camera RAW loading
+- [All Releases](https://github.com/rath/candy/releases): Full version history from v0.1.0 to v0.4.0
+- [MIT License](https://github.com/rath/candy/blob/main/LICENSE): License terms
+- [Issue Tracker](https://github.com/rath/candy/issues): Bug reports and questions

@@ -3,19 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Candy — 간편한 Mac용 무료 이미지 편집기</title>
-    <meta name="description" content="Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다." />
+    <title>Candy(캔디) — 형광펜·모자이크 Mac용 무료 이미지 편집기</title>
+    <meta name="description" content="Mac용 무료 네이티브 이미지 편집기·CLI. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 스포이드와 터미널 이미지 탐색까지 로컬에서 끝내고 원본은 그대로 둡니다." />
+    <meta name="application-name" content="Candy" />
     <meta name="author" content="황장호" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://candy.told.me/ko/" />
     <link rel="alternate" hreflang="en" href="https://candy.told.me/" />
     <link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <link rel="alternate" type="text/plain" title="LLM 요약 문서" href="https://candy.told.me/llms.txt" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Candy" />
-    <meta property="og:title" content="Candy — 간편한 Mac용 무료 이미지 편집기" />
-    <meta property="og:description" content="Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다." />
+    <meta property="og:title" content="Candy(캔디) — 형광펜·모자이크 Mac용 무료 이미지 편집기" />
+    <meta property="og:description" content="Mac용 무료 네이티브 이미지 편집기·CLI. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 스포이드와 터미널 이미지 탐색까지 로컬에서 끝내고 원본은 그대로 둡니다." />
     <meta property="og:url" content="https://candy.told.me/ko/" />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -27,41 +29,75 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="캔디: 미리보기론 안 되고 포토샵은 과하고. 주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Candy — 간편한 Mac용 무료 이미지 편집기" />
-    <meta name="twitter:description" content="Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다." />
+    <meta name="twitter:title" content="Candy(캔디) — 형광펜·모자이크 Mac용 무료 이미지 편집기" />
+    <meta name="twitter:description" content="Mac용 무료 네이티브 이미지 편집기·CLI. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 스포이드와 터미널 이미지 탐색까지 로컬에서 끝내고 원본은 그대로 둡니다." />
     <meta name="twitter:image" content="https://candy.told.me/assets/og-ko.png" />
     <meta name="twitter:image:alt" content="캔디: 미리보기론 안 되고 포토샵은 과하고. 주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면." />
     <meta name="theme-color" content="#f2a28e" />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../assets/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180" />
+    <link rel="preload" as="image" href="../assets/candy-editor-ko.webp" type="image/webp" fetchpriority="high" />
     <link rel="stylesheet" href="../assets/style.css" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
         {
+          "@type": "Person",
+          "@id": "https://xrath.com/#person",
+          "name": "황장호",
+          "alternateName": "Jang-Ho Hwang",
+          "url": "https://xrath.com",
+          "sameAs": [
+            "https://github.com/rath"
+          ]
+        },
+        {
           "@type": "WebSite",
           "@id": "https://candy.told.me/#website",
           "url": "https://candy.told.me/",
           "name": "Candy",
+          "alternateName": "캔디",
+          "description": "Mac용 무료 네이티브 이미지 편집기 겸 터미널 CLI, Candy(캔디)의 공식 웹사이트입니다.",
           "inLanguage": [
             "en",
             "ko",
             "ja"
-          ]
+          ],
+          "publisher": {
+            "@id": "https://xrath.com/#person"
+          }
         },
         {
           "@type": "WebPage",
           "@id": "https://candy.told.me/ko/#webpage",
           "url": "https://candy.told.me/ko/",
-          "name": "Candy — 간편한 Mac용 무료 이미지 편집기",
-          "description": "Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다.",
+          "name": "Candy(캔디) — 형광펜·모자이크 Mac용 무료 이미지 편집기",
+          "description": "Mac용 무료 네이티브 이미지 편집기·CLI. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 스포이드와 터미널 이미지 탐색까지 로컬에서 끝내고 원본은 그대로 둡니다.",
           "inLanguage": "ko",
+          "datePublished": "2026-10-11",
+          "dateModified": "2026-11-23",
           "isPartOf": {
             "@id": "https://candy.told.me/#website"
+          },
+          "about": {
+            "@id": "https://candy.told.me/#app"
           },
           "mainEntity": {
             "@id": "https://candy.told.me/#app"
           },
+          "hasPart": [
+            {
+              "@id": "https://candy.told.me/ko/#editor-demo"
+            },
+            {
+              "@id": "https://candy.told.me/ko/#browse-demo"
+            },
+            {
+              "@id": "https://candy.told.me/ko/#faq"
+            }
+          ],
           "primaryImageOfPage": {
             "@type": "ImageObject",
             "url": "https://candy.told.me/assets/og-ko.png",
@@ -73,26 +109,186 @@
           "@type": "SoftwareApplication",
           "@id": "https://candy.told.me/#app",
           "name": "Candy",
+          "alternateName": [
+            "캔디",
+            "Candy.app",
+            "candy CLI"
+          ],
           "url": "https://candy.told.me/",
+          "description": "Mac용 무료 네이티브 이미지 편집기·CLI. 형광펜, 모자이크, 텍스트 모자이크, 자르기, 스포이드와 터미널 이미지 탐색까지 로컬에서 끝내고 원본은 그대로 둡니다.",
           "applicationCategory": "MultimediaApplication",
-          "operatingSystem": "macOS 14 or later",
-          "processorRequirements": "Apple Silicon",
-          "author": {
-            "@type": "Person",
-            "name": "황장호",
-            "alternateName": "Jang-Ho Hwang",
-            "url": "https://xrath.com"
-          },
-          "isAccessibleForFree": true,
-          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "applicationSubCategory": "이미지 편집기",
+          "operatingSystem": "macOS 14.0 or later",
+          "processorRequirements": "Apple Silicon (arm64)",
+          "softwareRequirements": "macOS 14(Sonoma) 이상, Apple Silicon Mac",
+          "softwareVersion": "0.4.0",
+          "datePublished": "2026-10-11",
+          "dateModified": "2026-11-23",
+          "releaseNotes": "https://github.com/rath/candy/releases/tag/v0.4.0",
           "downloadUrl": "https://github.com/rath/candy/releases/download/v0.4.0/Candy-0.4.0-macos-arm64.zip",
-          "screenshot": "https://candy.told.me/assets/candy-editor-ko.png",
+          "installUrl": "https://candy.told.me/ko/#get",
+          "sameAs": [
+            "https://github.com/rath/candy"
+          ],
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "isAccessibleForFree": true,
+          "inLanguage": [
+            "en",
+            "ko",
+            "ja"
+          ],
+          "author": {
+            "@id": "https://xrath.com/#person"
+          },
+          "image": {
+            "@type": "ImageObject",
+            "url": "https://candy.told.me/assets/app-icon.png",
+            "width": 256,
+            "height": 256
+          },
+          "screenshot": [
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-editor-ko.png",
+              "width": 1280,
+              "height": 1100,
+              "caption": "주문 화면의 오류 메시지를 형광펜으로 강조하고 고객 정보를 모자이크로 가린 Candy 편집 화면"
+            },
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-browse.webp",
+              "width": 1280,
+              "height": 894,
+              "caption": "터미널 창에서 candy browse가 타로 카드 폴더를 썸네일 격자로 보여 주는 화면"
+            }
+          ],
+          "featureList": [
+            "색상·굵기·불투명도를 조절하는 반투명 형광펜",
+            "블록 크기를 조절하는 영역 모자이크",
+            "로컬 Apple Vision 문자 인식 기반 텍스트 모자이크(한국어·영어·일본어 지원)",
+            "영역 선택 자르기 및 새 탭으로 추출",
+            "비율 유지 및 픽셀 지정 크기 조절과 90도 회전",
+            "투명 배경 단색 채우기",
+            "11x11 돋보기와 픽셀 고정·hex/RGB 복사를 지원하는 원본 해상도 스포이드",
+            "첫 저장 시 새 파일로 저장해 원본 경로를 보호하는 안전한 저장",
+            "JPEG·HEIC·AVIF·JPEG 2000 화질 설정 및 WebP 무손실·손실 압축",
+            "Ghostty·kitty·tmux 인라인 이미지 미리보기 및 candy browse 터미널 이미지 브라우저",
+            "앱과 같은 Rust 엔진을 쓰는 CLI 명령(inspect, crop, resize, rotate, mosaic, flatten, edit)"
+          ],
           "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "@id": "https://candy.told.me/#source",
+          "name": "Candy",
+          "url": "https://github.com/rath/candy",
+          "codeRepository": "https://github.com/rath/candy",
+          "programmingLanguage": [
+            "Swift",
+            "Rust"
+          ],
+          "runtimePlatform": "macOS 14+ (Apple Silicon)",
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "author": {
+            "@id": "https://xrath.com/#person"
           },
-          "description": "Mac용 무료 이미지 편집기. 형광펜, 모자이크, 자르기, 크기 조절, 회전을 앱이나 터미널에서 몇 초 만에 끝내고, 원본은 그대로 둡니다."
+          "targetProduct": {
+            "@id": "https://candy.told.me/#app"
+          }
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/ko/#editor-demo",
+          "name": "Candy Mac 이미지 편집기 데모",
+          "description": "Candy로 가상의 스크린샷 세 장을 차례로 편집하는 화면. 주문 화면, 단톡방, 정산 시트에서 개인 정보를 모자이크로 가리고 중요한 줄에 형광펜을 긋고, 단톡방에서는 스포이드로 색을 읽습니다.",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-editor-ko.png",
+          "contentUrl": "https://candy.told.me/assets/candy-demo-ko.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 1100,
+          "duration": "PT26S",
+          "uploadDate": "2026-11-18T00:00:00Z",
+          "inLanguage": "ko",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/ko/#browse-demo",
+          "name": "candy browse 터미널 이미지 브라우저 데모",
+          "description": "터미널에서 candy browse를 실행한 화면. 타로 카드가 든 폴더가 목록과 미리보기로 열리고, 썸네일 격자로 바뀐 뒤, 카드를 한 장씩 크게 보여 주고 다른 폴더로 넘어갑니다.",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-browse.webp",
+          "contentUrl": "https://candy.told.me/assets/candy-browse.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 894,
+          "duration": "PT24S",
+          "uploadDate": "2026-11-23T00:00:00Z",
+          "inLanguage": "en",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://candy.told.me/ko/#faq",
+          "url": "https://candy.told.me/ko/#faq",
+          "inLanguage": "ko",
+          "isPartOf": {
+            "@id": "https://candy.told.me/ko/#webpage"
+          },
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Candy는 어떤 앱이고, 미리보기나 포토샵과 무엇이 다른가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Candy(캔디)는 웹뷰 없이 Swift/AppKit과 Rust로 만든 무료 MIT 오픈소스 Mac용 네이티브 이미지 편집기 겸 CLI입니다. macOS 미리보기에는 없는 모자이크, Apple Vision 텍스트 모자이크, 원본 해상도 스포이드, 터미널 이미지 브라우저를 제공하면서도, 간단한 스크린샷 수정에 포토샵을 여는 번거로움을 없앱니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "편집한 이미지나 문자 인식 데이터가 외부 서버로 전송되나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "아니요. 모든 이미지 편집, 형식 변환, Apple Vision 문자 인식은 Mac 안에서 로컬로만 처리됩니다. 클라우드 서비스, 계정, 텔레메트리, 네트워크 요청이 전혀 없습니다. 다만 모자이크는 시각적 효과이고 문자 인식이 일부 글자를 놓칠 수 있으므로 공유 전 상자를 확인하는 것이 좋습니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "편집 후 저장하면 원본 이미지가 덮어씌워지나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "기본적으로는 덮어쓰지 않습니다. 앱에서 첫 저장은 항상 새 파일을 만들고 심볼릭 링크나 하드 링크를 포함한 원본 경로를 보호하며, 이후 저장은 그 사본을 갱신합니다. CLI 명령도 -o로 새 파일을 저장하고, --in-place를 명시한 경우에만 원본을 바꿉니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "어떤 Mac과 macOS 버전에서 사용할 수 있나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "공개 릴리스는 macOS 14(Sonoma) 이상의 Apple Silicon Mac을 지원하며, Developer ID로 서명하고 Apple 공증을 받았습니다. 앱 인터페이스는 macOS 설정에 따라 한국어, 영어, 일본어를 따릅니다. Windows·Linux·iOS는 지원하지 않으며, Intel Mac에서는 Rust와 Xcode로 소스에서 빌드할 수 있습니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "어떤 터미널에서 이미지 미리보기와 candy browse를 쓸 수 있나요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "자동 인라인 이미지 표시와 candy browse는 Ghostty와 kitty에서 동작하며, allow-passthrough를 켠 tmux 안에서도 쓸 수 있습니다. 지원하지 않는 터미널에서 candy <파일>을 실행하면 자동으로 Mac 앱이 열립니다. cat photo.png | candy처럼 파이프 입력도 지원합니다."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "지원하는 이미지 형식과 현재 제한 사항은 무엇인가요?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD, 원본 해상도 카메라 RAW 등 macOS Image I/O가 읽는 모든 형식과 SVG·SVGZ를 열고, 10가지 래스터 형식으로 화질을 조절해 저장합니다. 이미지는 8비트 sRGB 기준으로 최대 약 6,400만 화소(입력 512 MiB)까지 편집하며, 레이어, 애니메이션 편집, SVG 저장은 지원하지 않습니다."
+              }
+            }
+          ]
         }
       ]
     }
@@ -176,7 +372,7 @@
           </figcaption>
         </figure>
       </section>
-      <section class="features wrap" aria-labelledby="features-title">
+      <section id="features" class="features wrap" aria-labelledby="features-title">
         <h2 id="features-title">도구는 일곱 개.<br />배울 건 없습니다.</h2>
         <div class="feature-grid">
           <article>
@@ -248,7 +444,7 @@
           <p><strong>저장</strong> &nbsp; PNG · JPEG · HEIC · WebP · AVIF (macOS 26) · TIFF · GIF · BMP · JPEG 2000 · TGA</p>
         </div>
       </section>
-      <section class="terminal-section" aria-labelledby="terminal-title">
+      <section id="terminal" class="terminal-section" aria-labelledby="terminal-title">
         <div class="wrap terminal-grid">
           <div>
             <h2 id="terminal-title">
@@ -278,7 +474,7 @@
 <span class="comment"># 앱에서 편집, 셸은 그대로</span>
 <span class="prompt" aria-hidden="true">$ </span>candy edit photo.png</code></pre>
         </div>
-        <div class="wrap browse-grid">
+        <div id="browse" class="wrap browse-grid">
           <div>
             <h3>
               <code>ls</code>로는 이름만,<br /><code>candy browse</code>로는 그림까지.
@@ -349,7 +545,55 @@
           </div>
         </div>
       </section>
-      <section class="changes" aria-labelledby="changes-title">
+      <section id="faq" class="faq" aria-labelledby="faq-title">
+        <div class="wrap">
+          <div class="faq-head">
+            <h2 id="faq-title">자주 묻는 질문</h2>
+            <p>
+              지원 환경, 개인정보 보호, 원본 파일 처리 방식에 대해 자주 묻는 질문입니다.
+            </p>
+          </div>
+          <div class="faq-grid">
+            <article>
+              <h3>Candy는 어떤 앱이고, 미리보기나 포토샵과 무엇이 다른가요?</h3>
+              <p>
+                Candy(캔디)는 웹뷰 없이 Swift/AppKit과 Rust로 만든 무료 MIT 오픈소스 Mac용 네이티브 이미지 편집기 겸 CLI입니다. macOS 미리보기에는 없는 모자이크, Apple Vision 텍스트 모자이크, 원본 해상도 스포이드, 터미널 이미지 브라우저를 제공하면서도, 간단한 스크린샷 수정에 포토샵을 여는 번거로움을 없앱니다.
+              </p>
+            </article>
+            <article>
+              <h3>편집한 이미지나 문자 인식 데이터가 외부 서버로 전송되나요?</h3>
+              <p>
+                아니요. 모든 이미지 편집, 형식 변환, Apple Vision 문자 인식은 Mac 안에서 로컬로만 처리됩니다. 클라우드 서비스, 계정, 텔레메트리, 네트워크 요청이 전혀 없습니다. 다만 모자이크는 시각적 효과이고 문자 인식이 일부 글자를 놓칠 수 있으므로 공유 전 상자를 확인하는 것이 좋습니다.
+              </p>
+            </article>
+            <article>
+              <h3>편집 후 저장하면 원본 이미지가 덮어씌워지나요?</h3>
+              <p>
+                기본적으로는 덮어쓰지 않습니다. 앱에서 첫 저장은 항상 새 파일을 만들고 심볼릭 링크나 하드 링크를 포함한 원본 경로를 보호하며, 이후 저장은 그 사본을 갱신합니다. CLI 명령도 <code>-o</code>로 새 파일을 저장하고, <code>--in-place</code>를 명시한 경우에만 원본을 바꿉니다.
+              </p>
+            </article>
+            <article>
+              <h3>어떤 Mac과 macOS 버전에서 사용할 수 있나요?</h3>
+              <p>
+                공개 릴리스는 macOS 14(Sonoma) 이상의 Apple Silicon Mac을 지원하며, Developer ID로 서명하고 Apple 공증을 받았습니다. 앱 인터페이스는 macOS 설정에 따라 한국어, 영어, 일본어를 따릅니다. Windows·Linux·iOS는 지원하지 않으며, Intel Mac에서는 Rust와 Xcode로 소스에서 빌드할 수 있습니다.
+              </p>
+            </article>
+            <article>
+              <h3>어떤 터미널에서 이미지 미리보기와 <code>candy browse</code>를 쓸 수 있나요?</h3>
+              <p>
+                자동 인라인 이미지 표시와 <code>candy browse</code>는 Ghostty와 kitty에서 동작하며, <code>allow-passthrough</code>를 켠 tmux 안에서도 쓸 수 있습니다. 지원하지 않는 터미널에서 <code>candy &lt;파일&gt;</code>을 실행하면 자동으로 Mac 앱이 열립니다. <code>cat photo.png | candy</code>처럼 파이프 입력도 지원합니다.
+              </p>
+            </article>
+            <article>
+              <h3>지원하는 이미지 형식과 현재 제한 사항은 무엇인가요?</h3>
+              <p>
+                PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD, 원본 해상도 카메라 RAW 등 macOS Image I/O가 읽는 모든 형식과 SVG·SVGZ를 열고, 10가지 래스터 형식으로 화질을 조절해 저장합니다. 이미지는 8비트 sRGB 기준으로 최대 약 6,400만 화소(입력 512 MiB)까지 편집하며, 레이어, 애니메이션 편집, SVG 저장은 지원하지 않습니다.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section id="changelog" class="changes" aria-labelledby="changes-title">
         <div class="wrap">
           <div class="changes-head">
             <h2 id="changes-title">업데이트 내역</h2>

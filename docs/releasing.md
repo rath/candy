@@ -90,7 +90,10 @@ the hero button, the installation link and the JSON-LD `downloadUrl` in
 `site/index.html`, `site/ko/index.html` and `site/ja/index.html` use
 `https://github.com/rath/candy/releases/download/v<version>/Candy-<version>-macos-arm64.zip`
 so the button downloads directly. Change them only after `gh release create`;
-an earlier push would publish a link to a missing asset.
+an earlier push would publish a link to a missing asset. Update JSON-LD
+`softwareVersion`, `releaseNotes`, and `dateModified` on all three pages, plus
+`lastmod` in `site/sitemap.xml` and the version, download link, and release
+history in `site/llms.txt` and `site/llms-full.txt`.
 
 Add the release to the changelog near the bottom of all three pages: a new
 first entry with the version, its release date and a one- or two-sentence

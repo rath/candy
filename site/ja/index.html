@@ -4,18 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Candy — 蛍光ペンとモザイクがすぐ使える、Mac用の無料画像エディタ</title>
-    <meta name="description" content="Mac用の無料画像エディタ。蛍光ペン、モザイク、切り取り、サイズ調整、回転を、アプリでもターミナルでも数秒で。元の画像はそのまま残ります。" />
+    <meta name="description" content="Mac用の無料ネイティブ画像エディタとCLI。蛍光ペン、モザイク、テキストモザイク、切り取り、スポイト、ターミナル画像閲覧までローカルで完結し、元の画像はそのまま残ります。" />
+    <meta name="application-name" content="Candy" />
     <meta name="author" content="Jang-Ho Hwang" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://candy.told.me/ja/" />
     <link rel="alternate" hreflang="en" href="https://candy.told.me/" />
     <link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <link rel="alternate" type="text/plain" title="LLM向け概要ドキュメント" href="https://candy.told.me/llms.txt" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Candy" />
     <meta property="og:title" content="Candy — 蛍光ペンとモザイクがすぐ使える、Mac用の無料画像エディタ" />
-    <meta property="og:description" content="Mac用の無料画像エディタ。蛍光ペン、モザイク、切り取り、サイズ調整、回転を、アプリでもターミナルでも数秒で。元の画像はそのまま残ります。" />
+    <meta property="og:description" content="Mac用の無料ネイティブ画像エディタとCLI。蛍光ペン、モザイク、テキストモザイク、切り取り、スポイト、ターミナル画像閲覧までローカルで完結し、元の画像はそのまま残ります。" />
     <meta property="og:url" content="https://candy.told.me/ja/" />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:locale:alternate" content="en_US" />
@@ -28,40 +30,73 @@
     <meta property="og:image:alt" content="Candy：プレビューじゃ足りない。Photoshopじゃ大げさ。注文画面のエラーメッセージに蛍光ペンを引き、顧客情報をモザイクで隠したCandyの編集画面。" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Candy — 蛍光ペンとモザイクがすぐ使える、Mac用の無料画像エディタ" />
-    <meta name="twitter:description" content="Mac用の無料画像エディタ。蛍光ペン、モザイク、切り取り、サイズ調整、回転を、アプリでもターミナルでも数秒で。元の画像はそのまま残ります。" />
+    <meta name="twitter:description" content="Mac用の無料ネイティブ画像エディタとCLI。蛍光ペン、モザイク、テキストモザイク、切り取り、スポイト、ターミナル画像閲覧までローカルで完結し、元の画像はそのまま残ります。" />
     <meta name="twitter:image" content="https://candy.told.me/assets/og-ja.png" />
     <meta name="twitter:image:alt" content="Candy：プレビューじゃ足りない。Photoshopじゃ大げさ。注文画面のエラーメッセージに蛍光ペンを引き、顧客情報をモザイクで隠したCandyの編集画面。" />
     <meta name="theme-color" content="#f2a28e" />
     <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="../assets/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png" sizes="180x180" />
+    <link rel="preload" as="image" href="../assets/candy-editor-ja.webp" type="image/webp" fetchpriority="high" />
     <link rel="stylesheet" href="../assets/style.css" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
         {
+          "@type": "Person",
+          "@id": "https://xrath.com/#person",
+          "name": "Jang-Ho Hwang",
+          "alternateName": "황장호",
+          "url": "https://xrath.com",
+          "sameAs": [
+            "https://github.com/rath"
+          ]
+        },
+        {
           "@type": "WebSite",
           "@id": "https://candy.told.me/#website",
           "url": "https://candy.told.me/",
           "name": "Candy",
+          "description": "Mac用の無料ネイティブ画像エディタ兼ターミナルCLI、Candyの公式サイトです。",
           "inLanguage": [
             "en",
             "ko",
             "ja"
-          ]
+          ],
+          "publisher": {
+            "@id": "https://xrath.com/#person"
+          }
         },
         {
           "@type": "WebPage",
           "@id": "https://candy.told.me/ja/#webpage",
           "url": "https://candy.told.me/ja/",
           "name": "Candy — 蛍光ペンとモザイクがすぐ使える、Mac用の無料画像エディタ",
-          "description": "Mac用の無料画像エディタ。蛍光ペン、モザイク、切り取り、サイズ調整、回転を、アプリでもターミナルでも数秒で。元の画像はそのまま残ります。",
+          "description": "Mac用の無料ネイティブ画像エディタとCLI。蛍光ペン、モザイク、テキストモザイク、切り取り、スポイト、ターミナル画像閲覧までローカルで完結し、元の画像はそのまま残ります。",
           "inLanguage": "ja",
+          "datePublished": "2026-10-13",
+          "dateModified": "2026-11-23",
           "isPartOf": {
             "@id": "https://candy.told.me/#website"
+          },
+          "about": {
+            "@id": "https://candy.told.me/#app"
           },
           "mainEntity": {
             "@id": "https://candy.told.me/#app"
           },
+          "hasPart": [
+            {
+              "@id": "https://candy.told.me/ja/#editor-demo"
+            },
+            {
+              "@id": "https://candy.told.me/ja/#browse-demo"
+            },
+            {
+              "@id": "https://candy.told.me/ja/#faq"
+            }
+          ],
           "primaryImageOfPage": {
             "@type": "ImageObject",
             "url": "https://candy.told.me/assets/og-ja.png",
@@ -73,26 +108,185 @@
           "@type": "SoftwareApplication",
           "@id": "https://candy.told.me/#app",
           "name": "Candy",
+          "alternateName": [
+            "Candy.app",
+            "candy CLI"
+          ],
           "url": "https://candy.told.me/",
+          "description": "Mac用の無料ネイティブ画像エディタとCLI。蛍光ペン、モザイク、テキストモザイク、切り取り、スポイト、ターミナル画像閲覧までローカルで完結し、元の画像はそのまま残ります。",
           "applicationCategory": "MultimediaApplication",
-          "operatingSystem": "macOS 14 or later",
-          "processorRequirements": "Apple Silicon",
-          "author": {
-            "@type": "Person",
-            "name": "Jang-Ho Hwang",
-            "alternateName": "황장호",
-            "url": "https://xrath.com"
-          },
-          "isAccessibleForFree": true,
-          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "applicationSubCategory": "画像エディタ",
+          "operatingSystem": "macOS 14.0 or later",
+          "processorRequirements": "Apple Silicon (arm64)",
+          "softwareRequirements": "macOS 14(Sonoma)以降、Apple Silicon搭載Mac",
+          "softwareVersion": "0.4.0",
+          "datePublished": "2026-10-11",
+          "dateModified": "2026-11-23",
+          "releaseNotes": "https://github.com/rath/candy/releases/tag/v0.4.0",
           "downloadUrl": "https://github.com/rath/candy/releases/download/v0.4.0/Candy-0.4.0-macos-arm64.zip",
-          "screenshot": "https://candy.told.me/assets/candy-editor-ja.png",
+          "installUrl": "https://candy.told.me/ja/#get",
+          "sameAs": [
+            "https://github.com/rath/candy"
+          ],
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "isAccessibleForFree": true,
+          "inLanguage": [
+            "en",
+            "ko",
+            "ja"
+          ],
+          "author": {
+            "@id": "https://xrath.com/#person"
+          },
+          "image": {
+            "@type": "ImageObject",
+            "url": "https://candy.told.me/assets/app-icon.png",
+            "width": 256,
+            "height": 256
+          },
+          "screenshot": [
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-editor-ja.png",
+              "width": 1280,
+              "height": 1100,
+              "caption": "注文画面を開いたCandy。エラーメッセージに蛍光ペンが引かれ、顧客情報はモザイクで隠されています"
+            },
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-browse.webp",
+              "width": 1280,
+              "height": 894,
+              "caption": "ターミナルウインドウのcandy browse。タロットカードのフォルダがサムネールのグリッドで表示され、1枚が選択されています"
+            }
+          ],
+          "featureList": [
+            "色・太さ・不透明度を調整できる半透明の蛍光ペン",
+            "ブロックの大きさを調整できる範囲モザイク",
+            "ローカルのApple Vision文字認識によるテキストモザイク(日本語・英語・韓国語対応)",
+            "矩形の切り取りと新しいタブへの抽出",
+            "比率を保ったサイズ調整・ピクセル指定と90°回転",
+            "透明部分の単色塗りつぶし",
+            "11x11ルーペとピクセル固定・hex/RGBコピーを備えた元解像度スポイト",
+            "最初の保存で別ファイルを作成し元のパスを保護する安全な保存",
+            "JPEG・HEIC・AVIF・JPEG 2000の画質調整とWebPのロスレス・非可逆切り替え",
+            "Ghostty・kitty・tmuxでのインライン画像表示とcandy browseターミナル画像ブラウザ",
+            "アプリと同じRustエンジンを使うCLIコマンド(inspect, crop, resize, rotate, mosaic, flatten, edit)"
+          ],
           "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "@id": "https://candy.told.me/#source",
+          "name": "Candy",
+          "url": "https://github.com/rath/candy",
+          "codeRepository": "https://github.com/rath/candy",
+          "programmingLanguage": [
+            "Swift",
+            "Rust"
+          ],
+          "runtimePlatform": "macOS 14+ (Apple Silicon)",
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "author": {
+            "@id": "https://xrath.com/#person"
           },
-          "description": "Mac用の無料画像エディタ。蛍光ペン、モザイク、切り取り、サイズ調整、回転を、アプリでもターミナルでも数秒で。元の画像はそのまま残ります。"
+          "targetProduct": {
+            "@id": "https://candy.told.me/#app"
+          }
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/ja/#editor-demo",
+          "name": "Candy Mac画像エディタデモ",
+          "description": "Candyで架空のスクリーンショット3枚を順に編集する様子。注文画面、グループチャット、スプレッドシートで、個人情報をモザイクで隠し、大事な行に蛍光ペンを引き、グループチャットではスポイトで色を読み取ります。",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-editor-ja.png",
+          "contentUrl": "https://candy.told.me/assets/candy-demo-ja.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 1100,
+          "duration": "PT26S",
+          "uploadDate": "2026-11-18T00:00:00Z",
+          "inLanguage": "ja",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/ja/#browse-demo",
+          "name": "candy browse ターミナル画像ブラウザデモ",
+          "description": "ターミナルでcandy browseを実行している様子。タロットカードのフォルダがリストとプレビューで開き、サムネールのグリッドに切り替わり、カードを1枚ずつ大きく表示してから別のフォルダに移ります。",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-browse.webp",
+          "contentUrl": "https://candy.told.me/assets/candy-browse.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 894,
+          "duration": "PT24S",
+          "uploadDate": "2026-11-23T00:00:00Z",
+          "inLanguage": "en",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://candy.told.me/ja/#faq",
+          "url": "https://candy.told.me/ja/#faq",
+          "inLanguage": "ja",
+          "isPartOf": {
+            "@id": "https://candy.told.me/ja/#webpage"
+          },
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Candyとはどんなアプリですか？プレビューやPhotoshopとの違いは？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Candyは、Webビューを使わずSwift/AppKitとRustで作られた無料のMITオープンソースMac画像エディタ兼CLIです。macOSのプレビューにはないモザイク、Apple Visionによるテキストモザイク、元解像度のスポイト、ターミナル画像ブラウザを備えつつ、ちょっとしたスクリーンショットの修正にPhotoshopを開く手間を省きます。"
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "画像や文字認識のデータが外部サーバーに送信されることはありますか？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "いいえ。すべての編集、形式変換、Apple Visionの文字認識はMac上のローカルだけで処理されます。クラウドサービス、アカウント、テレメトリ、外部通信は一切ありません。モザイクは視覚的な効果であり、文字認識が一部を見落とすこともあるため、共有前に検出ボックスを確認してください。"
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "保存すると元の画像が上書きされますか？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "既定では上書きしません。アプリで最初に保存するときは必ず別ファイルとして書き出し、シンボリックリンクやハードリンクを含む元のパスを保護します。2回目以降の保存はその複製を更新します。CLIコマンドも-oで別ファイルに出力し、--in-placeを明示したときだけ元のファイルを置き換えます。"
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "対応しているMacとmacOSのバージョンは？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "公開リリースはmacOS 14(Sonoma)以降のApple Silicon搭載Macに対応しており、Developer IDで署名しAppleの公証を受けています。アプリの表示言語はmacOSの設定に従い、日本語・英語・韓国語に対応します。Windows、Linux、iOSには対応しておらず、Intel MacではRustとXcodeを使ってソースからビルドできます。"
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "インライン表示やcandy browseはどのターミナルで使えますか？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "自動のインライン表示とcandy browseはGhosttyとkittyで動作し、allow-passthroughを有効にしたtmuxの中でも使えます。非対応のターミナルでcandy <ファイル>を実行すると、自動でMacアプリが開きます。cat photo.png | candyのようなパイプ入力にも対応しています。"
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "対応している画像形式や現在の制限はありますか？",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "PNG、JPEG、WebP、HEIC、AVIF、GIF、TIFF、BMP、PSD、元解像度のカメラRAWなどmacOSのImage I/Oが読めるすべての形式とSVG・SVGZを開き、10種類のラスター形式へ画質を指定して書き出せます。画像は8ビットsRGBとして約6,400万画素(入力512 MiB)まで編集でき、レイヤー、アニメーション編集、SVG書き出しには対応していません。"
+              }
+            }
+          ]
         }
       ]
     }
@@ -176,7 +370,7 @@
           </figcaption>
         </figure>
       </section>
-      <section class="features wrap" aria-labelledby="features-title">
+      <section id="features" class="features wrap" aria-labelledby="features-title">
         <h2 id="features-title">ツールは7つ。<br />覚えることはなし。</h2>
         <div class="feature-grid">
           <article>
@@ -239,7 +433,7 @@
           <p><strong>保存できる形式</strong> &nbsp; PNG · JPEG · HEIC · WebP · AVIF (macOS 26) · TIFF · GIF · BMP · JPEG 2000 · TGA</p>
         </div>
       </section>
-      <section class="terminal-section" aria-labelledby="terminal-title">
+      <section id="terminal" class="terminal-section" aria-labelledby="terminal-title">
         <div class="wrap terminal-grid">
           <div>
             <h2 id="terminal-title">
@@ -264,7 +458,7 @@
 <span class="comment"># アプリで編集。シェルはそのまま</span>
 <span class="prompt" aria-hidden="true">$ </span>candy edit photo.png</code></pre>
         </div>
-        <div class="wrap browse-grid">
+        <div id="browse" class="wrap browse-grid">
           <div>
             <h3>
               <code>ls</code>では名前だけ。<br /><code>candy browse</code>なら画像まで。
@@ -328,7 +522,41 @@
           </div>
         </div>
       </section>
-      <section class="changes" aria-labelledby="changes-title">
+      <section id="faq" class="faq" aria-labelledby="faq-title">
+        <div class="wrap">
+          <div class="faq-head">
+            <h2 id="faq-title">よくある質問</h2>
+            <p>対応環境、プライバシー、元ファイルの扱いについてよくある質問です。</p>
+          </div>
+          <div class="faq-grid">
+            <article>
+              <h3>Candyとはどんなアプリですか？プレビューやPhotoshopとの違いは？</h3>
+              <p>Candyは、Webビューを使わずSwift/AppKitとRustで作られた無料のMITオープンソースMac画像エディタ兼CLIです。macOSのプレビューにはないモザイク、Apple Visionによるテキストモザイク、元解像度のスポイト、ターミナル画像ブラウザを備えつつ、ちょっとしたスクリーンショットの修正にPhotoshopを開く手間を省きます。</p>
+            </article>
+            <article>
+              <h3>画像や文字認識のデータが外部サーバーに送信されることはありますか？</h3>
+              <p>いいえ。すべての編集、形式変換、Apple Visionの文字認識はMac上のローカルだけで処理されます。クラウドサービス、アカウント、テレメトリ、外部通信は一切ありません。モザイクは視覚的な効果であり、文字認識が一部を見落とすこともあるため、共有前に検出ボックスを確認してください。</p>
+            </article>
+            <article>
+              <h3>保存すると元の画像が上書きされますか？</h3>
+              <p>既定では上書きしません。アプリで最初に保存するときは必ず別ファイルとして書き出し、シンボリックリンクやハードリンクを含む元のパスを保護します。2回目以降の保存はその複製を更新します。CLIコマンドも<code>-o</code>で別ファイルに出力し、<code>--in-place</code>を明示したときだけ元のファイルを置き換えます。</p>
+            </article>
+            <article>
+              <h3>対応しているMacとmacOSのバージョンは？</h3>
+              <p>公開リリースはmacOS 14(Sonoma)以降のApple Silicon搭載Macに対応しており、Developer IDで署名しAppleの公証を受けています。アプリの表示言語はmacOSの設定に従い、日本語・英語・韓国語に対応します。Windows、Linux、iOSには対応しておらず、Intel MacではRustとXcodeを使ってソースからビルドできます。</p>
+            </article>
+            <article>
+              <h3>インライン表示や<code>candy browse</code>はどのターミナルで使えますか？</h3>
+              <p>自動のインライン表示と<code>candy browse</code>はGhosttyとkittyで動作し、<code>allow-passthrough</code>を有効にしたtmuxの中でも使えます。非対応のターミナルで<code>candy &lt;ファイル&gt;</code>を実行すると、自動でMacアプリが開きます。<code>cat photo.png | candy</code>のようなパイプ入力にも対応しています。</p>
+            </article>
+            <article>
+              <h3>対応している画像形式や現在の制限はありますか？</h3>
+              <p>PNG、JPEG、WebP、HEIC、AVIF、GIF、TIFF、BMP、PSD、元解像度のカメラRAWなどmacOSのImage I/Oが読めるすべての形式とSVG・SVGZを開き、10種類のラスター形式へ画質を指定して書き出せます。画像は8ビットsRGBとして約6,400万画素(入力512 MiB)まで編集でき、レイヤー、アニメーション編集、SVG書き出しには対応していません。</p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section id="changelog" class="changes" aria-labelledby="changes-title">
         <div class="wrap">
           <div class="changes-head">
             <h2 id="changes-title">更新履歴</h2>

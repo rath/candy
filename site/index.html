@@ -4,18 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Candy — Free Mac Image Editor for Highlights &amp; Mosaic</title>
-    <meta name="description" content="A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched." />
+    <meta name="description" content="Free native Mac image editor and CLI. Highlight, mosaic, text mosaic, crop, resize, eyedropper and terminal image browser. Local only; originals stay put." />
+    <meta name="application-name" content="Candy" />
     <meta name="author" content="Jang-Ho Hwang" />
-    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://candy.told.me/" />
     <link rel="alternate" hreflang="en" href="https://candy.told.me/" />
     <link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <link rel="alternate" type="text/plain" title="LLM summary" href="https://candy.told.me/llms.txt" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Candy" />
     <meta property="og:title" content="Candy — Free Mac Image Editor for Highlights &amp; Mosaic" />
-    <meta property="og:description" content="A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched." />
+    <meta property="og:description" content="Free native Mac image editor and CLI. Highlight, mosaic, text mosaic, crop, resize, eyedropper and terminal image browser. Local only; originals stay put." />
     <meta property="og:url" content="https://candy.told.me/" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:locale:alternate" content="ko_KR" />
@@ -28,40 +30,73 @@
     <meta property="og:image:alt" content="Candy: Preview can’t. Photoshop is overkill. The Candy editor with an order page’s error message highlighted and the customer’s details pixelated." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Candy — Free Mac Image Editor for Highlights &amp; Mosaic" />
-    <meta name="twitter:description" content="A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched." />
+    <meta name="twitter:description" content="Free native Mac image editor and CLI. Highlight, mosaic, text mosaic, crop, resize, eyedropper and terminal image browser. Local only; originals stay put." />
     <meta name="twitter:image" content="https://candy.told.me/assets/og-en.png" />
     <meta name="twitter:image:alt" content="Candy: Preview can’t. Photoshop is overkill. The Candy editor with an order page’s error message highlighted and the customer’s details pixelated." />
     <meta name="theme-color" content="#f2a28e" />
     <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="./assets/favicon-48.png" sizes="48x48" type="image/png" />
+    <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" sizes="180x180" />
+    <link rel="preload" as="image" href="./assets/candy-editor-en.webp" type="image/webp" fetchpriority="high" />
     <link rel="stylesheet" href="./assets/style.css" />
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@graph": [
         {
+          "@type": "Person",
+          "@id": "https://xrath.com/#person",
+          "name": "Jang-Ho Hwang",
+          "alternateName": "황장호",
+          "url": "https://xrath.com",
+          "sameAs": [
+            "https://github.com/rath"
+          ]
+        },
+        {
           "@type": "WebSite",
           "@id": "https://candy.told.me/#website",
           "url": "https://candy.told.me/",
           "name": "Candy",
+          "description": "Official website for Candy, a free native macOS image editor and terminal CLI.",
           "inLanguage": [
             "en",
             "ko",
             "ja"
-          ]
+          ],
+          "publisher": {
+            "@id": "https://xrath.com/#person"
+          }
         },
         {
           "@type": "WebPage",
           "@id": "https://candy.told.me/#webpage",
           "url": "https://candy.told.me/",
           "name": "Candy — Free Mac Image Editor for Highlights & Mosaic",
-          "description": "A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched.",
+          "description": "Free native Mac image editor and CLI. Highlight, mosaic, text mosaic, crop, resize, eyedropper and terminal image browser. Local only; originals stay put.",
           "inLanguage": "en",
+          "datePublished": "2026-10-11",
+          "dateModified": "2026-11-23",
           "isPartOf": {
             "@id": "https://candy.told.me/#website"
+          },
+          "about": {
+            "@id": "https://candy.told.me/#app"
           },
           "mainEntity": {
             "@id": "https://candy.told.me/#app"
           },
+          "hasPart": [
+            {
+              "@id": "https://candy.told.me/#editor-demo"
+            },
+            {
+              "@id": "https://candy.told.me/#browse-demo"
+            },
+            {
+              "@id": "https://candy.told.me/#faq"
+            }
+          ],
           "primaryImageOfPage": {
             "@type": "ImageObject",
             "url": "https://candy.told.me/assets/og-en.png",
@@ -73,26 +108,185 @@
           "@type": "SoftwareApplication",
           "@id": "https://candy.told.me/#app",
           "name": "Candy",
+          "alternateName": [
+            "Candy.app",
+            "candy CLI"
+          ],
           "url": "https://candy.told.me/",
+          "description": "Free native Mac image editor and CLI. Highlight, mosaic, text mosaic, crop, resize, eyedropper and terminal image browser. Local only; originals stay put.",
           "applicationCategory": "MultimediaApplication",
-          "operatingSystem": "macOS 14 or later",
-          "processorRequirements": "Apple Silicon",
-          "author": {
-            "@type": "Person",
-            "name": "Jang-Ho Hwang",
-            "alternateName": "황장호",
-            "url": "https://xrath.com"
-          },
-          "isAccessibleForFree": true,
-          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "applicationSubCategory": "Image Editor",
+          "operatingSystem": "macOS 14.0 or later",
+          "processorRequirements": "Apple Silicon (arm64)",
+          "softwareRequirements": "macOS 14 (Sonoma) or later on Apple Silicon",
+          "softwareVersion": "0.4.0",
+          "datePublished": "2026-10-11",
+          "dateModified": "2026-11-23",
+          "releaseNotes": "https://github.com/rath/candy/releases/tag/v0.4.0",
           "downloadUrl": "https://github.com/rath/candy/releases/download/v0.4.0/Candy-0.4.0-macos-arm64.zip",
-          "screenshot": "https://candy.told.me/assets/candy-editor-en.png",
+          "installUrl": "https://candy.told.me/#get",
+          "sameAs": [
+            "https://github.com/rath/candy"
+          ],
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "isAccessibleForFree": true,
+          "inLanguage": [
+            "en",
+            "ko",
+            "ja"
+          ],
+          "author": {
+            "@id": "https://xrath.com/#person"
+          },
+          "image": {
+            "@type": "ImageObject",
+            "url": "https://candy.told.me/assets/app-icon.png",
+            "width": 256,
+            "height": 256
+          },
+          "screenshot": [
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-editor-en.png",
+              "width": 1280,
+              "height": 1100,
+              "caption": "Candy with an order page open: the error message is highlighted and the customer’s details are pixelated"
+            },
+            {
+              "@type": "ImageObject",
+              "url": "https://candy.told.me/assets/candy-browse.webp",
+              "width": 1280,
+              "height": 894,
+              "caption": "candy browse in a terminal window, showing a folder of tarot cards as a grid of thumbnails with one card selected"
+            }
+          ],
+          "featureList": [
+            "Translucent highlighter with adjustable color, width, and opacity",
+            "Region mosaic pixelation with adjustable block size",
+            "On-device Apple Vision text detection and text mosaic (English, Korean, Japanese)",
+            "Rectangular crop and extraction into a new tab",
+            "Aspect-locked or exact resize and 90-degree rotation",
+            "Transparency flattening onto a solid color",
+            "Full-resolution pixel eyedropper with 11x11 magnifying loupe and hex/RGB copy",
+            "Non-destructive original file protection on first save",
+            "Export quality controls for JPEG, HEIC, AVIF, JPEG 2000, and lossless or lossy WebP",
+            "Inline Kitty terminal image previews and candy browse directory browser in Ghostty, kitty, and tmux",
+            "CLI commands sharing the same Rust image engine (inspect, crop, resize, rotate, mosaic, flatten, edit)"
+          ],
           "offers": {
             "@type": "Offer",
             "price": "0",
-            "priceCurrency": "USD"
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
+          }
+        },
+        {
+          "@type": "SoftwareSourceCode",
+          "@id": "https://candy.told.me/#source",
+          "name": "Candy",
+          "url": "https://github.com/rath/candy",
+          "codeRepository": "https://github.com/rath/candy",
+          "programmingLanguage": [
+            "Swift",
+            "Rust"
+          ],
+          "runtimePlatform": "macOS 14+ (Apple Silicon)",
+          "license": "https://github.com/rath/candy/blob/main/LICENSE",
+          "author": {
+            "@id": "https://xrath.com/#person"
           },
-          "description": "A free image editor for the Mac. Highlight, mosaic, crop, resize and rotate screenshots in seconds, in the app or from the terminal. Your original stays untouched."
+          "targetProduct": {
+            "@id": "https://candy.told.me/#app"
+          }
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/#editor-demo",
+          "name": "Candy Mac Image Editor Demo",
+          "description": "Candy editing three made-up screenshots in turn: an order page, a group chat and a spreadsheet. Personal details are pixelated, the lines that matter are highlighted, and the eyedropper reads a color in the chat.",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-editor-en.png",
+          "contentUrl": "https://candy.told.me/assets/candy-demo-en.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 1100,
+          "duration": "PT26S",
+          "uploadDate": "2026-11-18T00:00:00Z",
+          "inLanguage": "en",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "VideoObject",
+          "@id": "https://candy.told.me/#browse-demo",
+          "name": "candy browse Terminal Image Browser Demo",
+          "description": "candy browse running in a terminal. A folder of tarot cards opens as a list with a preview beside it, switches to a grid of thumbnails, and shows single cards large before moving on to another folder.",
+          "thumbnailUrl": "https://candy.told.me/assets/candy-browse.webp",
+          "contentUrl": "https://candy.told.me/assets/candy-browse.mp4",
+          "encodingFormat": "video/mp4",
+          "width": 1280,
+          "height": 894,
+          "duration": "PT24S",
+          "uploadDate": "2026-11-23T00:00:00Z",
+          "inLanguage": "en",
+          "isFamilyFriendly": true
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://candy.told.me/#faq",
+          "url": "https://candy.told.me/#faq",
+          "inLanguage": "en",
+          "isPartOf": {
+            "@id": "https://candy.told.me/#webpage"
+          },
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is Candy, and how is it different from Preview or Photoshop?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Candy is a free, MIT-licensed native macOS image editor and CLI built with Swift/AppKit and Rust, with no web view. It fills the gap between Preview and Photoshop: Preview lacks pixelation mosaic, Apple Vision text mosaic, a full-resolution eyedropper, and a terminal image browser, while Photoshop is heavy and subscription-based for quick screenshot edits."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do my images or detected text ever leave my Mac?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "No. Every edit, format conversion, and Apple Vision text-region detection runs locally on your Mac with no cloud service, account, telemetry, or network request. Because mosaic is a visual effect and text detection can occasionally miss text, always review detected boxes before sharing sensitive images."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Will Candy overwrite my original image?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Not by default. In the app, the first Save always asks for a new file and protects the original path, including symlinks and hardlinks; subsequent saves update that copy. In the CLI, editing commands write to -o and only modify the input file when you explicitly pass --in-place."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Which Macs and macOS versions are supported?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Public releases require Apple Silicon and macOS 14 (Sonoma) or later, and are signed with a Developer ID and notarized by Apple. The interface follows macOS in English, Korean, and Japanese. Windows, Linux, and iOS are not supported; Intel Macs can build from source with Rust and Xcode."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Which terminals work with inline image previews and candy browse?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Automatic inline display and candy browse work in Ghostty and kitty, both directly and inside tmux with allow-passthrough enabled. In unsupported terminals, candy <file> automatically falls back to opening the native Mac app. Piped input like cat photo.png | candy is also supported."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "What are Candy’s format support and current limits?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Candy opens everything macOS Image I/O decodes (including PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD, and full-resolution camera RAW) plus SVG and SVGZ, and exports ten raster formats with quality controls. Images are edited as 8-bit sRGB up to about 64 megapixels (512 MiB input); Candy does not have layers, animation editing, or SVG export."
+              }
+            }
+          ]
         }
       ]
     }
@@ -175,7 +369,7 @@
           </figcaption>
         </figure>
       </section>
-      <section class="features wrap" aria-labelledby="features-title">
+      <section id="features" class="features wrap" aria-labelledby="features-title">
         <h2 id="features-title">Seven tools.<br />Nothing to learn.</h2>
         <div class="feature-grid">
           <article>
@@ -247,7 +441,7 @@
           <p><strong>Saves</strong> &nbsp; PNG · JPEG · HEIC · WebP · AVIF (macOS 26) · TIFF · GIF · BMP · JPEG 2000 · TGA</p>
         </div>
       </section>
-      <section class="terminal-section" aria-labelledby="terminal-title">
+      <section id="terminal" class="terminal-section" aria-labelledby="terminal-title">
         <div class="wrap terminal-grid">
           <div>
             <h2 id="terminal-title">
@@ -277,7 +471,7 @@
 <span class="comment"># Edit in the app; the shell stays free</span>
 <span class="prompt" aria-hidden="true">$ </span>candy edit photo.png</code></pre>
         </div>
-        <div class="wrap browse-grid">
+        <div id="browse" class="wrap browse-grid">
           <div>
             <h3>
               <code>ls</code> gives you names.<br /><code>candy browse</code> shows the pictures.
@@ -348,7 +542,55 @@
           </div>
         </div>
       </section>
-      <section class="changes" aria-labelledby="changes-title">
+      <section id="faq" class="faq" aria-labelledby="faq-title">
+        <div class="wrap">
+          <div class="faq-head">
+            <h2 id="faq-title">Questions</h2>
+            <p>
+              Common questions about compatibility, privacy, and how Candy handles your files.
+            </p>
+          </div>
+          <div class="faq-grid">
+            <article>
+              <h3>What is Candy, and how is it different from Preview or Photoshop?</h3>
+              <p>
+                Candy is a free, MIT-licensed native macOS image editor and CLI built with Swift/AppKit and Rust, with no web view. It fills the gap between Preview and Photoshop: Preview lacks pixelation mosaic, Apple Vision text mosaic, a full-resolution eyedropper, and a terminal image browser, while Photoshop is heavy and subscription-based for quick screenshot edits.
+              </p>
+            </article>
+            <article>
+              <h3>Do my images or detected text ever leave my Mac?</h3>
+              <p>
+                No. Every edit, format conversion, and Apple Vision text-region detection runs locally on your Mac with no cloud service, account, telemetry, or network request. Because mosaic is a visual effect and text detection can occasionally miss text, always review detected boxes before sharing sensitive images.
+              </p>
+            </article>
+            <article>
+              <h3>Will Candy overwrite my original image?</h3>
+              <p>
+                Not by default. In the app, the first Save always asks for a new file and protects the original path, including symlinks and hardlinks; subsequent saves update that copy. In the CLI, editing commands write to <code>-o</code> and only modify the input file when you explicitly pass <code>--in-place</code>.
+              </p>
+            </article>
+            <article>
+              <h3>Which Macs and macOS versions are supported?</h3>
+              <p>
+                Public releases require Apple Silicon and macOS 14 (Sonoma) or later, and are signed with a Developer ID and notarized by Apple. The interface follows macOS in English, Korean, and Japanese. Windows, Linux, and iOS are not supported; Intel Macs can build from source with Rust and Xcode.
+              </p>
+            </article>
+            <article>
+              <h3>Which terminals work with inline image previews and <code>candy browse</code>?</h3>
+              <p>
+                Automatic inline display and <code>candy browse</code> work in Ghostty and kitty, both directly and inside tmux with <code>allow-passthrough</code> enabled. In unsupported terminals, <code>candy &lt;file&gt;</code> automatically falls back to opening the native Mac app. Piped input like <code>cat photo.png | candy</code> is also supported.
+              </p>
+            </article>
+            <article>
+              <h3>What are Candy’s format support and current limits?</h3>
+              <p>
+                Candy opens everything macOS Image I/O decodes (including PNG, JPEG, WebP, HEIC, AVIF, GIF, TIFF, BMP, PSD, and full-resolution camera RAW) plus SVG and SVGZ, and exports ten raster formats with quality controls. Images are edited as 8-bit sRGB up to about 64 megapixels (512 MiB input); Candy does not have layers, animation editing, or SVG export.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+      <section id="changelog" class="changes" aria-labelledby="changes-title">
         <div class="wrap">
           <div class="changes-head">
             <h2 id="changes-title">Changelog</h2>

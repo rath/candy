@@ -107,17 +107,31 @@ There is no script for it in the repository. To record it again:
 
 Every page has localized search titles and descriptions, self-referencing
 canonical URLs, reciprocal `en` / `ko` / `ja` / `x-default` language
-alternates, and indexable robots metadata allowing large image previews.
-`robots.txt` advertises the trilingual sitemap. Update its `lastmod` dates after
-meaningful page changes.
+alternates, indexable robots metadata allowing large image, text, and video
+previews, PNG/SVG favicon and Apple Touch Icon links, and a hero poster preload
+for fast LCP. `robots.txt` explicitly permits search and AI retrieval crawlers
+and advertises the trilingual sitemap (`sitemap.xml`), which includes language
+alternates along with image and video sitemap entries. Update `lastmod` dates
+after meaningful page changes. `site/404.html` provides a `noindex` recovery
+page linking back to all three languages.
+
+For generative engines (GEO), `site/llms.txt` provides a concise summary and
+link directory at `/llms.txt` (also referenced via `<link rel="alternate"
+type="text/plain">` in each page's `<head>`), and `site/llms-full.txt` provides
+a complete, self-contained technical reference at `/llms-full.txt`. Keep both
+files aligned with the latest version, CLI reference, formats, limits, and
+release history.
 
 Open Graph and Twitter large-image cards use absolute URLs to separate
 `assets/og-en.png`, `assets/og-ko.png` and `assets/og-ja.png` images
 (1200 × 630), with localized alt text, explicit dimensions, and alternate
-locales. JSON-LD describes the website,
-each localized page, and the free macOS application. It intentionally contains
-no invented reviews or ratings. Keep platform and pricing facts in sync with
-the visible page when changing them.
+locales. JSON-LD (`@graph`) connects the `Person` author, `WebSite`, localized
+`WebPage`, `SoftwareApplication` (including `softwareVersion`, `releaseNotes`,
+`featureList`, `sameAs`, icon, and screenshots), `SoftwareSourceCode`, both
+demo `VideoObject`s, and the `FAQPage` matching each page's visible `#faq`
+section verbatim. It intentionally contains no invented reviews or ratings.
+Keep platform, pricing, version, and FAQ facts in sync with the visible page
+when changing them.
 
 ### Rebuild the social cards
 

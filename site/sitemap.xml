@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:video="http://www.google.com/schemas/sitemap-video/1.1"
+>
   <url>
     <loc>https://candy.told.me/</loc>
     <lastmod>2026-11-23</lastmod>
@@ -7,6 +12,33 @@
     <xhtml:link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <xhtml:link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-editor-en.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/og-en.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-browse.webp</image:loc>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-editor-en.png</video:thumbnail_loc>
+      <video:title>Candy Mac Image Editor Demo (Highlight, Mosaic, Text Mosaic &amp; Eyedropper)</video:title>
+      <video:description>Candy editing three sample screenshots in turn on macOS: pixelating personal details, highlighting important lines, and picking a pixel color with the magnifying eyedropper.</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-demo-en.mp4</video:content_loc>
+      <video:duration>26</video:duration>
+      <video:publication_date>2026-11-18</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-browse.webp</video:thumbnail_loc>
+      <video:title>candy browse — Terminal Image Browser in Ghostty and tmux</video:title>
+      <video:description>Browsing a folder of images directly in the terminal with candy browse, switching between a live-preview list, a thumbnail grid, and full-pane view inside Ghostty and tmux.</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-browse.mp4</video:content_loc>
+      <video:duration>24</video:duration>
+      <video:publication_date>2026-11-23</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
   </url>
   <url>
     <loc>https://candy.told.me/ko/</loc>
@@ -15,6 +47,33 @@
     <xhtml:link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <xhtml:link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-editor-ko.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/og-ko.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-browse.webp</image:loc>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-editor-ko.png</video:thumbnail_loc>
+      <video:title>Candy Mac 이미지 편집기 데모 (형광펜·모자이크·텍스트 모자이크·스포이드)</video:title>
+      <video:description>Candy로 주문 화면, 단톡방, 정산 시트 스크린샷 세 장을 편집하는 모습. 개인 정보를 모자이크로 가리고 중요한 줄에 형광펜을 긋고, 스포이드로 색을 읽습니다.</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-demo-ko.mp4</video:content_loc>
+      <video:duration>26</video:duration>
+      <video:publication_date>2026-11-18</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-browse.webp</video:thumbnail_loc>
+      <video:title>candy browse — Ghostty와 tmux에서 동작하는 터미널 이미지 브라우저</video:title>
+      <video:description>터미널에서 candy browse로 폴더의 이미지를 목록과 미리보기, 썸네일 격자, 큰 화면으로 둘러보는 데모입니다.</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-browse.mp4</video:content_loc>
+      <video:duration>24</video:duration>
+      <video:publication_date>2026-11-23</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
   </url>
   <url>
     <loc>https://candy.told.me/ja/</loc>
@@ -23,5 +82,32 @@
     <xhtml:link rel="alternate" hreflang="ko" href="https://candy.told.me/ko/" />
     <xhtml:link rel="alternate" hreflang="ja" href="https://candy.told.me/ja/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://candy.told.me/" />
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-editor-ja.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/og-ja.png</image:loc>
+    </image:image>
+    <image:image>
+      <image:loc>https://candy.told.me/assets/candy-browse.webp</image:loc>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-editor-ja.png</video:thumbnail_loc>
+      <video:title>Candy Mac画像エディタデモ（蛍光ペン・モザイク・テキストモザイク・スポイト）</video:title>
+      <video:description>Candyで注文画面、グループチャット、スプレッドシートのスクリーンショット3枚を編集する様子。個人情報をモザイクで隠し、大事な行に蛍光ペンを引き、スポイトで色を読み取ります。</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-demo-ja.mp4</video:content_loc>
+      <video:duration>26</video:duration>
+      <video:publication_date>2026-11-18</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://candy.told.me/assets/candy-browse.webp</video:thumbnail_loc>
+      <video:title>candy browse — Ghosttyとtmuxで動くターミナル画像ブラウザ</video:title>
+      <video:description>ターミナルでcandy browseを使い、フォルダの画像をリストとプレビュー、サムネールグリッド、拡大表示で見て回るデモです。</video:description>
+      <video:content_loc>https://candy.told.me/assets/candy-browse.mp4</video:content_loc>
+      <video:duration>24</video:duration>
+      <video:publication_date>2026-11-23</video:publication_date>
+      <video:family_friendly>yes</video:family_friendly>
+    </video:video>
   </url>
 </urlset>

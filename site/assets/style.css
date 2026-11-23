@@ -451,6 +451,61 @@ h3 {
 .get .text-link {
   font-size: 14px;
 }
+.faq {
+  padding-block: 72px 24px;
+}
+.faq-head {
+  margin-bottom: 40px;
+}
+.faq-head h2 {
+  margin: 0 0 12px;
+}
+.faq-head p {
+  color: var(--muted);
+  max-width: 60ch;
+  margin: 0;
+}
+.faq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px 48px;
+}
+.faq-grid article {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.faq-grid h3 {
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+.faq-grid h3 code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.faq-grid p code {
+  white-space: nowrap;
+}
+.faq-grid p {
+  color: var(--muted);
+  font-size: 15px;
+  margin: 0;
+  max-width: 52ch;
+  word-break: keep-all;
+}
+.not-found {
+  padding-block: 72px 96px;
+}
+.not-found h1 {
+  font-size: clamp(36px, 4.5vw, 56px);
+  max-width: 18ch;
+}
+.not-found p {
+  color: var(--muted);
+  font-size: 17px;
+  max-width: 52ch;
+  margin: 0;
+}
 .changes {
   padding-block: 72px 56px;
 }
@@ -644,6 +699,9 @@ footer a {
   .get-grid {
     gap: 40px;
   }
+  .faq-grid {
+    gap: 28px 36px;
+  }
   .changelog {
     gap: 28px;
   }
@@ -704,6 +762,22 @@ footer a {
   .get-grid {
     grid-template-columns: 1fr;
     gap: 26px;
+  }
+  .faq {
+    padding-block: 48px 16px;
+  }
+  .faq-head {
+    margin-bottom: 26px;
+  }
+  .faq-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .faq-grid article {
+    padding-top: 16px;
+  }
+  .faq-grid p {
+    font-size: 14px;
   }
   .changes-head {
     margin-bottom: 26px;
