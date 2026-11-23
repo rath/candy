@@ -15,7 +15,7 @@ use std::{
     subcommand_negates_reqs = true
 )]
 pub struct Cli {
-    /// Image to display, or - for stdin. Omit to read piped input or open the editor.
+    /// Image to display, directory to browse, or - for stdin. Omit to read piped input or open the editor.
     pub path: Option<PathBuf>,
     #[arg(long, value_enum, default_value = "auto")]
     pub display: Display,
@@ -30,6 +30,19 @@ pub enum Display {
 }
 #[derive(Subcommand)]
 pub enum Action {
+    /// Browse images in a directory, starting at PATH if it names an image.
+    Browse {
+        #[arg(default_value = ".")]
+        path: PathBuf,
+        #[arg(
+            long,
+            value_enum,
+            default_value = "auto",
+            value_name = "auto|kitty",
+            hide_possible_values = true
+        )]
+        display: Display,
+    },
     /// Open an image in the GUI editor and return to the shell.
     Edit { path: PathBuf },
     /// Show an image's format, dimensions, color and pixel statistics.
@@ -131,6 +144,7 @@ impl Files {
 
 pub fn run(cli: Cli) -> Result<()> {
     match cli.command {
+        Some(Action::Browse { path, display }) => crate::browse::run(&path, display),
         Some(Action::Edit { path }) => launch(Some(path)),
         Some(Action::Inspect { path, json }) => crate::inspect::run(&path, json),
         Some(Action::Resize {
@@ -197,6 +211,11 @@ fn view(path: Option<PathBuf>, display: Display) -> Result<()> {
     let input = Input::select(path, std::io::stdin().is_terminal());
     if input == Input::Editor {
         return launch(None);
+    }
+    if let Input::File(path) = &input
+        && path.is_dir()
+    {
+        return crate::browse::run(path, display);
     }
     if matches!(display, Display::Gui) {
         if let Input::File(path) = input {
@@ -271,6 +290,20 @@ fn edit(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn browser_has_its_own_display_option() {
+        assert!(
+            matches!(Cli::try_parse_from(["candy", "browse", "--display", "kitty", "dir"]).unwrap().command,
+            Some(Action::Browse { path, display: Display::Kitty }) if path == std::path::Path::new("dir"))
+        );
+        let short = Cli::try_parse_from(["candy", "--display", "kitty", "dir"]).unwrap();
+        assert!(matches!(short.display, Display::Kitty) && short.path == Some("dir".into()));
+        assert!(
+            matches!(Cli::try_parse_from(["candy", "browse"]).unwrap().command,
+            Some(Action::Browse { path, display: Display::Auto }) if path == std::path::Path::new("."))
+        );
+        assert!(Cli::try_parse_from(["candy", "edit", "--display", "kitty", "a.png"]).is_err());
+    }
     #[test]
     fn display_selects_stdin_only_when_requested_or_redirected() {
         assert_eq!(Input::select(None, true), Input::Editor);

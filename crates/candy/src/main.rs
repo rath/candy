@@ -1,3 +1,4 @@
+mod browse;
 mod cli;
 mod inspect;
 mod launcher;
