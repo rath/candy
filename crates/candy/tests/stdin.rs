@@ -35,9 +35,13 @@ fn terminal(args: &[&str], input: Option<&[u8]>, reply: Option<&[u8]>) -> Output
 }
 
 fn preview(output: &Output) -> image::RgbaImage {
+    // A signal leaves stderr empty; the status and output length tell a
+    // killed process from one that exited after writing its image.
     assert!(
         output.status.success(),
-        "{}",
+        "{:?} after {} output bytes: {}",
+        output.status,
+        output.stdout.len(),
         String::from_utf8_lossy(&output.stderr)
     );
     let text = String::from_utf8_lossy(&output.stdout);
